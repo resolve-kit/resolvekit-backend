@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.venv
+.claude
+__pycache__
+*.pyc
+node_modules
+dashboard/node_modules
+dashboard/dist
+*.egg-info
+build
+dist
+tests
+.dockerignore
+docker-compose.yml
