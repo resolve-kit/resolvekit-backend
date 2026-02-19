@@ -47,7 +47,10 @@ export default function AppConfig() {
   }, [appId]);
 
   useEffect(() => {
-    if (!config) return;
+    if (!config || !config.has_llm_api_key) {
+      setModels([]);
+      return;
+    }
     setModelsLoading(true);
     api<ModelsResponse>(`/v1/apps/${appId}/config/models?provider=${config.llm_provider}`)
       .then((res) => {
@@ -58,7 +61,7 @@ export default function AppConfig() {
         }
       })
       .finally(() => setModelsLoading(false));
-  }, [appId, config?.llm_provider]);
+  }, [appId, config?.llm_provider, config?.has_llm_api_key]);
 
   function handleProviderChange(providerId: string) {
     if (!config) return;
@@ -130,15 +133,24 @@ export default function AppConfig() {
           <div>
             <label className="block text-sm font-medium mb-1">
               LLM Model{" "}
-              {modelsLoading ? (
+              {config.has_llm_api_key && modelsLoading && (
                 <span className="text-gray-400 text-xs">(loading...)</span>
-              ) : models.length > 0 ? (
+              )}
+              {config.has_llm_api_key && !modelsLoading && models.length > 0 && (
                 <span className={`text-xs ${isDynamic ? "text-green-600" : "text-gray-400"}`}>
                   ({isDynamic ? "live" : "default list"})
                 </span>
-              ) : null}
+              )}
             </label>
-            {models.length > 0 ? (
+            {!config.has_llm_api_key ? (
+              <div className="w-full border rounded px-3 py-2 text-sm bg-gray-50 text-gray-400">
+                Add an API key below to see available models
+              </div>
+            ) : modelsLoading ? (
+              <div className="w-full border rounded px-3 py-2 text-sm bg-gray-50 text-gray-400">
+                Loading models...
+              </div>
+            ) : models.length > 0 ? (
               <select
                 value={config.llm_model}
                 onChange={(e) => setConfig({ ...config, llm_model: e.target.value })}
@@ -157,11 +169,6 @@ export default function AppConfig() {
                 placeholder="Enter model ID"
                 className="w-full border rounded px-3 py-2 text-sm"
               />
-            )}
-            {!config.has_llm_api_key && models.length === 0 && (
-              <p className="text-xs text-gray-400 mt-1">
-                Save your API key first to load models from the provider
-              </p>
             )}
           </div>
         </div>

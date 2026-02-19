@@ -53,7 +53,8 @@ async def call_llm(
         "stream": True,
     }
     if api_key:
-        kwargs["api_key"] = api_key
+        # Nexos uses "hydra <key>" auth scheme
+        kwargs["api_key"] = f"hydra {api_key}" if provider == "nexos" else api_key
 
     if provider == "nexos":
         kwargs["api_base"] = config.llm_api_base or NEXOS_DEFAULT_BASE

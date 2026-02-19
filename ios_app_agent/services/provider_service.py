@@ -65,13 +65,23 @@ async def list_models_for_provider(
     return FALLBACK_MODELS.get(provider_id, []), False
 
 
+def _auth_header(provider_id: str, api_key: str) -> str:
+    # Nexos uses "hydra <key>" scheme (not Bearer)
+    if provider_id == "nexos":
+        return f"hydra {api_key}"
+    return f"Bearer {api_key}"
+
+
 async def _fetch_models(
     provider_id: str, api_url: str, api_key: str
 ) -> list[ModelInfo]:
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.get(
             api_url,
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={
+                "Authorization": _auth_header(provider_id, api_key),
+                "Accept": "*/*",
+            },
         )
         resp.raise_for_status()
         data: dict[str, Any] = resp.json()
