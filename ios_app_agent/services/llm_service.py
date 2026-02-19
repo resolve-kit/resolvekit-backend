@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import litellm
@@ -66,3 +67,59 @@ async def call_llm(
         kwargs["tool_choice"] = "auto"
 
     return await litellm.acompletion(**kwargs)
+
+
+async def generate_tool_descriptions(
+    config: AgentConfig,
+    tool_calls: list[dict[str, Any]],
+) -> list[str]:
+    """Generate short first-person descriptions for a batch of tool calls.
+
+    Each entry in tool_calls should have keys: name, arguments, description (optional).
+    Returns a list of sentences the same length as tool_calls, falling back gracefully.
+    """
+    if not tool_calls:
+        return []
+
+    lines = []
+    for i, tc in enumerate(tool_calls, 1):
+        args_str = json.dumps(tc.get("arguments", {}))
+        fn_desc = tc.get("description", "")
+        entry = f"{i}. {tc['name']}({args_str})"
+        if fn_desc:
+            entry += f"  # {fn_desc}"
+        lines.append(entry)
+
+    prompt = (
+        "For each function call below, write one short plain-English sentence in first person "
+        "(starting with 'I will') describing what it will do for the user. "
+        "Be specific about key argument values (e.g. city name, room name). "
+        "Use no function names, no JSON, no technical jargon.\n\n"
+        + "\n".join(lines)
+        + "\n\nReply with only the numbered sentences, one per line."
+    )
+
+    try:
+        response = await call_llm(
+            config,
+            [{"role": "user", "content": prompt}],
+            tools=None,
+        )
+        text = (response.choices[0].message.content or "").strip()
+        descriptions: list[str] = []
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            # Strip leading "1. " numbering
+            if line[0].isdigit() and ". " in line:
+                line = line.split(". ", 1)[1]
+            descriptions.append(line)
+
+        # Pad to match input count
+        while len(descriptions) < len(tool_calls):
+            descriptions.append(f"I will run {tool_calls[len(descriptions)]['name']}")
+
+        return descriptions[: len(tool_calls)]
+    except Exception:
+        return [f"I will run {tc['name']}" for tc in tool_calls]

@@ -10,6 +10,7 @@ import Functions from "./pages/Functions";
 import Sessions from "./pages/Sessions";
 import ApiKeys from "./pages/ApiKeys";
 import Playbooks from "./pages/Playbooks";
+import { ToastProvider, ToastContainer } from "./components/ui";
 
 function App() {
   return (
@@ -32,6 +33,9 @@ function App() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ToastProvider>
+      <App />
+      <ToastContainer />
+    </ToastProvider>
   </StrictMode>
 );

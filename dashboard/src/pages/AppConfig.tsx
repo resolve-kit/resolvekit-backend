@@ -1,6 +1,17 @@
-import { type FormEvent, useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { api } from "../api/client";
+import {
+  AppNav,
+  Badge,
+  Button,
+  Input,
+  PageSpinner,
+  Select,
+  Spinner,
+  Textarea,
+  useToast,
+} from "../components/ui";
 
 interface Config {
   system_prompt: string;
@@ -31,19 +42,39 @@ interface ModelsResponse {
   is_dynamic: boolean;
 }
 
+function FormSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="py-6 border-b border-border last:border-0">
+      <h3 className="text-xs font-semibold text-subtle uppercase tracking-wider mb-5">
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
 export default function AppConfig() {
   const { appId } = useParams();
+  const { toast } = useToast();
   const [config, setConfig] = useState<Config | null>(null);
   const [llmApiKey, setLlmApiKey] = useState("");
-  const [saved, setSaved] = useState(false);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [isDynamic, setIsDynamic] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     api<Config>(`/v1/apps/${appId}/config`).then(setConfig);
-    api<ProviderInfo[]>(`/v1/apps/${appId}/config/providers`).then(setProviders);
+    api<ProviderInfo[]>(`/v1/apps/${appId}/config/providers`).then(
+      setProviders
+    );
   }, [appId]);
 
   useEffect(() => {
@@ -52,11 +83,16 @@ export default function AppConfig() {
       return;
     }
     setModelsLoading(true);
-    api<ModelsResponse>(`/v1/apps/${appId}/config/models?provider=${config.llm_provider}`)
+    api<ModelsResponse>(
+      `/v1/apps/${appId}/config/models?provider=${config.llm_provider}`
+    )
       .then((res) => {
         setModels(res.models);
         setIsDynamic(res.is_dynamic);
-        if (res.models.length > 0 && !res.models.some((m) => m.id === config.llm_model)) {
+        if (
+          res.models.length > 0 &&
+          !res.models.some((m) => m.id === config.llm_model)
+        ) {
           setConfig((prev) => prev && { ...prev, llm_model: res.models[0].id });
         }
       })
@@ -68,199 +104,254 @@ export default function AppConfig() {
     setConfig({
       ...config,
       llm_provider: providerId,
-      llm_api_base: providerId === "nexos" ? config.llm_api_base || "https://api.nexos.ai/v1" : null,
+      llm_api_base:
+        providerId === "nexos"
+          ? config.llm_api_base || "https://api.nexos.ai/v1"
+          : null,
     });
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!config) return;
-    const body: Record<string, unknown> = { ...config };
-    delete body.has_llm_api_key;
-    if (llmApiKey) body.llm_api_key = llmApiKey;
-    const updated = await api<Config>(`/v1/apps/${appId}/config`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
-    setConfig(updated);
-    setLlmApiKey("");
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setIsSaving(true);
+    try {
+      const body: Record<string, unknown> = { ...config };
+      delete body.has_llm_api_key;
+      if (llmApiKey) body.llm_api_key = llmApiKey;
+      const updated = await api<Config>(`/v1/apps/${appId}/config`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      setConfig(updated);
+      setLlmApiKey("");
+      toast("Configuration saved", "success");
+    } catch (err: unknown) {
+      toast(
+        err instanceof Error ? err.message : "Failed to save configuration",
+        "error"
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  if (!config) return <p>Loading...</p>;
+  if (!config) return <PageSpinner />;
 
   const showApiBaseField = config.llm_provider === "nexos";
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Link to="/apps" className="text-blue-600 hover:underline text-sm">
-          &larr; Apps
-        </Link>
-        <h1 className="text-2xl font-bold">Agent Configuration</h1>
+      <AppNav appId={appId!} />
+
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-strong">
+            Agent Configuration
+          </h1>
+          <p className="text-sm text-subtle mt-1">
+            Configure the LLM, system prompt, and runtime limits
+          </p>
+        </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-lg shadow p-6 space-y-4"
-      >
-        <div>
-          <label className="block text-sm font-medium mb-1">System Prompt</label>
-          <textarea
-            value={config.system_prompt}
-            onChange={(e) => setConfig({ ...config, system_prompt: e.target.value })}
-            rows={4}
-            className="w-full border rounded px-3 py-2 text-sm"
-          />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <div className="bg-surface border border-border rounded-xl divide-y-0">
+          {/* Agent Behavior */}
+          <FormSection title="Agent Behavior">
+            <Textarea
+              label="System Prompt"
+              value={config.system_prompt}
+              onChange={(e) =>
+                setConfig({ ...config, system_prompt: e.target.value })
+              }
+              rows={5}
+              placeholder="You are a helpful iOS app assistant..."
+            />
+          </FormSection>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">LLM Provider</label>
-            <select
-              value={config.llm_provider}
-              onChange={(e) => handleProviderChange(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm bg-white"
-            >
-              {providers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              LLM Model{" "}
-              {config.has_llm_api_key && modelsLoading && (
-                <span className="text-gray-400 text-xs">(loading...)</span>
-              )}
-              {config.has_llm_api_key && !modelsLoading && models.length > 0 && (
-                <span className={`text-xs ${isDynamic ? "text-green-600" : "text-gray-400"}`}>
-                  ({isDynamic ? "live" : "default list"})
-                </span>
-              )}
-            </label>
-            {!config.has_llm_api_key ? (
-              <div className="w-full border rounded px-3 py-2 text-sm bg-gray-50 text-gray-400">
-                Add an API key below to see available models
-              </div>
-            ) : modelsLoading ? (
-              <div className="w-full border rounded px-3 py-2 text-sm bg-gray-50 text-gray-400">
-                Loading models...
-              </div>
-            ) : models.length > 0 ? (
-              <select
-                value={config.llm_model}
-                onChange={(e) => setConfig({ ...config, llm_model: e.target.value })}
-                className="w-full border rounded px-3 py-2 text-sm bg-white"
+          {/* LLM Provider */}
+          <FormSection title="LLM Provider">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select
+                label="Provider"
+                value={config.llm_provider}
+                onChange={(e) => handleProviderChange(e.target.value)}
               >
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
-              </select>
-            ) : (
-              <input
-                value={config.llm_model}
-                onChange={(e) => setConfig({ ...config, llm_model: e.target.value })}
-                placeholder="Enter model ID"
-                className="w-full border rounded px-3 py-2 text-sm"
-              />
+              </Select>
+
+              {/* Model picker */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-subtle">
+                    Model
+                  </label>
+                  {config.has_llm_api_key && modelsLoading && (
+                    <Spinner size="sm" />
+                  )}
+                  {config.has_llm_api_key && !modelsLoading && models.length > 0 && (
+                    <Badge variant={isDynamic ? "live" : "default"}>
+                      {isDynamic ? "live" : "default list"}
+                    </Badge>
+                  )}
+                </div>
+                {!config.has_llm_api_key ? (
+                  <div className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-muted">
+                    Add an API key below to see available models
+                  </div>
+                ) : modelsLoading ? (
+                  <div className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-muted">
+                    Loading models...
+                  </div>
+                ) : models.length > 0 ? (
+                  <select
+                    value={config.llm_model}
+                    onChange={(e) =>
+                      setConfig({ ...config, llm_model: e.target.value })
+                    }
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-accent transition-colors"
+                  >
+                    {models.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={config.llm_model}
+                    onChange={(e) =>
+                      setConfig({ ...config, llm_model: e.target.value })
+                    }
+                    placeholder="Enter model ID"
+                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-accent transition-colors placeholder:text-muted"
+                  />
+                )}
+              </div>
+            </div>
+
+            {showApiBaseField && (
+              <div className="mt-4">
+                <Input
+                  label="API Base URL"
+                  value={config.llm_api_base || ""}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      llm_api_base: e.target.value || null,
+                    })
+                  }
+                  placeholder="https://api.nexos.ai/v1"
+                  mono
+                />
+              </div>
             )}
-          </div>
+
+            <div className="mt-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <label className="text-xs font-medium text-subtle">
+                  LLM API Key
+                </label>
+                {config.has_llm_api_key && (
+                  <Badge variant="active" dot>
+                    Set
+                  </Badge>
+                )}
+              </div>
+              <input
+                type="password"
+                value={llmApiKey}
+                onChange={(e) => setLlmApiKey(e.target.value)}
+                placeholder={
+                  config.has_llm_api_key
+                    ? "Enter new key to update"
+                    : "Enter API key"
+                }
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-accent transition-colors placeholder:text-muted"
+              />
+            </div>
+          </FormSection>
+
+          {/* Sampling */}
+          <FormSection title="Sampling">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Input
+                label="Temperature"
+                type="number"
+                step="0.1"
+                min="0"
+                max="2"
+                value={config.temperature}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    temperature: parseFloat(e.target.value),
+                  })
+                }
+              />
+              <Input
+                label="Max Tokens"
+                type="number"
+                value={config.max_tokens}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    max_tokens: parseInt(e.target.value),
+                  })
+                }
+              />
+              <Input
+                label="Max Tool Rounds"
+                type="number"
+                value={config.max_tool_rounds}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    max_tool_rounds: parseInt(e.target.value),
+                  })
+                }
+              />
+            </div>
+          </FormSection>
+
+          {/* Limits */}
+          <FormSection title="Limits">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Session TTL (minutes)"
+                type="number"
+                value={config.session_ttl_minutes}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    session_ttl_minutes: parseInt(e.target.value),
+                  })
+                }
+              />
+              <Input
+                label="Max Context Messages"
+                type="number"
+                value={config.max_context_messages}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    max_context_messages: parseInt(e.target.value),
+                  })
+                }
+              />
+            </div>
+          </FormSection>
         </div>
 
-        {showApiBaseField && (
-          <div>
-            <label className="block text-sm font-medium mb-1">API Base URL</label>
-            <input
-              value={config.llm_api_base || ""}
-              onChange={(e) => setConfig({ ...config, llm_api_base: e.target.value || null })}
-              placeholder="https://api.nexos.ai/v1"
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
-          </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            LLM API Key{" "}
-            {config.has_llm_api_key && <span className="text-green-600">(set)</span>}
-          </label>
-          <input
-            type="password"
-            value={llmApiKey}
-            onChange={(e) => setLlmApiKey(e.target.value)}
-            placeholder="Enter new key to update"
-            className="w-full border rounded px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Temperature</label>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="2"
-              value={config.temperature}
-              onChange={(e) => setConfig({ ...config, temperature: parseFloat(e.target.value) })}
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Max Tokens</label>
-            <input
-              type="number"
-              value={config.max_tokens}
-              onChange={(e) => setConfig({ ...config, max_tokens: parseInt(e.target.value) })}
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Max Tool Rounds</label>
-            <input
-              type="number"
-              value={config.max_tool_rounds}
-              onChange={(e) => setConfig({ ...config, max_tool_rounds: parseInt(e.target.value) })}
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Session TTL (minutes)</label>
-            <input
-              type="number"
-              value={config.session_ttl_minutes}
-              onChange={(e) => setConfig({ ...config, session_ttl_minutes: parseInt(e.target.value) })}
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Max Context Messages</label>
-            <input
-              type="number"
-              value={config.max_context_messages}
-              onChange={(e) => setConfig({ ...config, max_context_messages: parseInt(e.target.value) })}
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
-          >
+        <div className="mt-6 flex justify-end">
+          <Button type="submit" variant="primary" size="md" loading={isSaving}>
             Save Configuration
-          </button>
-          {saved && <span className="text-green-600 text-sm">Saved!</span>}
+          </Button>
         </div>
       </form>
     </div>

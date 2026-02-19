@@ -34,6 +34,7 @@ class ToolCallRequestPayload(BaseModel):
     function_name: str
     arguments: dict[str, Any]
     timeout_seconds: int
+    human_description: str = ""
 
 
 class TurnCompletePayload(BaseModel):

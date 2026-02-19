@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api } from "../api/client";
+import {
+  AppNav,
+  Badge,
+  Button,
+  ConfirmDialog,
+  Input,
+  PageSpinner,
+  useToast,
+} from "../components/ui";
 
 interface ApiKeyInfo {
   id: string;
@@ -16,91 +25,180 @@ interface ApiKeyCreated extends ApiKeyInfo {
 
 export default function ApiKeys() {
   const { appId } = useParams();
+  const { toast } = useToast();
   const [keys, setKeys] = useState<ApiKeyInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [newLabel, setNewLabel] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
 
   useEffect(() => {
-    api<ApiKeyInfo[]>(`/v1/apps/${appId}/api-keys`).then(setKeys);
+    setIsLoading(true);
+    api<ApiKeyInfo[]>(`/v1/apps/${appId}/api-keys`)
+      .then(setKeys)
+      .finally(() => setIsLoading(false));
   }, [appId]);
 
   async function createKey() {
-    const res = await api<ApiKeyCreated>(`/v1/apps/${appId}/api-keys`, {
-      method: "POST",
-      body: JSON.stringify({ label: newLabel }),
-    });
-    setNewKey(res.raw_key);
-    setKeys([res, ...keys]);
-    setNewLabel("");
+    setIsGenerating(true);
+    try {
+      const res = await api<ApiKeyCreated>(`/v1/apps/${appId}/api-keys`, {
+        method: "POST",
+        body: JSON.stringify({ label: newLabel }),
+      });
+      setNewKey(res.raw_key);
+      setKeys([res, ...keys]);
+      setNewLabel("");
+      toast("API key generated", "success");
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : "Failed to generate key", "error");
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   async function revokeKey(id: string) {
     await api(`/v1/apps/${appId}/api-keys/${id}`, { method: "DELETE" });
     setKeys(keys.map((k) => (k.id === id ? { ...k, is_active: false } : k)));
+    toast("API key revoked", "info");
   }
+
+  async function copyKey() {
+    if (!newKey) return;
+    try {
+      await navigator.clipboard.writeText(newKey);
+      toast("Copied to clipboard!", "success");
+    } catch {
+      toast("Failed to copy", "error");
+    }
+  }
+
+  const keyToRevoke = keys.find((k) => k.id === confirmRevokeId);
+
+  if (isLoading) return <PageSpinner />;
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Link to="/apps" className="text-blue-600 hover:underline text-sm">&larr; Apps</Link>
-        <h1 className="text-2xl font-bold">API Keys</h1>
-      </div>
+      <AppNav appId={appId!} />
 
-      <div className="bg-white rounded-lg shadow p-4 mb-6 flex gap-3 items-end">
-        <div className="flex-1">
-          <label className="block text-xs text-gray-500 mb-1">Label</label>
-          <input
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            placeholder="Production key"
-            className="w-full border rounded px-3 py-2 text-sm"
-          />
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-strong">
+            API Keys
+          </h1>
+          <p className="text-sm text-subtle mt-1">
+            Manage SDK authentication keys for your iOS app
+          </p>
         </div>
-        <button
-          onClick={createKey}
-          className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
-        >
-          Generate Key
-        </button>
       </div>
 
+      {/* Generate form */}
+      <div className="bg-surface border border-border rounded-xl p-4 mb-6">
+        <h2 className="text-xs font-semibold text-subtle uppercase tracking-wider mb-3">
+          Generate New Key
+        </h2>
+        <div className="flex gap-3 items-end">
+          <div className="flex-1">
+            <Input
+              label="Label (optional)"
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="e.g. Production, TestFlight"
+              onKeyDown={(e) => e.key === "Enter" && createKey()}
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={createKey}
+            loading={isGenerating}
+          >
+            Generate Key
+          </Button>
+        </div>
+      </div>
+
+      {/* New key reveal */}
       {newKey && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <p className="text-sm font-medium text-green-800 mb-1">New API Key (shown only once):</p>
-          <code className="text-sm bg-white px-2 py-1 rounded border block break-all">{newKey}</code>
-          <button onClick={() => setNewKey(null)} className="text-sm text-green-700 mt-2 hover:underline">
-            Dismiss
-          </button>
+        <div className="bg-success-subtle border border-success-dim rounded-xl p-4 mb-6">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p className="text-sm font-semibold text-success mb-1">
+                New API Key — Copy now, shown only once
+              </p>
+              <p className="text-xs text-success/70">
+                Store this key securely. You won't be able to see it again.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 items-center">
+            <code className="flex-1 bg-canvas border border-success-dim rounded-lg px-3 py-2 text-sm font-mono text-body break-all">
+              {newKey}
+            </code>
+            <Button variant="outline" size="sm" onClick={copyKey}>
+              Copy
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setNewKey(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
         </div>
       )}
 
+      {/* Keys list */}
       <div className="space-y-2">
         {keys.map((k) => (
           <div
             key={k.id}
-            className={`bg-white rounded-lg shadow p-4 flex items-center justify-between ${
+            className={`bg-surface border border-border rounded-xl px-4 py-3 flex items-center justify-between transition-opacity ${
               !k.is_active ? "opacity-50" : ""
             }`}
           >
-            <div>
-              <span className="font-mono text-sm">{k.key_prefix}...</span>
-              {k.label && <span className="ml-2 text-sm text-gray-500">{k.label}</span>}
-              <span
-                className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
-                  k.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                }`}
-              >
-                {k.is_active ? "Active" : "Revoked"}
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="font-mono text-sm text-dim">
+                {k.key_prefix}...
               </span>
+              {k.label && (
+                <span className="text-sm text-subtle truncate">{k.label}</span>
+              )}
+              <Badge variant={k.is_active ? "active" : "revoked"} dot>
+                {k.is_active ? "Active" : "Revoked"}
+              </Badge>
             </div>
             {k.is_active && (
-              <button onClick={() => revokeKey(k.id)} className="text-sm text-red-600 hover:underline">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmRevokeId(k.id)}
+                className="flex-shrink-0 text-danger border-danger-dim hover:bg-danger-subtle"
+              >
                 Revoke
-              </button>
+              </Button>
             )}
           </div>
         ))}
+
+        {keys.length === 0 && (
+          <div className="text-center py-12 text-subtle">
+            <p className="text-sm">No API keys yet. Generate one above.</p>
+          </div>
+        )}
       </div>
+
+      <ConfirmDialog
+        open={confirmRevokeId !== null}
+        title="Revoke API Key"
+        description={`Revoke "${keyToRevoke?.label || keyToRevoke?.key_prefix}"? The iOS SDK will immediately lose access. This cannot be undone.`}
+        confirmLabel="Revoke Key"
+        confirmVariant="danger"
+        onConfirm={() => revokeKey(confirmRevokeId!)}
+        onCancel={() => setConfirmRevokeId(null)}
+      />
     </div>
   );
 }

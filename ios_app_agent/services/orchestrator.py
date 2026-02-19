@@ -14,7 +14,7 @@ from ios_app_agent.models.message import Message
 from ios_app_agent.models.playbook import Playbook, PlaybookFunction
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.services.function_service import get_function_timeout, validate_function_exists
-from ios_app_agent.services.llm_service import build_tools, call_llm
+from ios_app_agent.services.llm_service import build_tools, call_llm, generate_tool_descriptions
 from ios_app_agent.services.session_service import get_next_sequence, load_context_messages, update_activity
 
 
@@ -25,7 +25,7 @@ class MessageSender:
         raise NotImplementedError
 
     async def send_tool_call_request(
-        self, call_id: str, function_name: str, arguments: dict, timeout_seconds: int
+        self, call_id: str, function_name: str, arguments: dict, timeout_seconds: int, human_description: str = ""
     ) -> None:
         raise NotImplementedError
 
@@ -181,13 +181,30 @@ async def run_agent_loop(
             db.add(tc_msg)
             await db.commit()
 
-            # Send each tool call to iOS
+            # Pre-parse arguments and look up function descriptions for all tool calls
+            tc_infos = []
             for tc in tool_calls_data:
                 fn_name = tc["function"]["name"]
                 try:
                     arguments = json.loads(tc["function"]["arguments"])
                 except json.JSONDecodeError:
                     arguments = {}
+                fn = next((f for f in functions if f.name == fn_name), None)
+                tc_infos.append({
+                    "id": tc["id"],
+                    "name": fn_name,
+                    "arguments": arguments,
+                    "description": (fn.description_override or fn.description) if fn else "",
+                })
+
+            # Generate human-readable descriptions for all tool calls in one LLM call
+            descriptions = await generate_tool_descriptions(config, tc_infos)
+
+            # Send each tool call to iOS
+            for i, (tc, info) in enumerate(zip(tool_calls_data, tc_infos)):
+                fn_name = info["name"]
+                arguments = info["arguments"]
+                human_description = descriptions[i] if i < len(descriptions) else f"I will run {fn_name}"
 
                 if not validate_function_exists(functions, fn_name):
                     # Unknown function — synthesize error
@@ -205,7 +222,7 @@ async def run_agent_loop(
                     continue
 
                 timeout = get_function_timeout(functions, fn_name)
-                await sender.send_tool_call_request(tc["id"], fn_name, arguments, timeout)
+                await sender.send_tool_call_request(tc["id"], fn_name, arguments, timeout, human_description)
 
             # Wait for all tool results
             for tc in tool_calls_data:

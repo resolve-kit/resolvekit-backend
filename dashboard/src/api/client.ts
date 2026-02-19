@@ -26,6 +26,11 @@ export async function api<T = unknown>(
   }
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   if (res.status === 204) return undefined as T;
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = "/login";
+    throw new Error("Session expired");
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(body.detail || res.statusText);

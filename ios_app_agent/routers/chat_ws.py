@@ -38,7 +38,7 @@ class WebSocketSender(MessageSender):
         await self._send("assistant_text_delta", {"delta": delta, "accumulated": accumulated})
 
     async def send_tool_call_request(
-        self, call_id: str, function_name: str, arguments: dict, timeout_seconds: int
+        self, call_id: str, function_name: str, arguments: dict, timeout_seconds: int, human_description: str = ""
     ) -> None:
         fut: asyncio.Future = asyncio.get_event_loop().create_future()
         self._pending_results[call_id] = fut
@@ -47,6 +47,7 @@ class WebSocketSender(MessageSender):
             "function_name": function_name,
             "arguments": arguments,
             "timeout_seconds": timeout_seconds,
+            "human_description": human_description,
         })
 
     async def send_turn_complete(self, full_text: str, usage: dict | None) -> None:

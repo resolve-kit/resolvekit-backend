@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api } from "../api/client";
+import {
+  AppNav,
+  Badge,
+  Button,
+  PageSpinner,
+  Textarea,
+  useToast,
+} from "../components/ui";
 
 interface Fn {
   id: string;
@@ -14,20 +22,34 @@ interface Fn {
 
 export default function Functions() {
   const { appId } = useParams();
+  const { toast } = useToast();
   const [functions, setFunctions] = useState<Fn[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [overrideText, setOverrideText] = useState("");
+  const [openSchemas, setOpenSchemas] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    api<Fn[]>(`/v1/apps/${appId}/functions`).then(setFunctions);
+    setIsLoading(true);
+    api<Fn[]>(`/v1/apps/${appId}/functions`)
+      .then(setFunctions)
+      .finally(() => setIsLoading(false));
   }, [appId]);
 
   async function toggleActive(fn: Fn) {
-    const updated = await api<Fn>(`/v1/apps/${appId}/functions/${fn.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ is_active: !fn.is_active }),
-    });
-    setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
+    try {
+      const updated = await api<Fn>(`/v1/apps/${appId}/functions/${fn.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !fn.is_active }),
+      });
+      setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
+      toast(
+        `${fn.name} ${updated.is_active ? "activated" : "deactivated"}`,
+        "success"
+      );
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : "Failed to update function", "error");
+    }
   }
 
   function startEditOverride(fn: Fn) {
@@ -36,114 +58,160 @@ export default function Functions() {
   }
 
   async function saveOverride(fn: Fn) {
-    const updated = await api<Fn>(`/v1/apps/${appId}/functions/${fn.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ description_override: overrideText || null }),
-    });
-    setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
-    setEditingId(null);
+    try {
+      const updated = await api<Fn>(`/v1/apps/${appId}/functions/${fn.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ description_override: overrideText || null }),
+      });
+      setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
+      setEditingId(null);
+      toast("Description override saved", "success");
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : "Failed to save override", "error");
+    }
   }
 
   async function clearOverride(fn: Fn) {
-    const updated = await api<Fn>(`/v1/apps/${appId}/functions/${fn.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ description_override: null }),
-    });
-    setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
-    setEditingId(null);
+    try {
+      const updated = await api<Fn>(`/v1/apps/${appId}/functions/${fn.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ description_override: null }),
+      });
+      setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
+      setEditingId(null);
+      toast("Override cleared", "info");
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : "Failed to clear override", "error");
+    }
   }
+
+  function toggleSchema(id: string) {
+    setOpenSchemas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  if (isLoading) return <PageSpinner />;
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Link to="/apps" className="text-blue-600 hover:underline text-sm">&larr; Apps</Link>
-        <h1 className="text-2xl font-bold">Registered Functions</h1>
+      <AppNav appId={appId!} />
+
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-strong">
+            Registered Functions
+          </h1>
+          <p className="text-sm text-subtle mt-1">
+            Functions registered by the iOS SDK. Toggle visibility and override descriptions.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-3">
         {functions.map((fn) => (
           <div
             key={fn.id}
-            className={`bg-white rounded-lg shadow p-4 ${!fn.is_active ? "opacity-50" : ""}`}
+            className={`bg-surface border border-border rounded-xl p-4 transition-opacity ${
+              !fn.is_active ? "opacity-50" : ""
+            }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h2 className="font-mono font-medium">{fn.name}</h2>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${
-                    fn.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {fn.is_active ? "Active" : "Inactive"}
-                </span>
+            {/* Header row */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-accent-subtle border border-accent-dim flex items-center justify-center flex-shrink-0">
+                  <span className="text-accent text-xs font-mono font-medium">fn</span>
+                </div>
+                <div>
+                  <span className="font-mono text-sm font-medium text-strong">
+                    {fn.name}
+                  </span>
+                  <span className="ml-2.5">
+                    <Badge variant={fn.is_active ? "active" : "inactive"} dot>
+                      {fn.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  </span>
+                </div>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => toggleActive(fn)}
-                className="text-sm text-blue-600 hover:underline"
               >
                 {fn.is_active ? "Deactivate" : "Activate"}
-              </button>
+              </Button>
             </div>
 
-            {/* Description section */}
-            <div className="mb-2">
-              <p className="text-xs text-gray-400 mb-1">SDK Description:</p>
-              <p className="text-sm text-gray-600">{fn.description}</p>
+            {/* SDK description */}
+            <div className="mb-3">
+              <p className="text-xs text-muted uppercase tracking-wider mb-1">
+                SDK Description
+              </p>
+              <p className="text-sm text-dim">{fn.description}</p>
             </div>
 
             {/* Override section */}
             {editingId === fn.id ? (
-              <div className="mb-2 border rounded p-3 bg-gray-50">
-                <label className="block text-xs text-gray-500 mb-1">LLM Description Override:</label>
-                <textarea
+              <div className="bg-surface-2 border border-border rounded-lg p-3 mb-3">
+                <Textarea
+                  label="LLM Description Override"
                   value={overrideText}
                   onChange={(e) => setOverrideText(e.target.value)}
-                  className="w-full border rounded px-3 py-2 text-sm"
                   rows={3}
                   placeholder="Override the description the LLM sees..."
                 />
-                <div className="flex gap-2 mt-2">
-                  <button
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={() => saveOverride(fn)}
-                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
                   >
                     Save
-                  </button>
+                  </Button>
                   {fn.description_override && (
-                    <button
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => clearOverride(fn)}
-                      className="text-red-600 px-3 py-1 rounded text-sm hover:underline"
                     >
-                      Clear Override
-                    </button>
+                      Clear
+                    </Button>
                   )}
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setEditingId(null)}
-                    className="text-gray-500 px-3 py-1 rounded text-sm hover:underline"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
-              <div className="mb-2">
+              <div className="mb-3">
                 {fn.description_override ? (
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <p className="text-xs text-purple-600 mb-1">LLM Override:</p>
-                      <p className="text-sm text-purple-800 bg-purple-50 rounded px-2 py-1">{fn.description_override}</p>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 bg-accent-subtle border border-accent-dim rounded-lg px-3 py-2">
+                      <p className="text-xs text-accent uppercase tracking-wider mb-1">
+                        LLM Override
+                      </p>
+                      <p className="text-sm text-body">{fn.description_override}</p>
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => startEditOverride(fn)}
-                      className="text-xs text-blue-600 hover:underline mt-3"
+                      className="mt-1"
                     >
                       Edit
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <button
                     onClick={() => startEditOverride(fn)}
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs text-accent hover:text-accent-hover transition-colors"
                   >
                     + Add description override
                   </button>
@@ -151,20 +219,47 @@ export default function Functions() {
               </div>
             )}
 
-            <div className="flex gap-4 text-xs text-gray-500">
+            {/* Footer */}
+            <div className="flex items-center gap-4 text-xs text-muted">
               <span>Timeout: {fn.timeout_seconds}s</span>
+              {Object.keys(fn.parameters_schema).length > 0 && (
+                <button
+                  onClick={() => toggleSchema(fn.id)}
+                  className="flex items-center gap-1 text-subtle hover:text-body transition-colors"
+                >
+                  <svg
+                    className={`w-3.5 h-3.5 transition-transform ${
+                      openSchemas.has(fn.id) ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                  Parameters schema
+                </button>
+              )}
             </div>
-            {Object.keys(fn.parameters_schema).length > 0 && (
-              <pre className="mt-2 bg-gray-50 rounded p-2 text-xs overflow-auto max-h-32">
+
+            {openSchemas.has(fn.id) && (
+              <pre className="mt-3 bg-canvas border border-border rounded-lg p-3 text-xs text-dim font-mono overflow-auto max-h-48">
                 {JSON.stringify(fn.parameters_schema, null, 2)}
               </pre>
             )}
           </div>
         ))}
+
         {functions.length === 0 && (
-          <p className="text-gray-500 text-center py-8">
-            No functions registered. Functions are registered by the iOS SDK.
-          </p>
+          <div className="text-center py-16 text-subtle">
+            <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
+              <span className="font-mono text-muted text-sm">fn</span>
+            </div>
+            <p className="text-sm">
+              No functions registered yet. Functions are registered by the iOS SDK.
+            </p>
+          </div>
         )}
       </div>
     </div>
