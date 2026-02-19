@@ -50,7 +50,7 @@ async def call_llm(
         "messages": messages,
         "temperature": config.temperature,
         "max_tokens": config.max_tokens,
-        "stream": True,
+        "stream": False,
     }
     if api_key:
         # Nexos uses "hydra <key>" auth scheme

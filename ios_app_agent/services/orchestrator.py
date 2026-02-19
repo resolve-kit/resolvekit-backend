@@ -120,48 +120,37 @@ async def run_agent_loop(
             else:
                 llm_messages.append({"role": msg.role, "content": msg.content or ""})
 
-        # 3. Call LLM (streaming)
+        # 3. Call LLM (non-streaming)
         try:
             response = await call_llm(config, llm_messages, tools)
         except Exception as e:
             await sender.send_error("llm_error", str(e), recoverable=True)
             return
 
-        # Process streaming response
-        accumulated_text = ""
+        # Process non-streaming response
+        choice = response.choices[0] if response.choices else None
+        message = choice.message if choice else None
+
+        accumulated_text = (message.content or "") if message else ""
         tool_calls_data: list[dict[str, Any]] = []
         usage_data = None
 
-        async for chunk in response:
-            delta = chunk.choices[0].delta if chunk.choices else None
-            if not delta:
-                continue
+        if message and message.tool_calls:
+            for tc in message.tool_calls:
+                tool_calls_data.append({
+                    "id": tc.id or "",
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name or "",
+                        "arguments": tc.function.arguments or "",
+                    },
+                })
 
-            # Text content
-            if delta.content:
-                accumulated_text += delta.content
-                await sender.send_text_delta(delta.content, accumulated_text)
-
-            # Tool calls
-            if delta.tool_calls:
-                for tc in delta.tool_calls:
-                    idx = tc.index if hasattr(tc, "index") else 0
-                    while len(tool_calls_data) <= idx:
-                        tool_calls_data.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
-                    if tc.id:
-                        tool_calls_data[idx]["id"] = tc.id
-                    if tc.function:
-                        if tc.function.name:
-                            tool_calls_data[idx]["function"]["name"] += tc.function.name
-                        if tc.function.arguments:
-                            tool_calls_data[idx]["function"]["arguments"] += tc.function.arguments
-
-            # Usage info
-            if hasattr(chunk, "usage") and chunk.usage:
-                usage_data = {
-                    "prompt_tokens": chunk.usage.prompt_tokens,
-                    "completion_tokens": chunk.usage.completion_tokens,
-                }
+        if response.usage:
+            usage_data = {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+            }
 
         # 4. If text response (no tool calls) → done
         if accumulated_text and not tool_calls_data:
