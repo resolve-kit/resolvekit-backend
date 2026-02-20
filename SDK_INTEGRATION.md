@@ -10,12 +10,13 @@
 1. [Authentication](#1-authentication)
 2. [Function Registration](#2-function-registration)
 3. [Session Management](#3-session-management)
-4. [WebSocket Chat Protocol](#4-websocket-chat-protocol)
-5. [HTTP SSE Chat (Fallback)](#5-http-sse-chat-fallback)
-6. [Orchestrator Flow](#6-orchestrator-flow)
-7. [Error Codes](#7-error-codes)
-8. [Timeouts & Reconnection](#8-timeouts--reconnection)
-9. [Complete Interaction Sequence](#9-complete-interaction-sequence)
+4. [SDK Compatibility](#4-sdk-compatibility)
+5. [WebSocket Chat Protocol](#5-websocket-chat-protocol)
+6. [HTTP SSE Chat (Fallback)](#6-http-sse-chat-fallback)
+7. [Orchestrator Flow](#7-orchestrator-flow)
+8. [Error Codes](#8-error-codes)
+9. [Timeouts & Reconnection](#9-timeouts--reconnection)
+10. [Complete Interaction Sequence](#10-complete-interaction-sequence)
 
 ---
 
@@ -95,6 +96,11 @@ Idempotent full-sync. Call on every app launch.
 | `description` | string | no | `""` | Shown to the LLM to decide when to call the function. |
 | `parameters_schema` | object | no | `{}` | JSON Schema describing the function's arguments. |
 | `timeout_seconds` | int | no | `30` | Server-enforced per-call timeout. |
+| `availability` | object | no | `{}` | Compatibility rules: `platforms`, `min_os_version`, `max_os_version`, `min_app_version`, `max_app_version`. |
+| `required_entitlements` | string[] | no | `[]` | Entitlements required in session context (for example subscription tiers). |
+| `required_capabilities` | string[] | no | `[]` | Required runtime capabilities (for example hardware/API support). |
+| `source` | string | no | `"app_inline"` | Provenance: `app_inline` or `playbook_pack`. |
+| `pack_name` | string or null | no | `null` | Optional function pack identifier. |
 
 **Behavior:**
 
@@ -126,6 +132,10 @@ Idempotent full-sync. Call on every app launch.
 
 Returns all active functions for the app. Useful for verifying registration state.
 
+### `GET /v1/functions/eligible?session_id=<uuid>`
+
+Returns only functions eligible for a given session context after compatibility + entitlement filtering.
+
 ---
 
 ## 3. Session Management
@@ -139,6 +149,17 @@ Create a new chat session.
 ```json
 {
   "device_id": "iPhone15-ABC123",
+  "client": {
+    "platform": "ios",
+    "os_name": "iOS",
+    "os_version": "18.2",
+    "app_version": "1.0.3",
+    "app_build": "103",
+    "sdk_name": "playbook-ios-sdk",
+    "sdk_version": "1.0.0"
+  },
+  "entitlements": ["pro"],
+  "capabilities": ["camera", "location"],
   "metadata": {
     "os_version": "18.2",
     "app_version": "1.0.3"
@@ -149,6 +170,9 @@ Create a new chat session.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `device_id` | string | no | `null` | Stable device identifier. |
+| `client` | object | no | `null` | Structured compatibility context (recommended). |
+| `entitlements` | string[] | no | `[]` | User/app entitlements (for paywall-aware tool access). |
+| `capabilities` | string[] | no | `[]` | Device/runtime capabilities. |
 | `metadata` | object | no | `{}` | Arbitrary key-value pairs stored with the session. |
 
 **Response:** `201 Created`
@@ -183,7 +207,32 @@ https://api.example.com → wss://api.example.com/v1/sessions/{id}/ws?api_key=ia
 
 ---
 
-## 4. WebSocket Chat Protocol
+## 4. SDK Compatibility
+
+### `GET /v1/sdk/compat`
+
+Use this before starting a session to check if the SDK version is supported.
+
+**Response:**
+
+```json
+{
+  "minimum_sdk_version": "1.0.0",
+  "supported_sdk_major_versions": [1],
+  "client_requirements": ["client.platform", "client.os_version", "client.app_version"],
+  "server_time": "2026-02-20T18:00:00.000000+00:00"
+}
+```
+
+Recommended client behavior:
+
+- Block startup if SDK major version is unsupported.
+- Block startup if SDK version is below `minimum_sdk_version`.
+- Keep backward compatibility if endpoint returns `404` (older backend).
+
+---
+
+## 5. WebSocket Chat Protocol
 
 This is the primary communication channel.
 
@@ -350,7 +399,7 @@ Response to `ping`. Empty payload.
 
 ---
 
-## 5. HTTP SSE Chat (Fallback)
+## 6. HTTP SSE Chat (Fallback)
 
 For environments where WebSocket is unavailable.
 
@@ -416,7 +465,15 @@ Content-Type: application/json
 
 ---
 
-## 6. Orchestrator Flow
+## 7. Orchestrator Flow
+
+Before each turn, the backend computes eligible tools for the current session:
+
+- Active + platform/OS/app-version compatible
+- Required entitlements present
+- Required capabilities present
+
+Only eligible tools are passed to the LLM.
 
 This is what happens inside the server after the SDK sends a `chat_message`:
 
@@ -470,7 +527,7 @@ Key details:
 
 ---
 
-## 7. Error Codes
+## 8. Error Codes
 
 | Code | Context | Recoverable | Description |
 |------|---------|-------------|-------------|
@@ -496,7 +553,7 @@ Key details:
 
 ---
 
-## 8. Timeouts & Reconnection
+## 9. Timeouts & Reconnection
 
 ### Tool call timeout
 
@@ -526,7 +583,7 @@ Default: 60 minutes of inactivity. The clock resets on every `chat_message`. Aft
 
 ---
 
-## 9. Complete Interaction Sequence
+## 10. Complete Interaction Sequence
 
 ### Typical flow (WebSocket)
 

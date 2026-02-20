@@ -23,6 +23,7 @@ dependencies = [
     "python-jose[cryptography]>=3.3",
     "email-validator>=2.3.0",
     "httpx>=0.28",
+    "packaging>=24.2",
 ]
 
 [project.optional-dependencies]

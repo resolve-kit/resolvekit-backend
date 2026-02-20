@@ -14,7 +14,7 @@ from ios_app_agent.models.agent_config import AgentConfig
 from ios_app_agent.models.api_key import ApiKey
 from ios_app_agent.models.app import App
 from ios_app_agent.models.session import ChatSession
-from ios_app_agent.services.function_service import get_active_functions
+from ios_app_agent.services.function_service import get_eligible_functions
 from ios_app_agent.services.orchestrator import MessageSender, run_agent_loop
 from ios_app_agent.services.session_service import is_session_expired
 
@@ -168,7 +168,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                         await sender.send_error("session_expired", "Session expired", recoverable=False)
                         break
 
-                    functions = await get_active_functions(db, app.id)
+                    functions = await get_eligible_functions(db, app.id, session)
 
                     # Launch agent loop as background task so the receive loop
                     # stays free to route tool_result messages back to the orchestrator

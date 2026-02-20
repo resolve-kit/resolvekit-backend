@@ -5,9 +5,22 @@ from typing import Any
 from pydantic import BaseModel
 
 
+class SessionClientInfo(BaseModel):
+    platform: str | None = None
+    os_name: str | None = None
+    os_version: str | None = None
+    app_version: str | None = None
+    app_build: str | None = None
+    sdk_name: str | None = None
+    sdk_version: str | None = None
+
+
 class SessionCreate(BaseModel):
     device_id: str | None = None
-    metadata: dict[str, str] = {}
+    metadata: dict[str, Any] = {}
+    client: SessionClientInfo | None = None
+    entitlements: list[str] = []
+    capabilities: list[str] = []
 
 
 class SessionOut(BaseModel):

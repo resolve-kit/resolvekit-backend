@@ -16,7 +16,7 @@ from ios_app_agent.models.agent_config import AgentConfig
 from ios_app_agent.models.app import App
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.schemas.ws_protocol import ToolResultPayload
-from ios_app_agent.services.function_service import get_active_functions
+from ios_app_agent.services.function_service import get_eligible_functions
 from ios_app_agent.services.orchestrator import MessageSender, run_agent_loop
 from ios_app_agent.services.session_service import is_session_expired
 
@@ -93,7 +93,7 @@ async def send_message_sse(
     if await is_session_expired(db, session, agent_config.session_ttl_minutes):
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Session expired")
 
-    functions = await get_active_functions(db, app.id)
+    functions = await get_eligible_functions(db, app.id, session)
     sender = SSESender()
 
     async def generate():

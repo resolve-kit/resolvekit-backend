@@ -23,6 +23,9 @@ class ChatSession(Base, UUIDMixin, TimestampMixin):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
+    client_context: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    entitlements: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    capabilities: Mapped[list[str]] = mapped_column(JSONB, default=list)
 
     app: Mapped["App"] = relationship(back_populates="sessions")
     messages: Mapped[list["Message"]] = relationship(back_populates="session", cascade="all, delete-orphan", order_by="Message.sequence_number")

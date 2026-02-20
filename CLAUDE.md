@@ -113,6 +113,8 @@ All backend settings use the `IAA_` prefix (set in `.env` or shell):
 | `IAA_CORS_ORIGINS` | No | JSON array of allowed origins (default: `["http://localhost:5173"]`) |
 | `IAA_JWT_EXPIRE_MINUTES` | No | JWT token lifetime (default: 1440 = 24h) |
 | `IAA_DEBUG` | No | Enable SQLAlchemy echo (default: false) |
+| `IAA_MINIMUM_SDK_VERSION` | No | Minimum SDK version allowed by `/v1/sdk/compat` (default: `1.0.0`) |
+| `IAA_SUPPORTED_SDK_MAJOR_VERSIONS` | No | JSON array of supported SDK major versions (default: `[1]`) |
 | `POSTGRES_USER` | Docker | PostgreSQL user (default: ios_app_agent) |
 | `POSTGRES_PASSWORD` | Docker | PostgreSQL password (default: postgres) |
 | `POSTGRES_DB` | Docker | PostgreSQL database name (default: ios_app_agent) |
@@ -138,6 +140,7 @@ All backend settings use the `IAA_` prefix (set in `.env` or shell):
 ### Functions — SDK (API key auth)
 - `PUT /v1/functions/bulk` — Bulk register/sync functions
 - `GET /v1/functions` — List active functions
+- `GET /v1/functions/eligible?session_id=...` — List functions eligible for a specific session context
 
 ### Functions — Dashboard (JWT)
 - `GET /v1/apps/{app_id}/functions` — List all functions
@@ -154,6 +157,9 @@ All backend settings use the `IAA_` prefix (set in `.env` or shell):
 - `GET /v1/apps/{app_id}/sessions` — List sessions
 - `GET /v1/apps/{app_id}/sessions/{id}/messages` — View message history
 
+### SDK Compatibility — SDK (API key auth)
+- `GET /v1/sdk/compat` — Returns minimum/supported SDK versions and required client context fields
+
 ## WebSocket Protocol
 
 Envelope: `{type, request_id, payload, timestamp}`
@@ -168,8 +174,24 @@ Envelope: `{type, request_id, payload, timestamp}`
 - **ApiKey** — SHA-256 hashed, prefixed `iaa_`, scoped to app
 - **AgentConfig** — one per app: system_prompt, llm_provider/model, encrypted API key, temperature, limits
 - **RegisteredFunction** — name, description, JSON Schema params, timeout, scoped to app
-- **ChatSession** — app + device_id, status (active/expired/closed), metadata
+- **RegisteredFunction** — name, description, JSON Schema params, timeout, plus compatibility metadata:
+  - `availability` (`platforms`, `min_os_version`, `max_os_version`, `min_app_version`, `max_app_version`)
+  - `required_entitlements`, `required_capabilities`
+  - `source` (`app_inline` or `playbook_pack`), `pack_name`
+- **ChatSession** — app + device_id, status (active/expired/closed), metadata, plus:
+  - `client_context` (platform, os/app/sdk versions)
+  - `entitlements`, `capabilities`
 - **Message** — role, content, tool_calls (JSONB), sequence_number
+
+## Compatibility Gating
+
+Tool availability is now filtered per session before LLM tool selection:
+
+- Platform / OS version / app version checks from function `availability`
+- Entitlement and capability checks (`required_entitlements`, `required_capabilities`)
+- Only eligible functions are sent to the LLM during chat turns (WebSocket and SSE paths)
+
+This enables feature/paywall-aware behavior (e.g. subscription-only functions) without exposing unavailable tools.
 
 ## Auth Model
 

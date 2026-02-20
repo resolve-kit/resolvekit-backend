@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ios_app_agent.config import settings
 from ios_app_agent.database import async_session_factory
-from ios_app_agent.routers import api_keys, apps, auth, chat_http, chat_ws, config, functions, playbooks, sessions
+from ios_app_agent.routers import api_keys, apps, auth, chat_http, chat_ws, config, functions, playbooks, sdk, sessions
 from ios_app_agent.services.session_service import expire_stale_sessions
 
 
@@ -69,6 +69,7 @@ app.include_router(sessions.dashboard_router)
 # Chat
 app.include_router(chat_ws.router)
 app.include_router(chat_http.router)
+app.include_router(sdk.router)
 
 
 @app.get("/health")

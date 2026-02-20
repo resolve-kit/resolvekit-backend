@@ -9,7 +9,9 @@ from ios_app_agent.middleware.auth import get_app_from_api_key, get_current_deve
 from ios_app_agent.models.app import App
 from ios_app_agent.models.developer import DeveloperAccount
 from ios_app_agent.models.function_registry import RegisteredFunction
+from ios_app_agent.models.session import ChatSession
 from ios_app_agent.schemas.function_registry import FunctionBulkSync, FunctionOut, FunctionUpdate
+from ios_app_agent.services.function_service import get_eligible_functions
 
 # SDK endpoints (API key auth)
 sdk_router = APIRouter(prefix="/v1/functions", tags=["functions-sdk"])
@@ -41,6 +43,11 @@ async def bulk_sync_functions(
             fn.description = f.description
             fn.parameters_schema = f.parameters_schema
             fn.timeout_seconds = f.timeout_seconds
+            fn.availability = f.availability
+            fn.required_entitlements = f.required_entitlements
+            fn.required_capabilities = f.required_capabilities
+            fn.source = f.source
+            fn.pack_name = f.pack_name
             fn.is_active = True
         else:
             fn = RegisteredFunction(
@@ -49,6 +56,11 @@ async def bulk_sync_functions(
                 description=f.description,
                 parameters_schema=f.parameters_schema,
                 timeout_seconds=f.timeout_seconds,
+                availability=f.availability,
+                required_entitlements=f.required_entitlements,
+                required_capabilities=f.required_capabilities,
+                source=f.source,
+                pack_name=f.pack_name,
             )
             db.add(fn)
         output.append(fn)
@@ -68,6 +80,18 @@ async def list_functions_sdk(
         select(RegisteredFunction).where(RegisteredFunction.app_id == app.id, RegisteredFunction.is_active.is_(True))
     )
     return result.scalars().all()
+
+
+@sdk_router.get("/eligible", response_model=list[FunctionOut])
+async def list_eligible_functions_sdk(
+    session_id: uuid.UUID,
+    app: App = Depends(get_app_from_api_key),
+    db: AsyncSession = Depends(get_db),
+):
+    session = await db.get(ChatSession, session_id)
+    if not session or session.app_id != app.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    return await get_eligible_functions(db, app.id, session)
 
 
 @dashboard_router.get("", response_model=list[FunctionOut])

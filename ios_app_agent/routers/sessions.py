@@ -29,6 +29,9 @@ async def create_session(
         app_id=app.id,
         device_id=body.device_id,
         metadata_=body.metadata,
+        client_context=body.client.model_dump(exclude_none=True) if body.client else {},
+        entitlements=body.entitlements,
+        capabilities=body.capabilities,
     )
     db.add(session)
     await db.commit()
