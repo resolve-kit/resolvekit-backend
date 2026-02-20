@@ -1,7 +1,10 @@
 import json
+import logging
+from dataclasses import dataclass
 from typing import Any
 
 import litellm
+from openai import AsyncOpenAI
 
 from ios_app_agent.models.agent_config import AgentConfig
 from ios_app_agent.models.function_registry import RegisteredFunction
@@ -26,6 +29,130 @@ def build_tools(functions: list[RegisteredFunction]) -> list[dict[str, Any]]:
 
 
 NEXOS_DEFAULT_BASE = "https://api.nexos.ai/v1"
+logger = logging.getLogger(__name__)
+
+
+def _normalize_api_key(raw_key: str) -> str:
+    key = raw_key.strip()
+    lower = key.lower()
+    if lower.startswith("bearer "):
+        return key[7:].strip()
+    if lower.startswith("hydra "):
+        return key[6:].strip()
+    return key
+
+
+def _content_to_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if hasattr(item, "model_dump"):
+                item = item.model_dump()
+            if isinstance(item, dict):
+                if item.get("type") == "text" and isinstance(item.get("text"), str):
+                    parts.append(item["text"])
+                elif item.get("type") == "output_text" and isinstance(item.get("text"), str):
+                    parts.append(item["text"])
+                elif isinstance(item.get("content"), str):
+                    parts.append(item["content"])
+        return "\n".join(parts)
+    return ""
+
+
+@dataclass
+class _LLMFunction:
+    name: str
+    arguments: str
+
+
+@dataclass
+class _LLMToolCall:
+    id: str
+    function: _LLMFunction
+
+
+@dataclass
+class _LLMMessage:
+    content: str
+    tool_calls: list[_LLMToolCall] | None = None
+
+
+@dataclass
+class _LLMChoice:
+    message: _LLMMessage
+
+
+@dataclass
+class _LLMUsage:
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+
+
+@dataclass
+class _LLMResponse:
+    choices: list[_LLMChoice]
+    usage: _LLMUsage | None = None
+
+
+async def _call_nexos_chat_completions(
+    config: AgentConfig,
+    model: str,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]] | None,
+    api_key: str,
+) -> _LLMResponse:
+    api_base = (config.llm_api_base or NEXOS_DEFAULT_BASE).rstrip("/")
+    client = AsyncOpenAI(
+        api_key=_normalize_api_key(api_key),
+        base_url=api_base,
+    )
+
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": config.temperature,
+        "max_tokens": config.max_tokens,
+    }
+    if tools:
+        kwargs["tools"] = tools
+        kwargs["tool_choice"] = "auto"
+
+    try:
+        response = await client.chat.completions.create(**kwargs)
+    except Exception as exc:
+        logger.warning("nexos_openai_sdk_failed base_url=%s model=%s error=%s", api_base, model, str(exc))
+        raise
+
+    choices: list[_LLMChoice] = []
+    for choice in (response.choices or []):
+        msg = choice.message
+        tool_calls: list[_LLMToolCall] = []
+        for tc in (msg.tool_calls or []):
+            tool_calls.append(
+                _LLMToolCall(
+                    id=tc.id or "",
+                    function=_LLMFunction(
+                        name=tc.function.name or "",
+                        arguments=tc.function.arguments or "",
+                    ),
+                )
+            )
+        choices.append(
+            _LLMChoice(
+                message=_LLMMessage(
+                    content=_content_to_text(msg.content),
+                    tool_calls=tool_calls or None,
+                )
+            )
+        )
+
+    usage = _LLMUsage(
+        prompt_tokens=response.usage.prompt_tokens if response.usage else None,
+        completion_tokens=response.usage.completion_tokens if response.usage else None,
+    )
+    return _LLMResponse(choices=choices, usage=usage)
 
 
 async def call_llm(
@@ -40,11 +167,13 @@ async def call_llm(
     provider = config.llm_provider
     model = config.llm_model
 
-    if provider == "nexos":
-        if "/" not in model:
-            model = f"openai/{model}"
-    elif provider and "/" not in model:
+    if provider and provider != "nexos" and "/" not in model:
         model = f"{provider}/{model}"
+
+    if provider == "nexos":
+        if not api_key:
+            raise ValueError("Nexos provider requires an API key")
+        return await _call_nexos_chat_completions(config, model, messages, tools, api_key)
 
     kwargs: dict[str, Any] = {
         "model": model,
@@ -54,12 +183,9 @@ async def call_llm(
         "stream": False,
     }
     if api_key:
-        # Nexos uses "hydra <key>" auth scheme
-        kwargs["api_key"] = f"hydra {api_key}" if provider == "nexos" else api_key
+        kwargs["api_key"] = _normalize_api_key(api_key)
 
-    if provider == "nexos":
-        kwargs["api_base"] = config.llm_api_base or NEXOS_DEFAULT_BASE
-    elif config.llm_api_base:
+    if config.llm_api_base:
         kwargs["api_base"] = config.llm_api_base
 
     if tools:

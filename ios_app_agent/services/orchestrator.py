@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -16,6 +17,8 @@ from ios_app_agent.models.session import ChatSession
 from ios_app_agent.services.function_service import get_function_timeout, validate_function_exists
 from ios_app_agent.services.llm_service import build_tools, call_llm, generate_tool_descriptions
 from ios_app_agent.services.session_service import get_next_sequence, load_context_messages, update_activity
+
+logger = logging.getLogger(__name__)
 
 
 class MessageSender:
@@ -108,7 +111,8 @@ async def run_agent_loop(
                     tool_calls.append(tc_copy)
                 llm_messages.append({
                     "role": "assistant",
-                    "content": None,
+                    # Some OpenAI-compatible gateways reject null content.
+                    "content": msg.content or "",
                     "tool_calls": tool_calls,
                 })
             elif msg.role == "tool_result":
@@ -124,7 +128,12 @@ async def run_agent_loop(
         try:
             response = await call_llm(config, llm_messages, tools)
         except Exception as e:
-            await sender.send_error("llm_error", str(e), recoverable=True)
+            logger.exception("llm_call_failed session_id=%s app_id=%s", session.id, session.app_id)
+            await sender.send_error(
+                "llm_error",
+                "Assistant is temporarily unavailable. Please try again.",
+                recoverable=True,
+            )
             return
 
         # Process non-streaming response

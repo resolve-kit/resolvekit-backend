@@ -40,6 +40,7 @@ interface ModelsResponse {
   provider: string;
   models: ModelInfo[];
   is_dynamic: boolean;
+  error?: string | null;
 }
 
 function FormSection({
@@ -68,6 +69,7 @@ export default function AppConfig() {
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [isDynamic, setIsDynamic] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -80,15 +82,18 @@ export default function AppConfig() {
   useEffect(() => {
     if (!config || !config.has_llm_api_key) {
       setModels([]);
+      setModelsError(null);
       return;
     }
     setModelsLoading(true);
+    setModelsError(null);
     api<ModelsResponse>(
       `/v1/apps/${appId}/config/models?provider=${config.llm_provider}`
     )
       .then((res) => {
         setModels(res.models);
         setIsDynamic(res.is_dynamic);
+        setModelsError(res.error ?? null);
         if (
           res.models.length > 0 &&
           !res.models.some((m) => m.id === config.llm_model)
@@ -223,14 +228,21 @@ export default function AppConfig() {
                     ))}
                   </select>
                 ) : (
-                  <input
-                    value={config.llm_model}
-                    onChange={(e) =>
-                      setConfig({ ...config, llm_model: e.target.value })
-                    }
-                    placeholder="Enter model ID"
-                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-accent transition-colors placeholder:text-muted"
-                  />
+                  <div className="space-y-2">
+                    <input
+                      value={config.llm_model}
+                      onChange={(e) =>
+                        setConfig({ ...config, llm_model: e.target.value })
+                      }
+                      placeholder="Enter model ID"
+                      className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-accent transition-colors placeholder:text-muted"
+                    />
+                    {modelsError && (
+                      <p className="text-xs text-danger">
+                        Failed to fetch live models: {modelsError}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

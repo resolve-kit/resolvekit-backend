@@ -1,4 +1,5 @@
 import re
+import logging
 from typing import Any
 
 import httpx
@@ -39,6 +40,8 @@ PROVIDER_API_URLS: dict[str, str] = {
     "nexos": "https://api.nexos.ai/v1/models",
 }
 
+logger = logging.getLogger(__name__)
+
 
 def list_providers() -> list[ProviderInfo]:
     return PROVIDERS
@@ -48,8 +51,8 @@ async def list_models_for_provider(
     provider_id: str,
     api_key: str | None = None,
     api_base: str | None = None,
-) -> tuple[list[ModelInfo], bool]:
-    """Returns (models, is_dynamic). is_dynamic=True means fetched live."""
+) -> tuple[list[ModelInfo], bool, str | None]:
+    """Returns (models, is_dynamic, error). is_dynamic=True means fetched live."""
     api_url = PROVIDER_API_URLS.get(provider_id)
     if provider_id == "nexos" and api_base:
         api_url = f"{api_base.rstrip('/')}/models"
@@ -58,33 +61,78 @@ async def list_models_for_provider(
         try:
             models = await _fetch_models(provider_id, api_url, api_key)
             if models:
-                return models, True
-        except Exception:
-            pass
+                return models, True, None
+        except Exception as exc:
+            logger.warning("model_fetch_failed provider=%s api_url=%s error=%s", provider_id, api_url, str(exc))
+            return FALLBACK_MODELS.get(provider_id, []), False, str(exc)
 
-    return FALLBACK_MODELS.get(provider_id, []), False
+    return FALLBACK_MODELS.get(provider_id, []), False, None
 
 
 def _auth_header(provider_id: str, api_key: str) -> str:
-    # Nexos uses "hydra <key>" scheme (not Bearer)
+    if api_key.lower().startswith("bearer "):
+        token = api_key[7:].strip()
+    elif api_key.lower().startswith("hydra "):
+        token = api_key[6:].strip()
+    else:
+        token = api_key.strip()
+
+    # Nexos Gateway API uses OAuth2 bearer tokens.
     if provider_id == "nexos":
-        return f"hydra {api_key}"
-    return f"Bearer {api_key}"
+        return f"Bearer {token}"
+    return f"Bearer {token}"
+
+
+def _nexos_auth_candidates(api_key: str) -> list[str]:
+    key = api_key.strip()
+    lower = key.lower()
+    if lower.startswith("bearer "):
+        token = key[7:].strip()
+    elif lower.startswith("hydra "):
+        token = key[6:].strip()
+    else:
+        token = key
+    # Support both observed schemes in the wild.
+    return [f"Bearer {token}", f"hydra {token}"]
 
 
 async def _fetch_models(
     provider_id: str, api_url: str, api_key: str
 ) -> list[ModelInfo]:
     async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(
-            api_url,
-            headers={
-                "Authorization": _auth_header(provider_id, api_key),
-                "Accept": "*/*",
-            },
-        )
-        resp.raise_for_status()
-        data: dict[str, Any] = resp.json()
+        if provider_id == "nexos":
+            last_exc: Exception | None = None
+            for auth_value in _nexos_auth_candidates(api_key):
+                try:
+                    resp = await client.get(
+                        api_url,
+                        headers={
+                            "Authorization": auth_value,
+                            "Accept": "*/*",
+                        },
+                    )
+                    resp.raise_for_status()
+                    data: dict[str, Any] = resp.json()
+                    break
+                except httpx.HTTPStatusError as exc:
+                    last_exc = exc
+                    if exc.response.status_code in {401, 403}:
+                        continue
+                    raise
+            else:
+                if last_exc:
+                    raise last_exc
+                raise RuntimeError("Failed to authenticate with Nexos models endpoint")
+        else:
+            resp = await client.get(
+                api_url,
+                headers={
+                    "Authorization": _auth_header(provider_id, api_key),
+                    "Accept": "*/*",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
 
     raw_models: list[dict[str, Any]] = data.get("data", [])
 

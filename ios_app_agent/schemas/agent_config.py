@@ -47,3 +47,4 @@ class ModelsResponse(BaseModel):
     provider: str
     models: list[ModelInfo]
     is_dynamic: bool
+    error: str | None = None

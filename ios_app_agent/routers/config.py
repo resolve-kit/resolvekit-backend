@@ -133,8 +133,8 @@ async def get_models(
     if cfg.llm_api_key_encrypted:
         api_key = decrypt(cfg.llm_api_key_encrypted)
 
-    models, is_dynamic = await list_models_for_provider(
+    models, is_dynamic, error = await list_models_for_provider(
         provider_id, api_key, cfg.llm_api_base
     )
 
-    return ModelsResponse(provider=provider_id, models=models, is_dynamic=is_dynamic)
+    return ModelsResponse(provider=provider_id, models=models, is_dynamic=is_dynamic, error=error)
