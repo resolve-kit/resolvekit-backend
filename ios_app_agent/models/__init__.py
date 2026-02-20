@@ -7,6 +7,7 @@ from ios_app_agent.models.function_registry import RegisteredFunction
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.models.message import Message
 from ios_app_agent.models.playbook import Playbook, PlaybookFunction
+from ios_app_agent.models.ws_ticket import SessionWSTicket
 
 __all__ = [
     "Base",
@@ -19,4 +20,5 @@ __all__ = [
     "Message",
     "Playbook",
     "PlaybookFunction",
+    "SessionWSTicket",
 ]

@@ -10,6 +10,16 @@ from ios_app_agent.routers import api_keys, apps, auth, chat_http, chat_ws, conf
 from ios_app_agent.services.session_service import expire_stale_sessions
 
 
+def validate_security_config() -> None:
+    if settings.debug:
+        return
+    insecure_values = {"change-me-in-production", ""}
+    if settings.jwt_secret in insecure_values:
+        raise RuntimeError("IAA_JWT_SECRET must be set to a secure non-default value")
+    if settings.encryption_key in insecure_values:
+        raise RuntimeError("IAA_ENCRYPTION_KEY must be set to a secure non-default value")
+
+
 async def session_expiry_task():
     """Background task to expire stale sessions every 5 minutes."""
     while True:
@@ -23,6 +33,7 @@ async def session_expiry_task():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    validate_security_config()
     task = asyncio.create_task(session_expiry_task())
     yield
     task.cancel()

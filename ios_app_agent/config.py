@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # Encryption key for LLM API keys at rest (Fernet)
     encryption_key: str = "change-me-in-production"
 
+    # WebSocket auth migration
+    allow_legacy_ws_api_key: bool = True
+
     # CORS
     cors_origins: list[str] = ["http://localhost:5173"]
 

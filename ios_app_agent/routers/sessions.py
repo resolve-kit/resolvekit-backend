@@ -10,7 +10,8 @@ from ios_app_agent.models.app import App
 from ios_app_agent.models.developer import DeveloperAccount
 from ios_app_agent.models.message import Message
 from ios_app_agent.models.session import ChatSession
-from ios_app_agent.schemas.session import MessageOut, SessionCreate, SessionOut
+from ios_app_agent.schemas.session import MessageOut, SessionCreate, SessionOut, SessionWSTicketOut
+from ios_app_agent.services.ws_ticket_service import issue_ws_ticket
 
 # SDK endpoints (API key auth)
 sdk_router = APIRouter(prefix="/v1/sessions", tags=["sessions-sdk"])
@@ -45,6 +46,24 @@ async def create_session(
         last_activity_at=session.last_activity_at,
         created_at=session.created_at,
         ws_url=f"/v1/sessions/{session.id}/ws",
+    )
+
+
+@sdk_router.post("/{session_id}/ws-ticket", response_model=SessionWSTicketOut)
+async def create_ws_ticket(
+    session_id: uuid.UUID,
+    app: App = Depends(get_app_from_api_key),
+    db: AsyncSession = Depends(get_db),
+):
+    session = await db.get(ChatSession, session_id)
+    if not session or session.app_id != app.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    raw_ticket, expires_at = await issue_ws_ticket(db, session, app)
+    return SessionWSTicketOut(
+        ws_url=f"/v1/sessions/{session.id}/ws",
+        ws_ticket=raw_ticket,
+        expires_at=expires_at,
     )
 
 

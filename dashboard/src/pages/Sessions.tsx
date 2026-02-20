@@ -16,7 +16,7 @@ interface Message {
   sequence_number: number;
   role: string;
   content: string | null;
-  tool_calls: Record<string, unknown> | null;
+  tool_calls: Array<Record<string, unknown>> | Record<string, unknown> | null;
   tool_call_id: string | null;
   created_at: string;
 }

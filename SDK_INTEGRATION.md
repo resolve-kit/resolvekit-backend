@@ -38,13 +38,16 @@ Authorization: Bearer iaa_<your_key>
 
 ### WebSocket
 
-Pass the key as a query parameter (WebSocket clients typically cannot set custom headers during handshake):
+WebSocket auth uses a short-lived session-bound ticket minted over authenticated HTTP.
+
+1. `POST /v1/sessions/{session_id}/ws-ticket` with `Authorization: Bearer iaa_<your_key>`
+2. Connect using returned ticket:
 
 ```
-ws://<host>/v1/sessions/{session_id}/ws?api_key=iaa_<your_key>
+ws://<host>/v1/sessions/{session_id}/ws?ticket=<ws_ticket>
 ```
 
-On auth failure the server sends an error frame and closes the socket with code `4001`.
+Tickets are single-use and expire quickly (default 60 seconds). On auth failure the server sends an error frame and closes the socket with code `4001`.
 
 ---
 
@@ -192,7 +195,21 @@ Create a new chat session.
 `ws_url` is a **relative path**. Prepend your server's base URL and swap the scheme:
 
 ```
-https://api.example.com → wss://api.example.com/v1/sessions/{id}/ws?api_key=iaa_...
+https://api.example.com → wss://api.example.com/v1/sessions/{id}/ws?ticket=<ws_ticket>
+```
+
+### `POST /v1/sessions/{session_id}/ws-ticket`
+
+Mint a short-lived, single-use WebSocket ticket for a session.
+
+**Response:**
+
+```json
+{
+  "ws_url": "/v1/sessions/550e8400-e29b-41d4-a716-446655440000/ws",
+  "ws_ticket": "<opaque ticket>",
+  "expires_at": "2026-02-20T19:00:00.000000+00:00"
+}
 ```
 
 ### Session lifecycle
@@ -239,7 +256,7 @@ This is the primary communication channel.
 ### Connection
 
 ```
-ws://<host>/v1/sessions/{session_id}/ws?api_key=iaa_<key>
+ws://<host>/v1/sessions/{session_id}/ws?ticket=<ws_ticket>
 ```
 
 ### Envelope format
@@ -596,7 +613,9 @@ SDK                                              Server
  │── POST /v1/sessions ───────────────────────────▶│  (user opens chat)
  │◀── 201 {id, ws_url, ...} ──────────────────────│
  │                                                  │
- │── WS connect ?api_key=iaa_... ─────────────────▶│
+ │── POST /v1/sessions/{id}/ws-ticket ────────────▶│
+ │◀─ ws_ticket ------------------------------------│
+ │── WS connect ?ticket=... ──────────────────────▶│
  │◀── (connection accepted) ───────────────────────│
  │                                                  │
  │── {type: "chat_message",                         │

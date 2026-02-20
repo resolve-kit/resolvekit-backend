@@ -42,7 +42,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 1. iOS SDK registers functions → `PUT /v1/functions/bulk`
 2. Developer configures agent (model, prompt, keys) via dashboard
-3. End user chats → SDK opens WebSocket to `/v1/sessions/{id}/ws`
+3. End user chats → SDK requests short-lived WS ticket then opens WebSocket to `/v1/sessions/{id}/ws?ticket=...`
 4. Backend calls LLM with tools → LLM decides function calls → sends `tool_call_request` to iOS
 5. iOS executes function locally → sends `tool_result` back
 6. Backend feeds results to LLM → streams response to iOS → `turn_complete`
@@ -115,6 +115,7 @@ All backend settings use the `IAA_` prefix (set in `.env` or shell):
 | `IAA_DEBUG` | No | Enable SQLAlchemy echo (default: false) |
 | `IAA_MINIMUM_SDK_VERSION` | No | Minimum SDK version allowed by `/v1/sdk/compat` (default: `1.0.0`) |
 | `IAA_SUPPORTED_SDK_MAJOR_VERSIONS` | No | JSON array of supported SDK major versions (default: `[1]`) |
+| `IAA_ALLOW_LEGACY_WS_API_KEY` | No | Allow deprecated `?api_key=` WS auth during migration (default: `true`) |
 | `POSTGRES_USER` | Docker | PostgreSQL user (default: ios_app_agent) |
 | `POSTGRES_PASSWORD` | Docker | PostgreSQL password (default: postgres) |
 | `POSTGRES_DB` | Docker | PostgreSQL database name (default: ios_app_agent) |
@@ -149,6 +150,7 @@ All backend settings use the `IAA_` prefix (set in `.env` or shell):
 
 ### Chat — SDK (API key auth)
 - `POST /v1/sessions` — Create session (returns ws_url)
+- `POST /v1/sessions/{id}/ws-ticket` — Mint short-lived, single-use WebSocket ticket
 - `WebSocket /v1/sessions/{id}/ws` — Primary chat channel
 - `POST /v1/sessions/{id}/messages` — HTTP SSE fallback
 - `POST /v1/sessions/{id}/tool-results` — Submit tool results (SSE mode)
@@ -197,7 +199,8 @@ This enables feature/paywall-aware behavior (e.g. subscription-only functions) w
 
 - **Dashboard (JWT):** Developer signup/login → JWT bearer token → all `/v1/apps/...` endpoints
 - **SDK (API key):** `iaa_` prefixed keys → SHA-256 hashed in DB → `Authorization: Bearer iaa_...` → `/v1/functions`, `/v1/sessions`
-- **WebSocket:** API key passed as `?api_key=` query parameter
+- **WebSocket:** short-lived session-bound ticket passed as `?ticket=` query parameter
+- **Legacy WS auth:** optional `?api_key=` fallback is controlled by `IAA_ALLOW_LEGACY_WS_API_KEY` (default `true` during migration)
 
 ## Conventions
 

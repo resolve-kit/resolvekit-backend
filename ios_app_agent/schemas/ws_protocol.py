@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 class WSEnvelope(BaseModel):
     type: str
     request_id: str | None = None
-    payload: dict[str, Any] = {}
+    payload: dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ios_app_agent.database import async_session_factory
+from ios_app_agent.config import settings
 from ios_app_agent.models.agent_config import AgentConfig
 from ios_app_agent.models.api_key import ApiKey
 from ios_app_agent.models.app import App
@@ -17,6 +18,7 @@ from ios_app_agent.models.session import ChatSession
 from ios_app_agent.services.function_service import get_eligible_functions
 from ios_app_agent.services.orchestrator import MessageSender, run_agent_loop
 from ios_app_agent.services.session_service import is_session_expired
+from ios_app_agent.services.ws_ticket_service import consume_ws_ticket
 
 router = APIRouter(tags=["chat-ws"])
 
@@ -72,7 +74,20 @@ class WebSocketSender(MessageSender):
 
 
 async def authenticate_ws(ws: WebSocket, db: AsyncSession) -> App | None:
-    # Try query param first, then first message
+    ws_ticket = ws.query_params.get("ticket")
+    session_id_raw = ws.path_params.get("session_id")
+    if ws_ticket and session_id_raw:
+        try:
+            session_id = uuid.UUID(str(session_id_raw))
+        except ValueError:
+            return None
+        app = await consume_ws_ticket(db, ws_ticket, session_id)
+        if app:
+            return app
+
+    if not settings.allow_legacy_ws_api_key:
+        return None
+
     api_key_raw = ws.query_params.get("api_key")
     if not api_key_raw:
         return None
@@ -96,7 +111,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
         # Auth
         app = await authenticate_ws(ws, db)
         if not app:
-            await ws.send_json({"type": "error", "payload": {"code": "auth_failed", "message": "Invalid API key"}})
+            await ws.send_json({"type": "error", "payload": {"code": "auth_failed", "message": "Invalid WebSocket auth ticket"}})
             await ws.close(code=4001)
             return
 

@@ -1,7 +1,6 @@
 import asyncio
 import json
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,7 +22,11 @@ from ios_app_agent.services.session_service import is_session_expired
 router = APIRouter(tags=["chat-http"])
 
 # In-memory store for pending tool results in SSE mode
-_pending_tool_results: dict[str, asyncio.Future] = {}
+_pending_tool_results: dict[tuple[str, str, str], asyncio.Future] = {}
+
+
+def _pending_key(session_id: uuid.UUID, app_id: uuid.UUID, call_id: str) -> tuple[str, str, str]:
+    return str(session_id), str(app_id), call_id
 
 
 class ChatMessageBody(BaseModel):
@@ -31,9 +34,11 @@ class ChatMessageBody(BaseModel):
 
 
 class SSESender(MessageSender):
-    def __init__(self):
+    def __init__(self, session_id: uuid.UUID, app_id: uuid.UUID):
         self._queue: asyncio.Queue = asyncio.Queue()
         self._pending: dict[str, asyncio.Future] = {}
+        self._session_id = session_id
+        self._app_id = app_id
 
     async def _push(self, event: str, data: dict) -> None:
         await self._queue.put({"event": event, "data": data})
@@ -46,7 +51,7 @@ class SSESender(MessageSender):
     ) -> None:
         fut: asyncio.Future = asyncio.get_event_loop().create_future()
         self._pending[call_id] = fut
-        _pending_tool_results[call_id] = fut
+        _pending_tool_results[_pending_key(self._session_id, self._app_id, call_id)] = fut
         await self._push("tool_call_request", {
             "call_id": call_id,
             "function_name": function_name,
@@ -71,7 +76,7 @@ class SSESender(MessageSender):
             return await asyncio.wait_for(fut, timeout=timeout)
         finally:
             self._pending.pop(call_id, None)
-            _pending_tool_results.pop(call_id, None)
+            _pending_tool_results.pop(_pending_key(self._session_id, self._app_id, call_id), None)
 
 
 @router.post("/v1/sessions/{session_id}/messages")
@@ -94,7 +99,7 @@ async def send_message_sse(
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Session expired")
 
     functions = await get_eligible_functions(db, app.id, session)
-    sender = SSESender()
+    sender = SSESender(session.id, app.id)
 
     async def generate():
         task = asyncio.create_task(run_agent_loop(db, session, agent_config, functions, body.text, sender))
@@ -119,7 +124,7 @@ async def submit_tool_result(
     body: ToolResultPayload,
     app: App = Depends(get_app_from_api_key),
 ):
-    fut = _pending_tool_results.get(body.call_id)
+    fut = _pending_tool_results.get(_pending_key(session_id, app.id, body.call_id))
     if not fut:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pending tool call with this ID")
 

@@ -1,24 +1,27 @@
 import uuid
 from datetime import datetime
+from typing import Annotated
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+FunctionSource = Annotated[str, Field(pattern=r"^(app_inline|playbook_pack)$")]
 
 
 class FunctionRegister(BaseModel):
-    name: str
-    description: str = ""
-    parameters_schema: dict[str, Any] = {}
-    timeout_seconds: int = 30
-    availability: dict[str, Any] = {}
-    required_entitlements: list[str] = []
-    required_capabilities: list[str] = []
-    source: str = "app_inline"
+    name: Annotated[str, Field(min_length=1, max_length=255)]
+    description: Annotated[str, Field(max_length=1000)] = ""
+    parameters_schema: dict[str, Any] = Field(default_factory=dict)
+    timeout_seconds: Annotated[int, Field(ge=1, le=300)] = 30
+    availability: dict[str, Any] = Field(default_factory=dict)
+    required_entitlements: list[str] = Field(default_factory=list, max_length=64)
+    required_capabilities: list[str] = Field(default_factory=list, max_length=64)
+    source: FunctionSource = "app_inline"
     pack_name: str | None = None
 
 
 class FunctionBulkSync(BaseModel):
-    functions: list[FunctionRegister]
+    functions: list[FunctionRegister] = Field(max_length=512)
 
 
 class FunctionUpdate(BaseModel):
@@ -30,7 +33,7 @@ class FunctionUpdate(BaseModel):
     availability: dict[str, Any] | None = None
     required_entitlements: list[str] | None = None
     required_capabilities: list[str] | None = None
-    source: str | None = None
+    source: FunctionSource | None = None
     pack_name: str | None = None
 
 
