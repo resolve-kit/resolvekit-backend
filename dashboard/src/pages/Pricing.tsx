@@ -7,13 +7,13 @@ const PLANS = [
     name: "Monthly",
     price: "$49",
     period: "/month + VAT",
-    description: "Flexible month-to-month billing.",
+    description: "Flexible billing for app teams launching AI support quickly.",
     features: [
       "1 organization",
       "Up to 20 team members",
-      "Unlimited apps",
-      "Organization collaboration and invitations",
-      "Dashboard controls, playbooks, and audit visibility",
+      "Unlimited apps and support assistants",
+      "Docs/FAQ-guided responses via prompts and playbooks",
+      "Tool approvals, session logs, and audit visibility",
     ],
     cta: "Choose Monthly",
     highlighted: false,
@@ -24,12 +24,12 @@ const PLANS = [
     name: "Yearly",
     price: "$399",
     period: "/year + VAT",
-    description: "Best value for long-term production teams.",
+    description: "Best value for long-term, production support operations.",
     features: [
       "Up to 20 team members",
-      "Unlimited apps",
-      "Organization collaboration and invitations",
-      "Dashboard controls, playbooks, and audit visibility",
+      "Unlimited apps and support assistants",
+      "Docs/FAQ-guided responses via prompts and playbooks",
+      "Tool approvals, session logs, and audit visibility",
       "Annual billing at discounted effective monthly rate",
     ],
     cta: "Choose Yearly",
@@ -67,10 +67,10 @@ export default function Pricing() {
         <section className="relative max-w-6xl mx-auto px-6 pt-16 pb-10">
           <p className="text-xs uppercase tracking-[0.2em] text-accent mb-4">Pricing</p>
           <h1 className="font-display text-4xl md:text-5xl font-semibold text-strong leading-tight">
-            Simple Pricing
+            Pricing for LLM App Support
           </h1>
           <p className="mt-4 text-base text-subtle max-w-2xl">
-            Same platform features with two billing cycles. VAT is added on top of listed prices.
+            Build in-app technical support with the same core feature set on monthly or annual billing. VAT is added on top of listed prices.
           </p>
         </section>
 
@@ -130,13 +130,13 @@ export default function Pricing() {
             <h3 className="text-xl font-semibold text-strong">What Every Plan Includes</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
               <div className="rounded-xl border border-border bg-canvas/40 px-4 py-3 text-sm text-subtle">
-                Provider/model configuration and secure key storage
+                iOS SDK integration with PlaybookRuntime and embedded support chat
               </div>
               <div className="rounded-xl border border-border bg-canvas/40 px-4 py-3 text-sm text-subtle">
-                Session lifecycle APIs with WebSocket ticketing
+                Function registration, tool-call orchestration, and approval workflow
               </div>
               <div className="rounded-xl border border-border bg-canvas/40 px-4 py-3 text-sm text-subtle">
-                Dashboard controls for functions, limits, and playbooks
+                Dashboard controls for prompts, playbooks, limits, and organization teams
               </div>
             </div>
           </div>

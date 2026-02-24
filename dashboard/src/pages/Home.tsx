@@ -4,27 +4,27 @@ import { Button } from "../components/ui";
 
 const VALUE_POINTS = [
   {
-    title: "Multi-App Control Plane",
+    title: "Embedded Support Chat",
     description:
-      "Configure LLM behavior, limits, tools, API keys, and auditing across every app in one backend.",
+      "Drop PlaybookChatView into your app and ship a production-ready troubleshooting chat with streaming responses and tool approval flow.",
   },
   {
-    title: "Team Organization Workflows",
+    title: "Docs + FAQ-Grounded Answers",
     description:
-      "Use organizations, invitations, and role-based access so product teams can work on the same apps safely.",
+      "Configure prompts and playbooks so the assistant answers from your documentation, FAQ content, and internal support runbooks.",
   },
   {
-    title: "Production Session Infrastructure",
+    title: "SDK-Driven Fix Actions",
     description:
-      "Run managed chat sessions, WebSocket tickets, and observability with policy controls for enterprise deployments.",
+      "Developers only define callable `@Playbook` functions. The SDK handles schema generation, registration, dispatch, and session plumbing.",
   },
 ];
 
 const PLATFORM_STEPS = [
-  "Create your organization and app workspace",
-  "Connect your model/provider and set governance limits",
-  "Register callable functions and playbooks",
-  "Ship SDK-connected experiences with audit visibility",
+  "Install the playbook-ios-sdk and mount PlaybookChatView in your app",
+  "Define troubleshooting actions with @Playbook perform() functions",
+  "Configure support behavior, docs context, and guardrails in the dashboard",
+  "Launch in-app support with session logs, tool approvals, and team controls",
 ];
 
 export default function Home() {
@@ -56,18 +56,18 @@ export default function Home() {
           <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16">
             <div className="max-w-3xl animate-fade-in-up">
               <p className="text-xs uppercase tracking-[0.2em] text-accent mb-4">
-                iOS App Agent Platform
+                LLM Troubleshooter Platform
               </p>
               <h1 className="font-display text-4xl md:text-6xl font-semibold text-strong leading-[1.05]">
-                Backend Platform for Production AI App Teams
+                Turn Your App Into a Self-Serve Support Agent
               </h1>
               <p className="mt-5 text-base md:text-lg text-subtle max-w-2xl">
-                Playbook is the control layer for shipping AI-powered mobile apps: configure model behavior,
-                register tools, enforce limits, and collaborate across teams under one secure organization.
+                Playbook gives product teams an in-app LLM support assistant: users ask technical questions,
+                get answers grounded in your docs and FAQs, and can trigger safe fix actions exposed through your SDK functions.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/login">
-                  <Button size="md">Start Building</Button>
+                  <Button size="md">Build Your Support Agent</Button>
                 </Link>
                 <Link to="/pricing">
                   <Button variant="outline" size="md">View Pricing</Button>
@@ -103,7 +103,7 @@ export default function Home() {
               ))}
             </div>
             <div className="mt-6 pt-6 border-t border-border flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-subtle">Need pricing for your team size and volume profile?</p>
+              <p className="text-sm text-subtle">Launch with one SDK integration and scale support across your apps.</p>
               <Link to="/pricing">
                 <Button variant="outline" size="sm">Go To Pricing</Button>
               </Link>

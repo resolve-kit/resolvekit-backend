@@ -117,7 +117,7 @@ export default function Login() {
                 ? signupIntent === "create-org"
                   ? "Create your organization and define the organization ID to share with your team"
                   : "Create your account first, then accept your invitation in Organization Admin"
-                : "Sign in to your dashboard"}
+                : "Sign in to manage your in-app AI support platform"}
             </p>
           </div>
 
