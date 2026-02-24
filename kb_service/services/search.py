@@ -48,7 +48,6 @@ async def search_chunks(
     query: str,
     limit: int,
 ) -> list[dict[str, Any]]:
-    del organization_id  # Reserved for future organization-level enforcement inside service layer.
     query_tokens = _tokens(query)
     query_embedding_list = await embed_texts(db, organization_id, [query])
     query_embedding = query_embedding_list[0] if query_embedding_list else []

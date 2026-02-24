@@ -47,8 +47,8 @@ services:
       KBS_SERVICE_JWT_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       KBS_SERVICE_JWT_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       KBS_ENCRYPTION_KEY: ${KBS_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
-    ports:
-      - "8100:8100"
+    expose:
+      - "8100"
 
   backend:
     build: .

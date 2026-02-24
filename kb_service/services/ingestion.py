@@ -57,6 +57,29 @@ async def _materialize_source_documents(source: KnowledgeSource) -> list[Crawled
     return await crawl_site(canonicalize_url(source.input_url))
 
 
+def deduplicate_pages_by_hash(
+    pages: list[CrawledPage],
+    *,
+    existing_hashes: set[str] | None = None,
+) -> tuple[list[tuple[CrawledPage, str]], int]:
+    seen_hashes = set(existing_hashes or set())
+    deduped_pages: list[tuple[CrawledPage, str]] = []
+    skipped_duplicates = 0
+
+    for page in pages:
+        markdown = page.content_markdown.strip()
+        if not markdown:
+            continue
+        content_hash = _hash_content(markdown)
+        if content_hash in seen_hashes:
+            skipped_duplicates += 1
+            continue
+        seen_hashes.add(content_hash)
+        deduped_pages.append((page, content_hash))
+
+    return deduped_pages, skipped_duplicates
+
+
 async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) -> None:
     if not job.source_id:
         raise ValueError("Ingestion job missing source")
@@ -77,19 +100,32 @@ async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) ->
         await db.execute(delete(KnowledgeDocument).where(KnowledgeDocument.id.in_(existing_doc_ids)))
         await db.flush()
 
+    existing_hashes_result = await db.execute(
+        select(KnowledgeDocument.content_hash).where(
+            KnowledgeDocument.knowledge_base_id == job.knowledge_base_id
+        )
+    )
+    existing_hashes = {
+        content_hash
+        for content_hash in existing_hashes_result.scalars().all()
+        if isinstance(content_hash, str)
+    }
+    deduplicated_pages, skipped_duplicates = deduplicate_pages_by_hash(
+        pages,
+        existing_hashes=existing_hashes,
+    )
+
     total_chunks = 0
     total_docs = 0
-    for page in pages:
+    for page, content_hash in deduplicated_pages:
         markdown = page.content_markdown.strip()
-        if not markdown:
-            continue
         doc = KnowledgeDocument(
             knowledge_base_id=job.knowledge_base_id,
             source_id=source.id,
             canonical_url=page.url,
             title=page.title[:255] if page.title else None,
             content_markdown=markdown,
-            content_hash=_hash_content(markdown),
+            content_hash=content_hash,
             metadata_json={"source_type": source.source_type},
         )
         db.add(doc)
@@ -117,7 +153,11 @@ async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) ->
     source.status = "ready"
     source.last_crawled_at = datetime.now(timezone.utc)
     source.last_error = None
-    job.stats_json = {"documents": total_docs, "chunks": total_chunks}
+    job.stats_json = {
+        "documents": total_docs,
+        "chunks": total_chunks,
+        "duplicates_skipped": skipped_duplicates,
+    }
 
 
 async def enqueue_ingestion_job(

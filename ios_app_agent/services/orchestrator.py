@@ -71,6 +71,42 @@ async def _load_kb_assignment_context(
     return app.organization_id, kb_ids
 
 
+async def execute_internal_kb_tool_call(
+    *,
+    session_id: uuid.UUID,
+    app_org_id: uuid.UUID | None,
+    assigned_kb_ids: list[uuid.UUID],
+    arguments: dict[str, Any],
+) -> dict[str, Any]:
+    query = str(arguments.get("query", "")).strip()
+    top_k_raw = arguments.get("top_k", 5)
+    try:
+        top_k = max(1, min(20, int(top_k_raw)))
+    except (TypeError, ValueError):
+        top_k = 5
+
+    if not query:
+        return {"error": "query is required"}
+    if not assigned_kb_ids or app_org_id is None:
+        return {"error": "No knowledge bases are assigned to this app"}
+
+    try:
+        search_result = await search_multiple_knowledge_bases(
+            org_id=app_org_id,
+            actor_id=f"session:{session_id}",
+            actor_role="system",
+            kb_ids=assigned_kb_ids,
+            query=query,
+            limit=top_k,
+        )
+        return {
+            "query": query,
+            "items": search_result.get("items", []),
+        }
+    except KBServiceError as exc:
+        return {"error": exc.detail}
+
+
 class MessageSender:
     """Interface for sending messages to the client (WebSocket or SSE)."""
 
@@ -266,33 +302,12 @@ async def run_agent_loop(
             for info in tc_infos:
                 if not info["is_kb_internal"]:
                     continue
-                query = str(info["arguments"].get("query", "")).strip()
-                top_k_raw = info["arguments"].get("top_k", 5)
-                try:
-                    top_k = max(1, min(20, int(top_k_raw)))
-                except (TypeError, ValueError):
-                    top_k = 5
-
-                if not query:
-                    kb_payload: dict[str, Any] = {"error": "query is required"}
-                elif not assigned_kb_ids or app_org_id is None:
-                    kb_payload = {"error": "No knowledge bases are assigned to this app"}
-                else:
-                    try:
-                        search_result = await search_multiple_knowledge_bases(
-                            org_id=app_org_id,
-                            actor_id=f"session:{session.id}",
-                            actor_role="system",
-                            kb_ids=assigned_kb_ids,
-                            query=query,
-                            limit=top_k,
-                        )
-                        kb_payload = {
-                            "query": query,
-                            "items": search_result.get("items", []),
-                        }
-                    except KBServiceError as exc:
-                        kb_payload = {"error": exc.detail}
+                kb_payload = await execute_internal_kb_tool_call(
+                    session_id=session.id,
+                    app_org_id=app_org_id,
+                    assigned_kb_ids=assigned_kb_ids,
+                    arguments=info["arguments"],
+                )
 
                 seq = await get_next_sequence(db, session.id)
                 result_msg = Message(
