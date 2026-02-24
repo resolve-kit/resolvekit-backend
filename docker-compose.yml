@@ -16,15 +16,54 @@ services:
       timeout: 3s
       retries: 5
 
+  kb-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ios_app_agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${KBS_POSTGRES_DB:-kb_service}
+    volumes:
+      - ./data/kb-postgres:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ios_app_agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  kb-service:
+    build:
+      context: .
+      dockerfile: kb_service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      kb-db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      KBS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ios_app_agent}:${POSTGRES_PASSWORD:-postgres}@kb-db:5432/${KBS_POSTGRES_DB:-kb_service}
+      KBS_SERVICE_JWT_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      KBS_SERVICE_JWT_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      KBS_ENCRYPTION_KEY: ${KBS_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+    ports:
+      - "8100:8100"
+
   backend:
     build: .
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      kb-service:
+        condition: service_started
     env_file: .env
     environment:
       IAA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ios_app_agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-ios_app_agent}
+      IAA_KB_SERVICE_BASE_URL: http://kb-service:8100
+      IAA_KB_SERVICE_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      IAA_KB_SERVICE_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
     ports:
       - "8000:8000"
 
@@ -35,4 +74,3 @@ services:
       - backend
     ports:
       - "3000:80"
-

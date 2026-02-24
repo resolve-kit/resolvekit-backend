@@ -15,6 +15,7 @@ from ios_app_agent.routers import (
     chat_ws,
     config,
     functions,
+    knowledge_bases,
     organizations,
     playbooks,
     sdk,
@@ -80,6 +81,7 @@ app.include_router(apps.router)
 app.include_router(api_keys.router)
 app.include_router(config.router)
 app.include_router(audit.router)
+app.include_router(knowledge_bases.router)
 
 # Function management
 app.include_router(functions.sdk_router)

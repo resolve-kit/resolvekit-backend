@@ -28,5 +28,13 @@ class Settings(BaseSettings):
     minimum_sdk_version: str = "1.0.0"
     supported_sdk_major_versions: list[int] = [1]
 
+    # Knowledge base microservice
+    kb_service_base_url: str = "http://kb-service:8100"
+    kb_service_audience: str = "kb-service"
+    kb_service_signing_key: str = "change-me-kb-service-signing-key"
+    kb_service_jwt_algorithm: str = "HS256"
+    kb_service_timeout_seconds: float = 20.0
+    kb_service_connect_timeout_seconds: float = 5.0
+
 
 settings = Settings()

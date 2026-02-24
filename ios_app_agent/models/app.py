@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ios_app_agent.models.base import Base, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
+    from ios_app_agent.models.app_knowledge_base import AppKnowledgeBase
     from ios_app_agent.models.agent_config import AgentConfig
     from ios_app_agent.models.api_key import ApiKey
     from ios_app_agent.models.developer import DeveloperAccount
@@ -32,3 +33,7 @@ class App(Base, UUIDMixin, TimestampMixin):
     functions: Mapped[list["RegisteredFunction"]] = relationship(back_populates="app", cascade="all, delete-orphan")
     playbooks: Mapped[list["Playbook"]] = relationship(back_populates="app", cascade="all, delete-orphan")
     sessions: Mapped[list["ChatSession"]] = relationship(back_populates="app", cascade="all, delete-orphan")
+    knowledge_base_assignments: Mapped[list["AppKnowledgeBase"]] = relationship(
+        back_populates="app",
+        cascade="all, delete-orphan",
+    )

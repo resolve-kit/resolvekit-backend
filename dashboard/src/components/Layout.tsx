@@ -50,6 +50,16 @@ export default function Layout() {
               Apps
             </Link>
             <Link
+              to="/knowledge-bases"
+              className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                location.pathname.startsWith("/knowledge-bases")
+                  ? "bg-accent-subtle text-accent border border-accent-dim"
+                  : "text-subtle hover:text-body border border-transparent hover:border-border"
+              }`}
+            >
+              Knowledge Bases
+            </Link>
+            <Link
               to="/organization"
               className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
                 location.pathname.startsWith("/organization")

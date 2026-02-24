@@ -5,7 +5,7 @@ import { Button } from "../components/ui";
 const PLANS = [
   {
     name: "Monthly",
-    price: "$49",
+    price: "€20",
     period: "/month + VAT",
     description: "Flexible billing for app teams launching AI support quickly.",
     features: [
@@ -22,7 +22,7 @@ const PLANS = [
   },
   {
     name: "Yearly",
-    price: "$399",
+    price: "€200",
     period: "/year + VAT",
     description: "Best value for long-term, production support operations.",
     features: [
@@ -34,8 +34,8 @@ const PLANS = [
     ],
     cta: "Choose Yearly",
     highlighted: true,
-    originalPrice: "$588",
-    savingsLabel: "Save $189/year (32%)",
+    originalPrice: "€240",
+    savingsLabel: "Save €40/year (17%)",
   },
 ];
 

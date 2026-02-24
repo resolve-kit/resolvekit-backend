@@ -10,15 +10,65 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ios_app_agent.models.agent_config import AgentConfig
+from ios_app_agent.models.app import App
+from ios_app_agent.models.app_knowledge_base import AppKnowledgeBase
 from ios_app_agent.models.function_registry import RegisteredFunction
+from ios_app_agent.models.knowledge_base_ref import KnowledgeBaseRef
 from ios_app_agent.models.message import Message
 from ios_app_agent.models.playbook import Playbook, PlaybookFunction
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.services.function_service import get_function_timeout, validate_function_exists
+from ios_app_agent.services.kb_service_client import KBServiceError, search_multiple_knowledge_bases
 from ios_app_agent.services.llm_service import build_tools, call_llm, generate_tool_descriptions
 from ios_app_agent.services.session_service import get_next_sequence, load_context_messages, update_activity
 
 logger = logging.getLogger(__name__)
+
+KB_SEARCH_TOOL_NAME = "kb_search"
+
+
+def _build_kb_search_tool() -> dict[str, Any]:
+    return {
+        "type": "function",
+        "function": {
+            "name": KB_SEARCH_TOOL_NAME,
+            "description": (
+                "Search assigned knowledge bases for support documentation, troubleshooting steps, "
+                "FAQ answers, and reference snippets."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "top_k": {"type": "integer"},
+                },
+                "required": ["query"],
+            },
+        },
+    }
+
+
+async def _load_kb_assignment_context(
+    db: AsyncSession,
+    app_id: uuid.UUID,
+) -> tuple[uuid.UUID | None, list[uuid.UUID]]:
+    app_result = await db.execute(select(App).where(App.id == app_id))
+    app = app_result.scalar_one_or_none()
+    if app is None:
+        return None, []
+
+    kb_result = await db.execute(
+        select(KnowledgeBaseRef.external_kb_id)
+        .join(AppKnowledgeBase, AppKnowledgeBase.knowledge_base_ref_id == KnowledgeBaseRef.id)
+        .where(AppKnowledgeBase.app_id == app_id)
+    )
+    kb_ids: list[uuid.UUID] = []
+    for raw_id in kb_result.scalars().all():
+        try:
+            kb_ids.append(uuid.UUID(str(raw_id)))
+        except ValueError:
+            continue
+    return app.organization_id, kb_ids
 
 
 class MessageSender:
@@ -91,7 +141,12 @@ async def run_agent_loop(
     await update_activity(db, session.id)
 
     # 2. Build context
-    tools = build_tools(functions) if functions else None
+    sdk_tools = build_tools(functions) if functions else []
+    app_org_id, assigned_kb_ids = await _load_kb_assignment_context(db, session.app_id)
+    tools = list(sdk_tools)
+    if assigned_kb_ids:
+        tools.append(_build_kb_search_tool())
+    tools_payload = tools or None
     tool_round = 0
     playbook_prompt = await build_playbook_prompt(db, session.app_id)
 
@@ -126,7 +181,7 @@ async def run_agent_loop(
 
         # 3. Call LLM (non-streaming)
         try:
-            response = await call_llm(config, llm_messages, tools)
+            response = await call_llm(config, llm_messages, tools_payload)
         except Exception as e:
             logger.exception("llm_call_failed session_id=%s app_id=%s", session.id, session.app_id)
             await sender.send_error(
@@ -204,26 +259,69 @@ async def run_agent_loop(
                     "name": fn_name,
                     "arguments": arguments,
                     "description": (fn.description_override or fn.description) if fn else "",
+                    "is_kb_internal": fn_name == KB_SEARCH_TOOL_NAME,
                 })
 
-            # Generate human-readable descriptions for all tool calls in one LLM call
-            descriptions = await generate_tool_descriptions(config, tc_infos)
+            # 5a. Execute internal KB tools server-side.
+            for info in tc_infos:
+                if not info["is_kb_internal"]:
+                    continue
+                query = str(info["arguments"].get("query", "")).strip()
+                top_k_raw = info["arguments"].get("top_k", 5)
+                try:
+                    top_k = max(1, min(20, int(top_k_raw)))
+                except (TypeError, ValueError):
+                    top_k = 5
 
-            # Send each tool call to iOS
-            for i, (tc, info) in enumerate(zip(tool_calls_data, tc_infos)):
+                if not query:
+                    kb_payload: dict[str, Any] = {"error": "query is required"}
+                elif not assigned_kb_ids or app_org_id is None:
+                    kb_payload = {"error": "No knowledge bases are assigned to this app"}
+                else:
+                    try:
+                        search_result = await search_multiple_knowledge_bases(
+                            org_id=app_org_id,
+                            actor_id=f"session:{session.id}",
+                            actor_role="system",
+                            kb_ids=assigned_kb_ids,
+                            query=query,
+                            limit=top_k,
+                        )
+                        kb_payload = {
+                            "query": query,
+                            "items": search_result.get("items", []),
+                        }
+                    except KBServiceError as exc:
+                        kb_payload = {"error": exc.detail}
+
+                seq = await get_next_sequence(db, session.id)
+                result_msg = Message(
+                    session_id=session.id,
+                    sequence_number=seq,
+                    role="tool_result",
+                    tool_call_id=info["id"],
+                    content=json.dumps(kb_payload),
+                )
+                db.add(result_msg)
+                await db.commit()
+
+            # 5b. Send SDK function tools to iOS
+            sdk_tc_infos = [info for info in tc_infos if not info["is_kb_internal"]]
+            descriptions = await generate_tool_descriptions(config, sdk_tc_infos) if sdk_tc_infos else []
+
+            for i, info in enumerate(sdk_tc_infos):
                 fn_name = info["name"]
                 arguments = info["arguments"]
                 human_description = descriptions[i] if i < len(descriptions) else f"I will run {fn_name}"
 
                 if not validate_function_exists(functions, fn_name):
-                    # Unknown function — synthesize error
                     available = [f.name for f in functions if f.is_active]
                     seq = await get_next_sequence(db, session.id)
                     err_msg = Message(
                         session_id=session.id,
                         sequence_number=seq,
                         role="tool_result",
-                        tool_call_id=tc["id"],
+                        tool_call_id=info["id"],
                         content=json.dumps({"error": f"Unknown function '{fn_name}'. Available: {available}"}),
                     )
                     db.add(err_msg)
@@ -231,20 +329,19 @@ async def run_agent_loop(
                     continue
 
                 timeout = get_function_timeout(functions, fn_name)
-                await sender.send_tool_call_request(tc["id"], fn_name, arguments, timeout, human_description)
+                await sender.send_tool_call_request(info["id"], fn_name, arguments, timeout, human_description)
 
-            # Wait for all tool results
-            for tc in tool_calls_data:
-                fn_name = tc["function"]["name"]
+            # Wait for all SDK tool results
+            for info in sdk_tc_infos:
+                fn_name = info["name"]
                 if not validate_function_exists(functions, fn_name):
                     continue
 
                 timeout = get_function_timeout(functions, fn_name)
                 try:
-                    result = await sender.wait_for_tool_result(tc["id"], timeout)
+                    result = await sender.wait_for_tool_result(info["id"], timeout)
                     if result.get("status") == "success":
                         raw = result.get("result")
-                        # Ensure content is a JSON string the LLM can read
                         content = raw if isinstance(raw, str) else json.dumps(raw)
                     else:
                         content = json.dumps({"error": result.get("error", "Unknown error")})
@@ -253,7 +350,7 @@ async def run_agent_loop(
                         session_id=session.id,
                         sequence_number=seq,
                         role="tool_result",
-                        tool_call_id=tc["id"],
+                        tool_call_id=info["id"],
                         content=content,
                     )
                     db.add(result_msg)
@@ -264,7 +361,7 @@ async def run_agent_loop(
                         session_id=session.id,
                         sequence_number=seq,
                         role="tool_result",
-                        tool_call_id=tc["id"],
+                        tool_call_id=info["id"],
                         content=json.dumps({"error": f"Function '{fn_name}' timed out after {timeout}s"}),
                     )
                     db.add(timeout_msg)

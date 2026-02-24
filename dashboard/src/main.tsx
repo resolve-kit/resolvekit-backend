@@ -10,8 +10,10 @@ import Apps from "./pages/Apps";
 import ApiKeys from "./pages/ApiKeys";
 import Functions from "./pages/Functions";
 import Home from "./pages/Home";
+import KnowledgeBases from "./pages/KnowledgeBases";
 import LimitsConfig from "./pages/LimitsConfig";
 import LlmConfig from "./pages/LlmConfig";
+import AppKnowledgeBases from "./pages/AppKnowledgeBases";
 import OrganizationAdmin from "./pages/OrganizationAdmin";
 import Playbooks from "./pages/Playbooks";
 import Pricing from "./pages/Pricing";
@@ -27,8 +29,10 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
           <Route path="/apps" element={<Apps />} />
+          <Route path="/knowledge-bases" element={<KnowledgeBases />} />
           <Route path="/organization" element={<OrganizationAdmin />} />
           <Route path="/apps/:appId/agent" element={<AgentPrompt />} />
+          <Route path="/apps/:appId/knowledge-bases" element={<AppKnowledgeBases />} />
           <Route path="/apps/:appId/llm" element={<LlmConfig />} />
           <Route path="/apps/:appId/limits" element={<LimitsConfig />} />
           <Route path="/apps/:appId/functions" element={<Functions />} />

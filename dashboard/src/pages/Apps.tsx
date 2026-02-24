@@ -53,6 +53,7 @@ const APP_NAV_ITEMS = [
   { label: "API Keys", slug: "api-keys" },
   { label: "Functions", slug: "functions" },
   { label: "Agent", slug: "agent" },
+  { label: "Knowledge", slug: "knowledge-bases" },
   { label: "Limits", slug: "limits" },
   { label: "Sessions", slug: "sessions" },
   { label: "Playbooks", slug: "playbooks" },
