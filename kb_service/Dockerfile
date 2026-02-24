@@ -6,6 +6,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
+RUN uv pip install --python /usr/local/bin/python3 crawl4ai
 
 COPY kb_service/ ./kb_service/
 

@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     crawl_max_pages: int = 200
     crawl_max_depth: int = 4
     crawl_user_agent: str = "PlaybookKBService/1.0"
+    use_crawl4ai: bool = True
+    crawl4ai_headless: bool = True
+    crawl4ai_verbose: bool = False
 
     worker_poll_seconds: float = 2.0
     worker_enabled: bool = True

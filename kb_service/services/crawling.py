@@ -1,11 +1,24 @@
 from collections import deque
 from dataclasses import dataclass
 from html.parser import HTMLParser
+from typing import Any
 from urllib.parse import urljoin, urlparse, urlunparse
 
 import httpx
 
 from kb_service.config import settings
+
+try:
+    # Primary crawler path (Context7-guided integration).
+    from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
+
+    _HAS_CRAWL4AI = True
+except Exception:  # pragma: no cover - optional dependency at runtime
+    AsyncWebCrawler = None  # type: ignore[assignment]
+    BrowserConfig = None  # type: ignore[assignment]
+    CacheMode = None  # type: ignore[assignment]
+    CrawlerRunConfig = None  # type: ignore[assignment]
+    _HAS_CRAWL4AI = False
 
 
 def canonicalize_url(url: str) -> str:
@@ -83,8 +96,123 @@ class CrawledPage:
     content_markdown: str
 
 
-async def crawl_site(start_url: str) -> list[CrawledPage]:
-    root_url = canonicalize_url(start_url)
+def _extract_markdown_from_result(result: Any) -> str:
+    markdown = getattr(result, "markdown", None)
+    if markdown is None:
+        return ""
+    if isinstance(markdown, str):
+        return markdown.strip()
+    raw = getattr(markdown, "raw_markdown", None)
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    cited = getattr(markdown, "markdown_with_citations", None)
+    if isinstance(cited, str) and cited.strip():
+        return cited.strip()
+    fit_md = getattr(markdown, "fit_markdown", None)
+    if isinstance(fit_md, str):
+        return fit_md.strip()
+    return ""
+
+
+def _extract_title_from_result(result: Any, fallback_url: str) -> str:
+    metadata = getattr(result, "metadata", None)
+    if isinstance(metadata, dict):
+        title = metadata.get("title")
+        if isinstance(title, str) and title.strip():
+            return title.strip()[:255]
+    return fallback_url
+
+
+def _extract_internal_links(result: Any, current_url: str) -> list[str]:
+    links = getattr(result, "links", None)
+    if not isinstance(links, dict):
+        return []
+    internal = links.get("internal", [])
+    if not isinstance(internal, list):
+        return []
+
+    urls: list[str] = []
+    for link in internal:
+        href: str | None = None
+        if isinstance(link, dict):
+            href_raw = link.get("href")
+            if isinstance(href_raw, str):
+                href = href_raw
+        elif isinstance(link, str):
+            href = link
+        if not href:
+            continue
+        try:
+            absolute = canonicalize_url(urljoin(current_url, href))
+        except ValueError:
+            continue
+        urls.append(absolute)
+    return urls
+
+
+async def _crawl_with_crawl4ai(root_url: str) -> list[CrawledPage]:
+    if not _HAS_CRAWL4AI or not settings.use_crawl4ai:
+        return []
+
+    visited: set[str] = set()
+    queue: deque[tuple[str, int]] = deque([(root_url, 0)])
+    pages: list[CrawledPage] = []
+
+    browser_config = BrowserConfig(
+        headless=settings.crawl4ai_headless,
+        text_mode=True,
+        verbose=settings.crawl4ai_verbose,
+    )
+    run_kwargs: dict[str, Any] = {
+        "wait_until": "domcontentloaded",
+        "page_timeout": max(1000, int(settings.crawl_timeout_seconds * 1000)),
+        "verbose": settings.crawl4ai_verbose,
+    }
+    cache_bypass = getattr(CacheMode, "BYPASS", None)
+    if cache_bypass is not None:
+        run_kwargs["cache_mode"] = cache_bypass
+    run_config = CrawlerRunConfig(**run_kwargs)
+
+    try:
+        async with AsyncWebCrawler(config=browser_config) as crawler:
+            while queue and len(pages) < settings.crawl_max_pages:
+                current_url, depth = queue.popleft()
+                if current_url in visited:
+                    continue
+                visited.add(current_url)
+                if depth > settings.crawl_max_depth:
+                    continue
+                if not _is_same_scope(root_url, current_url):
+                    continue
+
+                try:
+                    result = await crawler.arun(url=current_url, config=run_config)
+                except Exception:
+                    continue
+                if not getattr(result, "success", False):
+                    continue
+
+                markdown = _extract_markdown_from_result(result)
+                if markdown:
+                    pages.append(
+                        CrawledPage(
+                            url=current_url,
+                            title=_extract_title_from_result(result, current_url),
+                            content_markdown=markdown,
+                        )
+                    )
+
+                if depth < settings.crawl_max_depth:
+                    for discovered in _extract_internal_links(result, current_url):
+                        if discovered not in visited and _is_same_scope(root_url, discovered):
+                            queue.append((discovered, depth + 1))
+    except Exception:
+        return []
+
+    return pages
+
+
+async def _crawl_with_httpx_parser(root_url: str) -> list[CrawledPage]:
     visited: set[str] = set()
     queue: deque[tuple[str, int]] = deque([(root_url, 0)])
     pages: list[CrawledPage] = []
@@ -143,5 +271,12 @@ async def crawl_site(start_url: str) -> list[CrawledPage]:
                         continue
                     if absolute not in visited and _is_same_scope(root_url, absolute):
                         queue.append((absolute, depth + 1))
-
     return pages
+
+
+async def crawl_site(start_url: str) -> list[CrawledPage]:
+    root_url = canonicalize_url(start_url)
+    pages = await _crawl_with_crawl4ai(root_url)
+    if pages:
+        return pages
+    return await _crawl_with_httpx_parser(root_url)
