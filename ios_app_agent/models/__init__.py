@@ -1,5 +1,7 @@
 from ios_app_agent.models.base import Base
 from ios_app_agent.models.developer import DeveloperAccount
+from ios_app_agent.models.organization import Organization
+from ios_app_agent.models.organization_invitation import OrganizationInvitation
 from ios_app_agent.models.app import App
 from ios_app_agent.models.api_key import ApiKey
 from ios_app_agent.models.agent_config import AgentConfig
@@ -13,6 +15,8 @@ from ios_app_agent.models.ws_ticket import SessionWSTicket
 __all__ = [
     "Base",
     "DeveloperAccount",
+    "Organization",
+    "OrganizationInvitation",
     "App",
     "ApiKey",
     "AgentConfig",

@@ -11,6 +11,7 @@ import ApiKeys from "./pages/ApiKeys";
 import Functions from "./pages/Functions";
 import LimitsConfig from "./pages/LimitsConfig";
 import LlmConfig from "./pages/LlmConfig";
+import OrganizationAdmin from "./pages/OrganizationAdmin";
 import Playbooks from "./pages/Playbooks";
 import Sessions from "./pages/Sessions";
 import { ToastProvider, ToastContainer } from "./components/ui";
@@ -22,6 +23,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
           <Route path="/apps" element={<Apps />} />
+          <Route path="/organization" element={<OrganizationAdmin />} />
           <Route path="/apps/:appId/agent" element={<AgentPrompt />} />
           <Route path="/apps/:appId/llm" element={<LlmConfig />} />
           <Route path="/apps/:appId/limits" element={<LimitsConfig />} />

@@ -11,19 +11,22 @@ if TYPE_CHECKING:
     from ios_app_agent.models.api_key import ApiKey
     from ios_app_agent.models.developer import DeveloperAccount
     from ios_app_agent.models.function_registry import RegisteredFunction
+    from ios_app_agent.models.organization import Organization
     from ios_app_agent.models.playbook import Playbook
     from ios_app_agent.models.session import ChatSession
 
 
 class App(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "apps"
-    __table_args__ = (UniqueConstraint("developer_id", "name", name="uq_app_developer_name"),)
+    __table_args__ = (UniqueConstraint("organization_id", "name", name="uq_app_organization_name"),)
 
     developer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("developer_accounts.id", ondelete="CASCADE"))
+    organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(255))
     bundle_id: Mapped[str | None] = mapped_column(String(255))
 
     developer: Mapped["DeveloperAccount"] = relationship(back_populates="apps")
+    organization: Mapped["Organization"] = relationship(back_populates="apps")
     api_keys: Mapped[list["ApiKey"]] = relationship(back_populates="app", cascade="all, delete-orphan")
     agent_config: Mapped["AgentConfig | None"] = relationship(back_populates="app", cascade="all, delete-orphan", uselist=False)
     functions: Mapped[list["RegisteredFunction"]] = relationship(back_populates="app", cascade="all, delete-orphan")

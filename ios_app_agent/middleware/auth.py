@@ -59,5 +59,5 @@ async def get_app_from_api_key(
 
 
 def require_app_ownership(developer: DeveloperAccount, app_id: uuid.UUID, db_app: App) -> None:
-    if db_app.developer_id != developer.id:
+    if developer.organization_id is None or db_app.organization_id != developer.organization_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, Outlet, useMatch, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 
 import { clearToken } from "../api/client";
 import { DirtyStateProvider } from "../context/DirtyStateContext";
@@ -16,6 +16,7 @@ function decodeEmail(token: string): string {
 
 export default function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem("token");
   const isAppRoute = useMatch("/apps/:appId/*");
 
@@ -53,6 +54,28 @@ export default function Layout() {
               Playbook
             </span>
           </Link>
+          <div className="hidden sm:flex items-center gap-1">
+            <Link
+              to="/apps"
+              className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                location.pathname.startsWith("/apps")
+                  ? "bg-accent-subtle text-accent border border-accent-dim"
+                  : "text-subtle hover:text-body border border-transparent hover:border-border"
+              }`}
+            >
+              Apps
+            </Link>
+            <Link
+              to="/organization"
+              className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                location.pathname.startsWith("/organization")
+                  ? "bg-accent-subtle text-accent border border-accent-dim"
+                  : "text-subtle hover:text-body border border-transparent hover:border-border"
+              }`}
+            >
+              Organization
+            </Link>
+          </div>
           <div className="flex items-center gap-4">
             {email && (
               <span className="text-xs text-subtle hidden sm:block font-mono">

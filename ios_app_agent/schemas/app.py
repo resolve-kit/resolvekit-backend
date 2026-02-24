@@ -17,6 +17,7 @@ class AppUpdate(BaseModel):
 class AppOut(BaseModel):
     id: uuid.UUID
     developer_id: uuid.UUID
+    organization_id: uuid.UUID
     name: str
     bundle_id: str | None
     created_at: datetime

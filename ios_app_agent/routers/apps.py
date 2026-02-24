@@ -9,6 +9,7 @@ from ios_app_agent.middleware.auth import get_current_developer, require_app_own
 from ios_app_agent.models.app import App
 from ios_app_agent.models.developer import DeveloperAccount
 from ios_app_agent.schemas.app import AppCreate, AppOut, AppUpdate
+from ios_app_agent.services.organization_service import ensure_developer_organization
 
 router = APIRouter(prefix="/v1/apps", tags=["apps"])
 
@@ -19,7 +20,13 @@ async def create_app(
     developer: DeveloperAccount = Depends(get_current_developer),
     db: AsyncSession = Depends(get_db),
 ):
-    app = App(developer_id=developer.id, name=body.name, bundle_id=body.bundle_id)
+    await ensure_developer_organization(db, developer)
+    app = App(
+        developer_id=developer.id,
+        organization_id=developer.organization_id,
+        name=body.name,
+        bundle_id=body.bundle_id,
+    )
     db.add(app)
     try:
         await db.commit()
@@ -35,7 +42,12 @@ async def list_apps(
     developer: DeveloperAccount = Depends(get_current_developer),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(App).where(App.developer_id == developer.id).order_by(App.created_at.desc()))
+    if developer.organization_id is None:
+        return []
+
+    result = await db.execute(
+        select(App).where(App.organization_id == developer.organization_id).order_by(App.created_at.desc())
+    )
     return result.scalars().all()
 
 

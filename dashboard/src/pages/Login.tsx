@@ -1,16 +1,58 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, setToken } from "../api/client";
 import { Button, Input } from "../components/ui";
 
+interface PasswordGuidance {
+  minimum_length: number;
+  requirements: string[];
+}
+
+type SignupIntent = "create-org" | "join-org";
+
+const DEFAULT_PASSWORD_GUIDANCE: PasswordGuidance = {
+  minimum_length: 10,
+  requirements: [
+    "At least 10 characters",
+    "At least one uppercase letter",
+    "At least one lowercase letter",
+    "At least one number",
+    "At least one special character",
+    "No whitespace characters",
+  ],
+};
+
 export default function Login() {
   const [isSignup, setIsSignup] = useState(false);
+  const [signupIntent, setSignupIntent] = useState<SignupIntent>("create-org");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
+  const [organizationId, setOrganizationId] = useState("");
+  const [passwordGuidance, setPasswordGuidance] = useState<PasswordGuidance>(DEFAULT_PASSWORD_GUIDANCE);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isSignup) return;
+
+    let cancelled = false;
+    api<PasswordGuidance>("/v1/auth/password-guidance")
+      .then((guidance) => {
+        if (!cancelled && Array.isArray(guidance.requirements) && guidance.requirements.length > 0) {
+          setPasswordGuidance(guidance);
+        }
+      })
+      .catch(() => {
+        // Keep local fallback guidance if request fails.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignup]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -18,13 +60,34 @@ export default function Login() {
     setIsLoading(true);
     try {
       const path = isSignup ? "/v1/auth/signup" : "/v1/auth/login";
-      const body = isSignup ? { email, name, password } : { email, password };
+      const body = isSignup
+        ? signupIntent === "create-org"
+          ? {
+              email,
+              name,
+              password,
+              signup_intent: "create_org",
+              organization_name: organizationName,
+              organization_public_id: organizationId || undefined,
+            }
+          : {
+              email,
+              name,
+              password,
+              signup_intent: "create_org",
+              organization_name: `${name.trim() || "My"}'s Organization`,
+            }
+        : { email, password };
       const res = await api<{ access_token: string }>(path, {
         method: "POST",
         body: JSON.stringify(body),
       });
       setToken(res.access_token);
-      navigate("/apps");
+      if (isSignup && signupIntent === "join-org") {
+        navigate("/organization");
+      } else {
+        navigate("/apps");
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -49,10 +112,18 @@ export default function Login() {
               </span>
             </div>
             <h1 className="font-display text-xl font-semibold text-strong">
-              {isSignup ? "Create Account" : "Welcome back"}
+              {isSignup
+                ? signupIntent === "create-org"
+                  ? "Register Organization"
+                  : "Register to Join Organization"
+                : "Welcome back"}
             </h1>
             <p className="text-sm text-subtle mt-1">
-              {isSignup ? "Get started with iOS App Agent" : "Sign in to your dashboard"}
+              {isSignup
+                ? signupIntent === "create-org"
+                  ? "Create your organization and define the organization ID to share with your team"
+                  : "Create your account first, then accept your invitation in Organization Admin"
+                : "Sign in to your dashboard"}
             </p>
           </div>
 
@@ -63,6 +134,33 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignup && (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSignupIntent("create-org")}
+                  className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                    signupIntent === "create-org"
+                      ? "bg-accent-subtle text-accent border-accent-dim"
+                      : "bg-surface text-subtle border-border hover:text-body"
+                  }`}
+                >
+                  Register Organization
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSignupIntent("join-org")}
+                  className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                    signupIntent === "join-org"
+                      ? "bg-accent-subtle text-accent border-accent-dim"
+                      : "bg-surface text-subtle border-border hover:text-body"
+                  }`}
+                >
+                  Join Organization
+                </button>
+              </div>
+            )}
+
             <Input
               type="email"
               label="Email"
@@ -82,6 +180,32 @@ export default function Login() {
                 required
               />
             )}
+            {isSignup && signupIntent === "create-org" && (
+              <Input
+                type="text"
+                label="Organization Name"
+                placeholder="Acme Mobile Team"
+                value={organizationName}
+                onChange={(e) => setOrganizationName(e.target.value)}
+                required
+              />
+            )}
+            {isSignup && signupIntent === "create-org" && (
+              <Input
+                type="text"
+                label="Organization ID (optional)"
+                placeholder="acme-mobile"
+                value={organizationId}
+                onChange={(e) => setOrganizationId(e.target.value)}
+              />
+            )}
+            {isSignup && signupIntent === "join-org" && (
+              <div className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
+                <p className="text-xs text-subtle">
+                  Ask your organization admin to send an invitation to this email, then accept it from Organization Admin after signup.
+                </p>
+              </div>
+            )}
             <Input
               type="password"
               label="Password"
@@ -91,6 +215,21 @@ export default function Login() {
               required
               autoComplete={isSignup ? "new-password" : "current-password"}
             />
+            {isSignup && (
+              <div className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
+                <p className="text-xs font-medium text-subtle mb-1">
+                  Password requirements
+                </p>
+                <ul className="text-xs text-subtle space-y-1">
+                  {passwordGuidance.requirements.map((requirement) => (
+                    <li key={requirement}>• {requirement}</li>
+                  ))}
+                  {signupIntent === "create-org" && (
+                    <li>• Organization IDs use lowercase letters, numbers, and hyphens</li>
+                  )}
+                </ul>
+              </div>
+            )}
 
             <Button
               type="submit"
@@ -99,7 +238,11 @@ export default function Login() {
               loading={isLoading}
               className="w-full"
             >
-              {isSignup ? "Create Account" : "Sign In"}
+              {isSignup
+                ? signupIntent === "create-org"
+                  ? "Register Organization"
+                  : "Create Account to Join"
+                : "Sign In"}
             </Button>
           </form>
 
@@ -110,6 +253,8 @@ export default function Login() {
               onClick={() => {
                 setIsSignup(!isSignup);
                 setError("");
+                setOrganizationId("");
+                setOrganizationName("");
               }}
               className="text-accent hover:text-accent-hover transition-colors font-medium"
             >

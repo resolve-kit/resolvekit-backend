@@ -15,6 +15,7 @@ from ios_app_agent.routers import (
     chat_ws,
     config,
     functions,
+    organizations,
     playbooks,
     sdk,
     sessions,
@@ -72,6 +73,7 @@ app.add_middleware(
 
 # Auth & developer
 app.include_router(auth.router)
+app.include_router(organizations.router)
 
 # App management (JWT)
 app.include_router(apps.router)
