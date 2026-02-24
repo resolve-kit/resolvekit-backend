@@ -13,6 +13,7 @@ from ios_app_agent.config import settings
 class KBServiceError(Exception):
     status_code: int
     detail: str
+    code: str | None = None
 
     def __str__(self) -> str:
         return self.detail
@@ -31,6 +32,32 @@ def _build_service_token(org_id: uuid.UUID, actor_id: str, actor_role: str) -> s
         "exp": int((now + timedelta(minutes=2)).timestamp()),
     }
     return jwt.encode(payload, settings.kb_service_signing_key, algorithm=settings.kb_service_jwt_algorithm)
+
+
+def _extract_error(response: httpx.Response) -> tuple[str, str | None]:
+    try:
+        body = response.json()
+    except ValueError:
+        return response.text or response.reason_phrase, None
+
+    if not isinstance(body, dict):
+        return "Knowledge base service request failed", None
+
+    code: str | None = None
+    if isinstance(body.get("code"), str):
+        code = body["code"]
+
+    detail_payload = body.get("detail")
+    if isinstance(detail_payload, dict):
+        if isinstance(detail_payload.get("code"), str):
+            code = detail_payload["code"]
+        if isinstance(detail_payload.get("detail"), str) and detail_payload["detail"].strip():
+            return detail_payload["detail"], code
+
+    if isinstance(detail_payload, str) and detail_payload.strip():
+        return detail_payload, code
+
+    return "Knowledge base service request failed", code
 
 
 async def _call_internal(
@@ -58,14 +85,8 @@ async def _call_internal(
         raise KBServiceError(status_code=503, detail="Knowledge base service unavailable") from exc
 
     if not response.is_success:
-        try:
-            body = response.json()
-        except ValueError:
-            body = {"detail": response.text or response.reason_phrase}
-        detail = body.get("detail") if isinstance(body, dict) else None
-        if not isinstance(detail, str) or not detail.strip():
-            detail = "Knowledge base service request failed"
-        raise KBServiceError(status_code=response.status_code, detail=detail)
+        detail, code = _extract_error(response)
+        raise KBServiceError(status_code=response.status_code, detail=detail, code=code)
 
     data = response.json()
     if not isinstance(data, dict):
@@ -90,6 +111,7 @@ async def create_knowledge_base(
     actor_role: str,
     name: str,
     description: str | None,
+    embedding_profile_id: uuid.UUID,
 ) -> dict[str, Any]:
     return await _call_internal(
         "/internal/kbs/create",
@@ -97,6 +119,7 @@ async def create_knowledge_base(
             "organization_id": str(org_id),
             "name": name,
             "description": description,
+            "embedding_profile_id": str(embedding_profile_id),
         },
         org_id=org_id,
         actor_id=actor_id,
@@ -128,6 +151,8 @@ async def update_knowledge_base(
     kb_id: uuid.UUID,
     name: str | None,
     description: str | None,
+    embedding_profile_id: uuid.UUID | None,
+    confirm_regeneration: bool,
 ) -> dict[str, Any]:
     return await _call_internal(
         "/internal/kbs/update",
@@ -136,6 +161,29 @@ async def update_knowledge_base(
             "kb_id": str(kb_id),
             "name": name,
             "description": description,
+            "embedding_profile_id": str(embedding_profile_id) if embedding_profile_id else None,
+            "confirm_regeneration": confirm_regeneration,
+        },
+        org_id=org_id,
+        actor_id=actor_id,
+        actor_role=actor_role,
+    )
+
+
+async def kb_embedding_change_impact(
+    *,
+    org_id: uuid.UUID,
+    actor_id: str,
+    actor_role: str,
+    kb_id: uuid.UUID,
+    embedding_profile_id: uuid.UUID,
+) -> dict[str, Any]:
+    return await _call_internal(
+        "/internal/kbs/embedding-change-impact",
+        {
+            "organization_id": str(org_id),
+            "kb_id": str(kb_id),
+            "embedding_profile_id": str(embedding_profile_id),
         },
         org_id=org_id,
         actor_id=actor_id,
@@ -369,14 +417,14 @@ async def search_multiple_knowledge_bases(
     )
 
 
-async def get_embedding_config(
+async def list_embedding_profiles(
     *,
     org_id: uuid.UUID,
     actor_id: str,
     actor_role: str,
 ) -> dict[str, Any]:
     return await _call_internal(
-        "/internal/embedding-config/get",
+        "/internal/embedding-profiles/list",
         {"organization_id": str(org_id)},
         org_id=org_id,
         actor_id=actor_id,
@@ -384,22 +432,101 @@ async def get_embedding_config(
     )
 
 
-async def put_embedding_config(
+async def create_embedding_profile(
     *,
     org_id: uuid.UUID,
     actor_id: str,
     actor_role: str,
+    name: str,
     provider: str,
     model: str,
     api_key: str,
+    api_base: str | None,
 ) -> dict[str, Any]:
     return await _call_internal(
-        "/internal/embedding-config/put",
+        "/internal/embedding-profiles/create",
         {
             "organization_id": str(org_id),
+            "name": name,
             "provider": provider,
             "model": model,
             "api_key": api_key,
+            "api_base": api_base,
+        },
+        org_id=org_id,
+        actor_id=actor_id,
+        actor_role=actor_role,
+    )
+
+
+async def update_embedding_profile(
+    *,
+    org_id: uuid.UUID,
+    actor_id: str,
+    actor_role: str,
+    profile_id: uuid.UUID,
+    name: str | None,
+    provider: str | None,
+    model: str | None,
+    api_key: str | None,
+    api_base: str | None,
+    confirm_regeneration: bool,
+) -> dict[str, Any]:
+    return await _call_internal(
+        "/internal/embedding-profiles/update",
+        {
+            "organization_id": str(org_id),
+            "profile_id": str(profile_id),
+            "name": name,
+            "provider": provider,
+            "model": model,
+            "api_key": api_key,
+            "api_base": api_base,
+            "confirm_regeneration": confirm_regeneration,
+        },
+        org_id=org_id,
+        actor_id=actor_id,
+        actor_role=actor_role,
+    )
+
+
+async def delete_embedding_profile(
+    *,
+    org_id: uuid.UUID,
+    actor_id: str,
+    actor_role: str,
+    profile_id: uuid.UUID,
+) -> dict[str, Any]:
+    return await _call_internal(
+        "/internal/embedding-profiles/delete",
+        {
+            "organization_id": str(org_id),
+            "profile_id": str(profile_id),
+        },
+        org_id=org_id,
+        actor_id=actor_id,
+        actor_role=actor_role,
+    )
+
+
+async def embedding_profile_change_impact(
+    *,
+    org_id: uuid.UUID,
+    actor_id: str,
+    actor_role: str,
+    profile_id: uuid.UUID,
+    provider: str | None,
+    model: str | None,
+    api_base: str | None,
+) -> dict[str, Any]:
+    return await _call_internal(
+        "/internal/embedding-profiles/change-impact",
+        {
+            "organization_id": str(org_id),
+            "profile_id": str(profile_id),
+            "provider": provider,
+            "model": model,
+            "api_base": api_base,
         },
         org_id=org_id,
         actor_id=actor_id,

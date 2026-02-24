@@ -1,16 +1,15 @@
 import uuid
 
-from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ios_app_agent.config import settings
 from ios_app_agent.database import get_db
 from ios_app_agent.middleware.auth import get_current_developer, require_app_ownership
 from ios_app_agent.models.agent_config import AgentConfig
 from ios_app_agent.models.app import App
 from ios_app_agent.models.developer import DeveloperAccount
+from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from ios_app_agent.schemas.agent_config import (
     AgentConfigOut,
     AgentConfigUpdate,
@@ -20,17 +19,17 @@ from ios_app_agent.schemas.agent_config import (
     ModelsResponse,
     ProviderInfo,
 )
+from ios_app_agent.services.audit_service import AuditService
 from ios_app_agent.services.encryption import decrypt
 from ios_app_agent.services.provider_service import (
     list_models_for_provider,
     list_providers,
     test_provider_connection,
 )
-from ios_app_agent.services.audit_service import AuditService
 
 router = APIRouter(prefix="/v1/apps/{app_id}/config", tags=["config"])
 
-_LLM_FIELDS = {"llm_provider", "llm_model", "llm_api_base"}
+_LLM_FIELDS = {"llm_profile_id"}
 _PROMPT_FIELDS = {"system_prompt"}
 _LIMITS_FIELDS = {
     "temperature",
@@ -44,17 +43,13 @@ _LIMITS_FIELDS = {
 def _compute_config_audit_events(
     old_cfg: AgentConfig,
     updates: dict[str, object],
-    api_key_rotated: bool,
 ) -> list[dict[str, object]]:
     events: list[dict[str, object]] = []
 
     llm_before = {field: getattr(old_cfg, field) for field in _LLM_FIELDS}
     llm_after = {field: updates.get(field, getattr(old_cfg, field)) for field in _LLM_FIELDS}
-    if llm_before != llm_after or api_key_rotated:
-        diff: dict[str, object] = {"before": llm_before, "after": llm_after}
-        if api_key_rotated:
-            diff["api_key_rotated"] = True
-        events.append({"type": "config.llm.updated", "diff": diff})
+    if llm_before != llm_after:
+        events.append({"type": "config.llm.updated", "diff": {"before": llm_before, "after": llm_after}})
 
     prompt_before = {field: getattr(old_cfg, field) for field in _PROMPT_FIELDS}
     prompt_after = {field: updates.get(field, getattr(old_cfg, field)) for field in _PROMPT_FIELDS}
@@ -79,11 +74,6 @@ def _compute_config_audit_events(
     return events
 
 
-def encrypt_key(plain: str) -> str:
-    f = Fernet(settings.encryption_key.encode())
-    return f.encrypt(plain.encode()).decode()
-
-
 def _resolve_models_lookup(
     cfg: AgentConfig,
     provider: str | None,
@@ -99,15 +89,17 @@ def _resolve_models_lookup(
     return provider_id, api_key, api_base
 
 
-def config_to_out(cfg: AgentConfig) -> AgentConfigOut:
+def config_to_out(cfg: AgentConfig, profile: OrganizationLLMProviderProfile | None) -> AgentConfigOut:
     return AgentConfigOut(
         id=cfg.id,
         app_id=cfg.app_id,
         system_prompt=cfg.system_prompt,
-        llm_provider=cfg.llm_provider,
-        llm_model=cfg.llm_model,
-        has_llm_api_key=cfg.llm_api_key_encrypted is not None,
-        llm_api_base=cfg.llm_api_base,
+        llm_profile_id=cfg.llm_profile_id,
+        llm_profile_name=profile.name if profile else None,
+        llm_provider=profile.provider if profile else None,
+        llm_model=profile.model if profile else None,
+        has_llm_api_key=bool(profile and profile.api_key_encrypted),
+        llm_api_base=profile.api_base if profile else None,
         temperature=cfg.temperature,
         max_tokens=cfg.max_tokens,
         max_tool_rounds=cfg.max_tool_rounds,
@@ -127,6 +119,62 @@ async def _get_or_create_config(db: AsyncSession, app_id: uuid.UUID) -> AgentCon
     return cfg
 
 
+async def _get_profile_for_app(
+    db: AsyncSession,
+    *,
+    organization_id: uuid.UUID,
+    profile_id: uuid.UUID,
+) -> OrganizationLLMProviderProfile:
+    profile = await db.get(OrganizationLLMProviderProfile, profile_id)
+    if profile is None or profile.organization_id != organization_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LLM profile not found")
+    return profile
+
+
+async def _get_selected_profile(
+    db: AsyncSession,
+    *,
+    organization_id: uuid.UUID,
+    cfg: AgentConfig,
+) -> OrganizationLLMProviderProfile | None:
+    if cfg.llm_profile_id is None:
+        return None
+    return await _get_profile_for_app(db, organization_id=organization_id, profile_id=cfg.llm_profile_id)
+
+
+async def _resolve_models_lookup_for_app(
+    db: AsyncSession,
+    *,
+    app: App,
+    cfg: AgentConfig,
+    provider: str | None,
+    llm_api_key: str | None,
+    llm_api_base: str | None,
+) -> tuple[str, str | None, str | None]:
+    if provider or llm_api_key is not None or llm_api_base is not None:
+        return _resolve_models_lookup(
+            cfg=cfg,
+            provider=provider,
+            llm_api_key=llm_api_key,
+            llm_api_base=llm_api_base,
+        )
+
+    if cfg.llm_profile_id is not None:
+        profile = await _get_profile_for_app(
+            db,
+            organization_id=app.organization_id,
+            profile_id=cfg.llm_profile_id,
+        )
+        return profile.provider, decrypt(profile.api_key_encrypted), profile.api_base
+
+    return _resolve_models_lookup(
+        cfg=cfg,
+        provider=provider,
+        llm_api_key=llm_api_key,
+        llm_api_base=llm_api_base,
+    )
+
+
 @router.get("", response_model=AgentConfigOut)
 async def get_config(
     app_id: uuid.UUID,
@@ -139,7 +187,8 @@ async def get_config(
     require_app_ownership(developer, app_id, app)
 
     cfg = await _get_or_create_config(db, app_id)
-    return config_to_out(cfg)
+    profile = await _get_selected_profile(db, organization_id=app.organization_id, cfg=cfg)
+    return config_to_out(cfg, profile)
 
 
 @router.put("", response_model=AgentConfigOut)
@@ -158,16 +207,14 @@ async def update_config(
     cfg = await _get_or_create_config(db, app_id)
 
     updates = body.model_dump(exclude_unset=True)
-    api_key_rotated = False
-    if "llm_api_key" in updates:
-        llm_key = updates.pop("llm_api_key")
-        if llm_key:
-            cfg.llm_api_key_encrypted = encrypt_key(llm_key)
-            api_key_rotated = True
-        else:
-            cfg.llm_api_key_encrypted = None
+    if "llm_profile_id" in updates and updates["llm_profile_id"] is not None:
+        await _get_profile_for_app(
+            db,
+            organization_id=app.organization_id,
+            profile_id=updates["llm_profile_id"],  # type: ignore[arg-type]
+        )
 
-    audit_events = _compute_config_audit_events(cfg, updates, api_key_rotated)
+    audit_events = _compute_config_audit_events(cfg, updates)
 
     for field, value in updates.items():
         setattr(cfg, field, value)
@@ -189,7 +236,8 @@ async def update_config(
     if audit_events:
         await db.commit()
 
-    return config_to_out(cfg)
+    profile = await _get_selected_profile(db, organization_id=app.organization_id, cfg=cfg)
+    return config_to_out(cfg, profile)
 
 
 @router.get("/providers", response_model=list[ProviderInfo])
@@ -218,7 +266,9 @@ async def get_models(
     require_app_ownership(developer, app_id, app)
 
     cfg = await _get_or_create_config(db, app_id)
-    provider_id, api_key, api_base = _resolve_models_lookup(
+    provider_id, api_key, api_base = await _resolve_models_lookup_for_app(
+        db,
+        app=app,
         cfg=cfg,
         provider=provider,
         llm_api_key=None,
@@ -243,7 +293,9 @@ async def get_models_with_transient_key(
     require_app_ownership(developer, app_id, app)
 
     cfg = await _get_or_create_config(db, app_id)
-    provider_id, api_key, api_base = _resolve_models_lookup(
+    provider_id, api_key, api_base = await _resolve_models_lookup_for_app(
+        db,
+        app=app,
         cfg=cfg,
         provider=body.provider,
         llm_api_key=body.llm_api_key,
@@ -268,9 +320,14 @@ async def test_connection(
 
     cfg = await _get_or_create_config(db, app_id)
 
-    api_key = body.llm_api_key
-    if not api_key and cfg.llm_api_key_encrypted:
-        api_key = decrypt(cfg.llm_api_key_encrypted)
+    _, api_key, _ = await _resolve_models_lookup_for_app(
+        db,
+        app=app,
+        cfg=cfg,
+        provider=body.provider,
+        llm_api_key=body.llm_api_key,
+        llm_api_base=body.llm_api_base,
+    )
 
     result = await test_provider_connection(body.provider, api_key, body.llm_api_base)
     return ConnectionTestResult(**result)

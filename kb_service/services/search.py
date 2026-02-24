@@ -6,8 +6,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from kb_service.models import KnowledgeChunk, KnowledgeDocument
+from kb_service.models import KnowledgeBase, KnowledgeChunk, KnowledgeDocument
 from kb_service.services.embedding import cosine_similarity, embed_texts
+from kb_service.services.embedding_runtime import runtime_from_kb_active
 
 _WORD_RE = re.compile(r"[a-zA-Z0-9_]{2,}")
 
@@ -48,17 +49,52 @@ async def search_chunks(
     query: str,
     limit: int,
 ) -> list[dict[str, Any]]:
-    query_tokens = _tokens(query)
-    query_embedding_list = await embed_texts(db, organization_id, [query])
-    query_embedding = query_embedding_list[0] if query_embedding_list else []
+    if not kb_ids:
+        return []
 
-    chunks = await _load_chunks_for_kbs(db, kb_ids)
+    kb_result = await db.execute(
+        select(KnowledgeBase).where(
+            KnowledgeBase.organization_id == organization_id,
+            KnowledgeBase.id.in_(kb_ids),
+        )
+    )
+    kb_list = kb_result.scalars().all()
+    if not kb_list:
+        return []
+
+    kb_by_id = {kb.id: kb for kb in kb_list}
+    valid_kb_ids = list(kb_by_id.keys())
+    chunks = await _load_chunks_for_kbs(db, valid_kb_ids)
     if not chunks:
         return []
+
+    query_tokens = _tokens(query)
+
+    query_embedding_cache: dict[tuple[str | None, str | None, str | None, str | None], list[float]] = {}
+
+    async def query_embedding_for_kb(kb: KnowledgeBase) -> list[float]:
+        key = (
+            kb.embedding_provider,
+            kb.embedding_model,
+            kb.embedding_api_base,
+            kb.embedding_api_key_encrypted,
+        )
+        cached = query_embedding_cache.get(key)
+        if cached is not None:
+            return cached
+        runtime = runtime_from_kb_active(kb)
+        vectors = await embed_texts([query], runtime)
+        vector = vectors[0] if vectors else []
+        query_embedding_cache[key] = vector
+        return vector
 
     scored: list[_ScoredChunk] = []
     max_lexical = 1.0
     for chunk in chunks:
+        kb = kb_by_id.get(chunk.knowledge_base_id)
+        if kb is None:
+            continue
+        query_embedding = await query_embedding_for_kb(kb)
         lexical = _lexical_score(query_tokens, chunk.content_text)
         max_lexical = max(max_lexical, lexical)
         semantic = cosine_similarity(query_embedding, chunk.embedding or [])

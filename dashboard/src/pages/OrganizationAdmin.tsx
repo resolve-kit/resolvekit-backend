@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 import { ApiError, api } from "../api/client";
-import { Badge, Button, Input, useToast } from "../components/ui";
+import { Badge, Button, Input, Select, useToast } from "../components/ui";
 
 interface OrganizationMember {
   id: string;
@@ -40,6 +40,24 @@ interface DeveloperMe {
   created_at: string;
 }
 
+interface LlmProviderCatalogItem {
+  id: string;
+  name: string;
+  custom_base_url: boolean;
+}
+
+interface OrganizationLlmProfile {
+  id: string;
+  organization_id: string;
+  name: string;
+  provider: string;
+  model: string;
+  has_api_key: boolean;
+  api_base: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function OrganizationAdmin() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [organization, setOrganization] = useState<OrganizationInfo | null>(null);
@@ -52,16 +70,27 @@ export default function OrganizationAdmin() {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [cancelingInvitationId, setCancelingInvitationId] = useState<string | null>(null);
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [providerCatalog, setProviderCatalog] = useState<LlmProviderCatalogItem[]>([]);
+  const [llmProfiles, setLlmProfiles] = useState<OrganizationLlmProfile[]>([]);
+  const [llmProfileName, setLlmProfileName] = useState("");
+  const [llmProvider, setLlmProvider] = useState("openai");
+  const [llmModel, setLlmModel] = useState("");
+  const [llmApiKey, setLlmApiKey] = useState("");
+  const [llmApiBase, setLlmApiBase] = useState("");
+  const [creatingLlmProfile, setCreatingLlmProfile] = useState(false);
+  const [deletingLlmProfileId, setDeletingLlmProfileId] = useState<string | null>(null);
   const { toast } = useToast();
 
   async function loadData() {
     setLoading(true);
     try {
       const me = await api<DeveloperMe>("/v1/auth/me");
-      const [loadedOrganization, loadedMembers, loadedReceived] = await Promise.all([
+      const [loadedOrganization, loadedMembers, loadedReceived, loadedProviders, loadedProfiles] = await Promise.all([
         api<OrganizationInfo>("/v1/organizations/me"),
         api<OrganizationMember[]>("/v1/organizations/members"),
         api<OrganizationInvitation[]>("/v1/organizations/invitations/received"),
+        api<LlmProviderCatalogItem[]>("/v1/organizations/llm/providers"),
+        api<OrganizationLlmProfile[]>("/v1/organizations/llm-profiles"),
       ]);
       let loadedSent: OrganizationInvitation[] = [];
       if (me.role === "owner" || me.role === "admin") {
@@ -73,6 +102,8 @@ export default function OrganizationAdmin() {
       setMembers(loadedMembers);
       setSentInvitations(loadedSent);
       setReceivedInvitations(loadedReceived);
+      setProviderCatalog(loadedProviders);
+      setLlmProfiles(loadedProfiles);
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to load organization data", "error");
     } finally {
@@ -150,11 +181,56 @@ export default function OrganizationAdmin() {
     }
   }
 
+  async function createLlmProfile(e: FormEvent) {
+    e.preventDefault();
+    if (!llmProfileName.trim() || !llmProvider.trim() || !llmModel.trim() || !llmApiKey.trim()) return;
+
+    setCreatingLlmProfile(true);
+    try {
+      await api<OrganizationLlmProfile>("/v1/organizations/llm-profiles", {
+        method: "POST",
+        body: JSON.stringify({
+          name: llmProfileName.trim(),
+          provider: llmProvider.trim(),
+          model: llmModel.trim(),
+          api_key: llmApiKey.trim(),
+          api_base: llmApiBase.trim() || null,
+        }),
+      });
+      setLlmProfileName("");
+      setLlmModel("");
+      setLlmApiKey("");
+      setLlmApiBase("");
+      toast("LLM profile created", "success");
+      await loadData();
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to create LLM profile", "error");
+    } finally {
+      setCreatingLlmProfile(false);
+    }
+  }
+
+  async function deleteLlmProfile(profileId: string) {
+    setDeletingLlmProfileId(profileId);
+    try {
+      await api(`/v1/organizations/llm-profiles/${profileId}`, {
+        method: "DELETE",
+      });
+      toast("LLM profile removed", "info");
+      await loadData();
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to delete LLM profile", "error");
+    } finally {
+      setDeletingLlmProfileId(null);
+    }
+  }
+
   const canManageOrganization = currentUser?.role === "owner" || currentUser?.role === "admin";
   const editableRoles =
     currentUser?.role === "owner"
       ? (["owner", "admin", "member"] as const)
       : (["admin", "member"] as const);
+  const selectedLlmProvider = providerCatalog.find((provider) => provider.id === llmProvider);
 
   return (
     <div className="space-y-6">
@@ -204,6 +280,111 @@ export default function OrganizationAdmin() {
           </p>
         </div>
       )}
+
+      <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-strong mb-1">Organization LLM Profiles</h2>
+          <p className="text-xs text-subtle">
+            Configure reusable provider/model credentials once, then select a profile per app.
+          </p>
+        </div>
+
+        {canManageOrganization && (
+          <form onSubmit={createLlmProfile} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <Input
+              label="Profile Name"
+              value={llmProfileName}
+              onChange={(e) => setLlmProfileName(e.target.value)}
+              placeholder="OpenAI Prod"
+              required
+            />
+            <Select
+              label="Provider"
+              value={llmProvider}
+              onChange={(e) => setLlmProvider(e.target.value)}
+            >
+              {providerCatalog.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.name}
+                </option>
+              ))}
+            </Select>
+            <Input
+              label="Model"
+              value={llmModel}
+              onChange={(e) => setLlmModel(e.target.value)}
+              placeholder="gpt-4o"
+              required
+            />
+            <Input
+              label="API Key"
+              type="password"
+              value={llmApiKey}
+              onChange={(e) => setLlmApiKey(e.target.value)}
+              placeholder="sk-..."
+              required
+            />
+            <div className="flex items-end">
+              <Button type="submit" className="w-full" loading={creatingLlmProfile}>
+                Add Profile
+              </Button>
+            </div>
+            {selectedLlmProvider?.custom_base_url && (
+              <div className="md:col-span-5">
+                <Input
+                  label="API Base URL (optional)"
+                  value={llmApiBase}
+                  onChange={(e) => setLlmApiBase(e.target.value)}
+                  placeholder="https://api.example.com/v1"
+                  mono
+                />
+              </div>
+            )}
+          </form>
+        )}
+
+        {loading ? (
+          <p className="text-xs text-subtle">Loading LLM profiles...</p>
+        ) : llmProfiles.length === 0 ? (
+          <p className="text-xs text-subtle">No LLM profiles configured yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {llmProfiles.map((profile) => (
+              <div
+                key={profile.id}
+                className="rounded-lg border border-border bg-canvas/40 px-3 py-2 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm text-strong">{profile.name}</p>
+                  <p className="text-xs text-subtle">
+                    {profile.provider}/{profile.model}
+                  </p>
+                  {profile.api_base && (
+                    <p className="text-xs text-dim font-mono truncate">{profile.api_base}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={profile.has_api_key ? "active" : "revoked"} dot>
+                    API key {profile.has_api_key ? "set" : "missing"}
+                  </Badge>
+                  {canManageOrganization && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      loading={deletingLlmProfileId === profile.id}
+                      onClick={() => {
+                        void deleteLlmProfile(profile.id);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">

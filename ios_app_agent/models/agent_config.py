@@ -8,6 +8,7 @@ from ios_app_agent.models.base import Base, UUIDMixin
 
 if TYPE_CHECKING:
     from ios_app_agent.models.app import App
+    from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 
 
 class AgentConfig(Base, UUIDMixin):
@@ -29,10 +30,15 @@ class AgentConfig(Base, UUIDMixin):
             "- Summarize what you did and the outcome when the task is complete."
         ),
     )
+    # Deprecated legacy fields. Hard cutover now uses llm_profile_id.
     llm_provider: Mapped[str] = mapped_column(String(50), default="openai")
     llm_model: Mapped[str] = mapped_column(String(100), default="gpt-4o")
     llm_api_key_encrypted: Mapped[str | None] = mapped_column(Text)
     llm_api_base: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    llm_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organization_llm_provider_profiles.id", ondelete="SET NULL"),
+        index=True,
+    )
     temperature: Mapped[float] = mapped_column(default=0.7)
     max_tokens: Mapped[int] = mapped_column(Integer, default=4096)
     max_tool_rounds: Mapped[int] = mapped_column(Integer, default=10)
@@ -40,3 +46,4 @@ class AgentConfig(Base, UUIDMixin):
     max_context_messages: Mapped[int] = mapped_column(Integer, default=100)
 
     app: Mapped["App"] = relationship(back_populates="agent_config")
+    llm_profile: Mapped["OrganizationLLMProviderProfile | None"] = relationship(back_populates="agent_configs")

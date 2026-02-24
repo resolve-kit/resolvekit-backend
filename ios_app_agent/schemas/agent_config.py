@@ -5,10 +5,7 @@ from pydantic import BaseModel
 
 class AgentConfigUpdate(BaseModel):
     system_prompt: str | None = None
-    llm_provider: str | None = None
-    llm_model: str | None = None
-    llm_api_key: str | None = None  # plain text, will be encrypted
-    llm_api_base: str | None = None
+    llm_profile_id: uuid.UUID | None = None
     temperature: float | None = None
     max_tokens: int | None = None
     max_tool_rounds: int | None = None
@@ -20,8 +17,10 @@ class AgentConfigOut(BaseModel):
     id: uuid.UUID
     app_id: uuid.UUID
     system_prompt: str
-    llm_provider: str
-    llm_model: str
+    llm_profile_id: uuid.UUID | None
+    llm_profile_name: str | None
+    llm_provider: str | None
+    llm_model: str | None
     has_llm_api_key: bool
     llm_api_base: str | None
     temperature: float

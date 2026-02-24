@@ -8,15 +8,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ios_app_agent.database import get_db
 from ios_app_agent.middleware.auth import get_current_developer
 from ios_app_agent.models.app import App
+from ios_app_agent.models.agent_config import AgentConfig
 from ios_app_agent.models.developer import DeveloperAccount
 from ios_app_agent.models.organization import Organization
 from ios_app_agent.models.organization_invitation import OrganizationInvitation
+from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from ios_app_agent.schemas.organization import (
     OrganizationInvitationCreate,
     OrganizationInvitationOut,
     OrganizationMemberOut,
     OrganizationMemberRoleUpdate,
     OrganizationOut,
+)
+from ios_app_agent.schemas.provider_profiles import (
+    OrganizationLLMProfileCreate,
+    OrganizationLLMProfileOut,
+    OrganizationLLMProfileUpdate,
 )
 from ios_app_agent.services.authorization_service import (
     ORG_ADMIN_ROLES,
@@ -25,7 +32,9 @@ from ios_app_agent.services.authorization_service import (
     ORG_ROLE_OWNER,
     require_org_role,
 )
+from ios_app_agent.services.encryption import encrypt
 from ios_app_agent.services.organization_service import normalize_email
+from ios_app_agent.services.provider_service import list_providers
 
 INVITATION_TTL_DAYS = 7
 
@@ -53,6 +62,20 @@ async def _owner_count(db: AsyncSession, organization_id: uuid.UUID) -> int:
     return int(result.scalar_one())
 
 
+def _profile_to_out(profile: OrganizationLLMProviderProfile) -> OrganizationLLMProfileOut:
+    return OrganizationLLMProfileOut(
+        id=profile.id,
+        organization_id=profile.organization_id,
+        name=profile.name,
+        provider=profile.provider,
+        model=profile.model,
+        has_api_key=bool(profile.api_key_encrypted),
+        api_base=profile.api_base,
+        created_at=profile.created_at,
+        updated_at=profile.updated_at,
+    )
+
+
 @router.get("/me", response_model=OrganizationOut)
 async def get_my_organization(
     developer: DeveloperAccount = Depends(get_current_developer),
@@ -64,6 +87,117 @@ async def get_my_organization(
     if not organization:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
     return organization
+
+
+@router.get("/llm/providers")
+async def get_llm_provider_catalog(
+    developer: DeveloperAccount = Depends(get_current_developer),
+):
+    _require_org_membership(developer)
+    return list_providers()
+
+
+@router.get("/llm-profiles", response_model=list[OrganizationLLMProfileOut])
+async def list_llm_profiles(
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_org_membership(developer)
+    result = await db.execute(
+        select(OrganizationLLMProviderProfile)
+        .where(OrganizationLLMProviderProfile.organization_id == developer.organization_id)
+        .order_by(OrganizationLLMProviderProfile.created_at.asc())
+    )
+    return [_profile_to_out(profile) for profile in result.scalars().all()]
+
+
+@router.post("/llm-profiles", response_model=OrganizationLLMProfileOut, status_code=status.HTTP_201_CREATED)
+async def create_llm_profile(
+    body: OrganizationLLMProfileCreate,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_org_membership(developer)
+    _require_org_admin(developer)
+
+    profile = OrganizationLLMProviderProfile(
+        organization_id=developer.organization_id,
+        name=body.name.strip(),
+        provider=body.provider.strip(),
+        model=body.model.strip(),
+        api_key_encrypted=encrypt(body.api_key),
+        api_base=(body.api_base.strip() if body.api_base else None),
+    )
+    db.add(profile)
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="LLM profile name already exists")
+    await db.refresh(profile)
+    return _profile_to_out(profile)
+
+
+@router.patch("/llm-profiles/{profile_id}", response_model=OrganizationLLMProfileOut)
+async def update_llm_profile(
+    profile_id: uuid.UUID,
+    body: OrganizationLLMProfileUpdate,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_org_membership(developer)
+    _require_org_admin(developer)
+
+    profile = await db.get(OrganizationLLMProviderProfile, profile_id)
+    if profile is None or profile.organization_id != developer.organization_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LLM profile not found")
+
+    updates = body.model_dump(exclude_unset=True)
+    if "name" in updates and body.name is not None:
+        profile.name = body.name.strip()
+    if "provider" in updates and body.provider is not None:
+        profile.provider = body.provider.strip()
+    if "model" in updates and body.model is not None:
+        profile.model = body.model.strip()
+    if "api_base" in updates:
+        profile.api_base = body.api_base.strip() if body.api_base else None
+    if "api_key" in updates and body.api_key is not None:
+        profile.api_key_encrypted = encrypt(body.api_key)
+
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="LLM profile name already exists")
+    await db.refresh(profile)
+    return _profile_to_out(profile)
+
+
+@router.delete("/llm-profiles/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_llm_profile(
+    profile_id: uuid.UUID,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    _require_org_membership(developer)
+    _require_org_admin(developer)
+
+    profile = await db.get(OrganizationLLMProviderProfile, profile_id)
+    if profile is None or profile.organization_id != developer.organization_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LLM profile not found")
+
+    in_use_result = await db.execute(
+        select(AgentConfig.id).where(AgentConfig.llm_profile_id == profile.id).limit(1)
+    )
+    if in_use_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Profile is assigned to one or more apps",
+        )
+
+    await db.delete(profile)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/invitations", response_model=OrganizationInvitationOut, status_code=status.HTTP_201_CREATED)

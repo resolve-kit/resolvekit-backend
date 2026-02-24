@@ -7,6 +7,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kb_service.models import (
+    KnowledgeBase,
     KnowledgeChunk,
     KnowledgeDocument,
     KnowledgeIngestionJob,
@@ -14,6 +15,7 @@ from kb_service.models import (
 )
 from kb_service.services.crawling import CrawledPage, canonicalize_url, crawl_site
 from kb_service.services.embedding import embed_texts
+from kb_service.services.embedding_runtime import runtime_from_kb_active, runtime_from_kb_pending
 
 
 def chunk_text(text: str, *, chunk_size: int = 1100, overlap: int = 160) -> list[str]:
@@ -80,13 +82,17 @@ def deduplicate_pages_by_hash(
     return deduped_pages, skipped_duplicates
 
 
-async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) -> None:
+async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) -> None:
     if not job.source_id:
         raise ValueError("Ingestion job missing source")
 
     source = await db.get(KnowledgeSource, job.source_id)
     if not source or source.knowledge_base_id != job.knowledge_base_id:
         raise ValueError("Source not found")
+
+    kb = await db.get(KnowledgeBase, job.knowledge_base_id)
+    if not kb or kb.organization_id != job.organization_id:
+        raise ValueError("Knowledge base not found")
 
     pages = await _materialize_source_documents(source)
 
@@ -115,6 +121,8 @@ async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) ->
         existing_hashes=existing_hashes,
     )
 
+    runtime = runtime_from_kb_active(kb)
+
     total_chunks = 0
     total_docs = 0
     for page, content_hash in deduplicated_pages:
@@ -132,7 +140,7 @@ async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) ->
         await db.flush()
 
         chunks = chunk_text(markdown)
-        embeddings = await embed_texts(db, job.organization_id, chunks)
+        embeddings = await embed_texts(chunks, runtime)
         for idx, (chunk_text_value, embedding) in enumerate(zip(chunks, embeddings)):
             chunk = KnowledgeChunk(
                 document_id=doc.id,
@@ -160,18 +168,74 @@ async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) ->
     }
 
 
+async def _process_reembedding_job(db: AsyncSession, job: KnowledgeIngestionJob) -> None:
+    kb = await db.get(KnowledgeBase, job.knowledge_base_id)
+    if kb is None or kb.organization_id != job.organization_id:
+        raise ValueError("Knowledge base not found")
+    if kb.pending_embedding_profile_id is None:
+        raise ValueError("No pending embedding profile to apply")
+
+    runtime = runtime_from_kb_pending(kb)
+    chunks_result = await db.execute(
+        select(KnowledgeChunk)
+        .where(KnowledgeChunk.knowledge_base_id == job.knowledge_base_id)
+        .order_by(KnowledgeChunk.document_id.asc(), KnowledgeChunk.chunk_index.asc())
+    )
+    chunks = chunks_result.scalars().all()
+
+    if chunks:
+        texts = [chunk.content_text for chunk in chunks]
+        embeddings = await embed_texts(texts, runtime)
+        for chunk, embedding in zip(chunks, embeddings):
+            chunk.embedding = embedding
+
+    kb.embedding_profile_id = kb.pending_embedding_profile_id
+    kb.embedding_provider = kb.pending_embedding_provider
+    kb.embedding_model = kb.pending_embedding_model
+    kb.embedding_api_key_encrypted = kb.pending_embedding_api_key_encrypted
+    kb.embedding_api_base = kb.pending_embedding_api_base
+
+    kb.pending_embedding_profile_id = None
+    kb.pending_embedding_provider = None
+    kb.pending_embedding_model = None
+    kb.pending_embedding_api_key_encrypted = None
+    kb.pending_embedding_api_base = None
+    kb.embedding_regeneration_status = "idle"
+    kb.embedding_regeneration_error = None
+
+    doc_count_result = await db.execute(
+        select(KnowledgeDocument.id).where(KnowledgeDocument.knowledge_base_id == job.knowledge_base_id)
+    )
+    document_count = len(doc_count_result.scalars().all())
+    estimated_tokens = sum(chunk.token_count for chunk in chunks)
+    job.stats_json = {
+        "documents": document_count,
+        "chunks": len(chunks),
+        "estimated_tokens": estimated_tokens,
+    }
+
+
+async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) -> None:
+    if job.job_type == "reembed_kb":
+        await _process_reembedding_job(db, job)
+        return
+    await _process_source_ingestion_job(db, job)
+
+
 async def enqueue_ingestion_job(
     db: AsyncSession,
     *,
     organization_id: uuid.UUID,
     knowledge_base_id: uuid.UUID,
-    source_id: uuid.UUID,
+    source_id: uuid.UUID | None = None,
     job_type: str = "ingest_source",
+    target_embedding_profile_id: uuid.UUID | None = None,
 ) -> KnowledgeIngestionJob:
     job = KnowledgeIngestionJob(
         organization_id=organization_id,
         knowledge_base_id=knowledge_base_id,
         source_id=source_id,
+        target_embedding_profile_id=target_embedding_profile_id,
         job_type=job_type,
         status="pending",
         stats_json={},
@@ -187,6 +251,9 @@ def serialize_job(job: KnowledgeIngestionJob) -> dict[str, Any]:
         "organization_id": str(job.organization_id),
         "knowledge_base_id": str(job.knowledge_base_id),
         "source_id": str(job.source_id) if job.source_id else None,
+        "target_embedding_profile_id": (
+            str(job.target_embedding_profile_id) if job.target_embedding_profile_id else None
+        ),
         "job_type": job.job_type,
         "status": job.status,
         "error": job.error,

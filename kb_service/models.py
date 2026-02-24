@@ -26,6 +26,20 @@ class TimestampMixin:
     )
 
 
+class OrganizationEmbeddingProfile(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "organization_embedding_profiles"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "name", name="uq_org_embedding_profile_name"),
+    )
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    provider: Mapped[str] = mapped_column(String(64))
+    model: Mapped[str] = mapped_column(String(128))
+    api_key_encrypted: Mapped[str] = mapped_column(Text)
+    api_base: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+
 class KnowledgeBase(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "knowledge_bases"
     __table_args__ = (
@@ -35,6 +49,29 @@ class KnowledgeBase(Base, UUIDMixin, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(index=True)
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
+
+    # Active embedding runtime for this knowledge base.
+    embedding_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organization_embedding_profiles.id", ondelete="SET NULL"),
+        index=True,
+    )
+    embedding_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    embedding_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    embedding_api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    embedding_api_base: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Pending embedding runtime used by regeneration jobs.
+    pending_embedding_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organization_embedding_profiles.id", ondelete="SET NULL"),
+        index=True,
+    )
+    pending_embedding_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    pending_embedding_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    pending_embedding_api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pending_embedding_api_base: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    embedding_regeneration_status: Mapped[str] = mapped_column(String(32), default="idle")
+    embedding_regeneration_error: Mapped[str | None] = mapped_column(Text)
 
     sources: Mapped[list["KnowledgeSource"]] = relationship(
         back_populates="knowledge_base",
@@ -123,18 +160,10 @@ class KnowledgeIngestionJob(Base, UUIDMixin, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(index=True)
     knowledge_base_id: Mapped[uuid.UUID] = mapped_column(index=True)
     source_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
+    target_embedding_profile_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
     job_type: Mapped[str] = mapped_column(String(32), default="ingest_source")
     status: Mapped[str] = mapped_column(String(32), default="pending")
     error: Mapped[str | None] = mapped_column(Text)
     stats_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-
-class OrganizationEmbeddingConfig(Base, TimestampMixin):
-    __tablename__ = "organization_embedding_configs"
-
-    organization_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
-    provider: Mapped[str] = mapped_column(String(64))
-    model: Mapped[str] = mapped_column(String(128))
-    api_key_encrypted: Mapped[str] = mapped_column(Text)

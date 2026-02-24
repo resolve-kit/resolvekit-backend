@@ -1,15 +1,19 @@
 import hashlib
 import math
+from dataclasses import dataclass
 from typing import Iterable
 
 import litellm
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from kb_service.models import OrganizationEmbeddingConfig
-from kb_service.services.crypto import decrypt_secret
 
 _LOCAL_DIM = 256
+
+
+@dataclass(frozen=True)
+class EmbeddingRuntimeConfig:
+    provider: str
+    model: str
+    api_key: str
+    api_base: str | None = None
 
 
 def _normalize(vec: list[float]) -> list[float]:
@@ -30,17 +34,34 @@ def _local_embedding(text: str) -> list[float]:
     return _normalize(buckets)
 
 
+def _normalize_api_key(raw_key: str) -> str:
+    key = raw_key.strip()
+    lower = key.lower()
+    if lower.startswith("bearer "):
+        return key[7:].strip()
+    if lower.startswith("hydra "):
+        return key[6:].strip()
+    return key
+
+
 async def _provider_embedding(
     *,
-    model: str,
-    api_key: str,
+    runtime: EmbeddingRuntimeConfig,
     texts: list[str],
 ) -> list[list[float]]:
-    response = await litellm.aembedding(
-        model=model,
-        input=texts,
-        api_key=api_key,
-    )
+    model = runtime.model
+    if runtime.provider and runtime.provider != "nexos" and "/" not in model:
+        model = f"{runtime.provider}/{model}"
+
+    kwargs = {
+        "model": model,
+        "input": texts,
+        "api_key": _normalize_api_key(runtime.api_key),
+    }
+    if runtime.api_base:
+        kwargs["api_base"] = runtime.api_base
+
+    response = await litellm.aembedding(**kwargs)
     data = response.get("data", [])
     vectors: list[list[float]] = []
     for item in data:
@@ -52,23 +73,19 @@ async def _provider_embedding(
     return [_normalize(v) for v in vectors]
 
 
-async def embed_texts(db: AsyncSession, organization_id, texts: Iterable[str]) -> list[list[float]]:
+async def embed_texts(
+    texts: Iterable[str],
+    runtime: EmbeddingRuntimeConfig | None,
+) -> list[list[float]]:
     text_list = [t for t in texts]
     if not text_list:
         return []
 
-    result = await db.execute(
-        select(OrganizationEmbeddingConfig).where(
-            OrganizationEmbeddingConfig.organization_id == organization_id
-        )
-    )
-    config = result.scalar_one_or_none()
-    if not config:
+    if runtime is None:
         return [_local_embedding(text) for text in text_list]
 
     try:
-        api_key = decrypt_secret(config.api_key_encrypted)
-        return await _provider_embedding(model=config.model, api_key=api_key, texts=text_list)
+        return await _provider_embedding(runtime=runtime, texts=text_list)
     except Exception:
         return [_local_embedding(text) for text in text_list]
 

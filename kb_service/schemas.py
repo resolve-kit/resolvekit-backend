@@ -14,11 +14,18 @@ class KBGetRequest(OrganizationScopedRequest):
 class KBCreateRequest(OrganizationScopedRequest):
     name: str = Field(min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
+    embedding_profile_id: uuid.UUID
 
 
 class KBUpdateRequest(KBGetRequest):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
+    embedding_profile_id: uuid.UUID | None = None
+    confirm_regeneration: bool = False
+
+
+class KBEmbeddingChangeImpactRequest(KBGetRequest):
+    embedding_profile_id: uuid.UUID
 
 
 class SourceAddURLRequest(KBGetRequest):
@@ -55,7 +62,28 @@ class MultiKBSearchRequest(OrganizationScopedRequest):
     limit: int = Field(default=10, ge=1, le=50)
 
 
-class EmbeddingConfigPutRequest(OrganizationScopedRequest):
+class EmbeddingProfileGetRequest(OrganizationScopedRequest):
+    profile_id: uuid.UUID
+
+
+class EmbeddingProfileCreateRequest(OrganizationScopedRequest):
+    name: str = Field(min_length=1, max_length=120)
     provider: str = Field(min_length=1, max_length=64)
     model: str = Field(min_length=1, max_length=128)
     api_key: str = Field(min_length=1, max_length=4096)
+    api_base: str | None = Field(default=None, max_length=255)
+
+
+class EmbeddingProfileUpdateRequest(EmbeddingProfileGetRequest):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    provider: str | None = Field(default=None, min_length=1, max_length=64)
+    model: str | None = Field(default=None, min_length=1, max_length=128)
+    api_key: str | None = Field(default=None, min_length=1, max_length=4096)
+    api_base: str | None = Field(default=None, max_length=255)
+    confirm_regeneration: bool = False
+
+
+class EmbeddingProfileChangeImpactRequest(EmbeddingProfileGetRequest):
+    provider: str | None = Field(default=None, min_length=1, max_length=64)
+    model: str | None = Field(default=None, min_length=1, max_length=128)
+    api_base: str | None = Field(default=None, max_length=255)

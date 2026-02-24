@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from kb_service.config import settings
 from kb_service.database import async_session_factory
-from kb_service.models import KnowledgeIngestionJob
+from kb_service.models import KnowledgeBase, KnowledgeIngestionJob
 from kb_service.services.ingestion import process_ingestion_job
 
 
@@ -37,8 +37,17 @@ async def _process_job_by_id(job_id):
             job.status = "completed"
             job.error = None
         except Exception as exc:
+            await db.rollback()
+            job = await db.get(KnowledgeIngestionJob, job_id)
+            if not job:
+                return
             job.status = "failed"
             job.error = str(exc)
+            if job.job_type == "reembed_kb":
+                kb = await db.get(KnowledgeBase, job.knowledge_base_id)
+                if kb:
+                    kb.embedding_regeneration_status = "failed"
+                    kb.embedding_regeneration_error = str(exc)
         finally:
             job.finished_at = datetime.now(timezone.utc)
             await db.commit()

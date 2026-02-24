@@ -16,9 +16,7 @@ interface App {
 }
 
 interface ConfigSummary {
-  llm_provider: string;
-  llm_model: string;
-  has_llm_api_key: boolean;
+  llm_profile_id: string | null;
 }
 
 interface ApiKeySummary {
@@ -89,11 +87,7 @@ export default function Apps() {
           ]);
 
           const missing: string[] = [];
-          if (
-            !config.has_llm_api_key ||
-            config.llm_provider.trim().length === 0 ||
-            config.llm_model.trim().length === 0
-          ) {
+          if (!config.llm_profile_id) {
             missing.push("LLM");
           }
           if (!apiKeys.some((key) => key.is_active)) {
@@ -235,7 +229,7 @@ export default function Apps() {
                   to={`/apps/${checklistApp.id}/llm`}
                   className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
                 >
-                  1. LLM + API Key
+                  1. Select LLM Profile
                 </Link>
                 <Link
                   to={`/apps/${checklistApp.id}/api-keys`}

@@ -14,6 +14,7 @@ from ios_app_agent.config import settings
 from ios_app_agent.models.agent_config import AgentConfig
 from ios_app_agent.models.api_key import ApiKey
 from ios_app_agent.models.app import App
+from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.services.function_service import get_eligible_functions
 from ios_app_agent.services.orchestrator import MessageSender, run_agent_loop
@@ -129,6 +130,26 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
             await ws.send_json({"type": "error", "payload": {"code": "no_config", "message": "Agent not configured"}})
             await ws.close(code=4002)
             return
+        if agent_config.llm_profile_id is None:
+            await ws.send_json(
+                {"type": "error", "payload": {"code": "no_llm_profile", "message": "LLM profile is not configured"}}
+            )
+            await ws.close(code=4002)
+            return
+
+        profile = await db.get(OrganizationLLMProviderProfile, agent_config.llm_profile_id)
+        if profile is None or profile.organization_id != app.organization_id:
+            await ws.send_json(
+                {"type": "error", "payload": {"code": "invalid_llm_profile", "message": "Configured LLM profile is invalid"}}
+            )
+            await ws.close(code=4002)
+            return
+
+        # Runtime fields are resolved from org-scoped profile (hard cutover).
+        agent_config.llm_provider = profile.provider
+        agent_config.llm_model = profile.model
+        agent_config.llm_api_key_encrypted = profile.api_key_encrypted
+        agent_config.llm_api_base = profile.api_base
 
         # Check expiry
         if await is_session_expired(db, session, agent_config.session_ttl_minutes):

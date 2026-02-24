@@ -14,30 +14,37 @@ from ios_app_agent.models.knowledge_base_ref import KnowledgeBaseRef
 from ios_app_agent.schemas.knowledge_base import (
     AppKnowledgeBaseAssignmentsUpdate,
     KnowledgeBaseCreate,
+    KnowledgeBaseEmbeddingChangeImpactRequest,
     KnowledgeBaseUpdate,
     KnowledgeSearchRequest,
     KnowledgeSourceUploadCreate,
     KnowledgeSourceURLCreate,
-    OrganizationEmbeddingConfigUpdate,
+    OrganizationEmbeddingProfileChangeImpactRequest,
+    OrganizationEmbeddingProfileCreate,
+    OrganizationEmbeddingProfileUpdate,
 )
 from ios_app_agent.services.authorization_service import ORG_ADMIN_ROLES, require_org_role
 from ios_app_agent.services.kb_service_client import (
     KBServiceError,
     add_upload_source,
     add_url_source,
+    create_embedding_profile,
     create_knowledge_base,
     delete_document,
+    delete_embedding_profile,
     delete_knowledge_base,
     delete_source,
-    get_embedding_config,
+    embedding_profile_change_impact,
     get_knowledge_base,
+    kb_embedding_change_impact,
     list_documents,
+    list_embedding_profiles,
     list_jobs,
     list_knowledge_bases,
     list_sources,
-    put_embedding_config,
     recrawl_source,
     search_knowledge_base,
+    update_embedding_profile,
     update_knowledge_base,
 )
 
@@ -51,6 +58,8 @@ def _require_org_membership(developer: DeveloperAccount) -> uuid.UUID:
 
 
 def _raise_kb_error(exc: KBServiceError) -> None:
+    if exc.code:
+        raise HTTPException(status_code=exc.status_code, detail={"code": exc.code, "detail": exc.detail})
     raise HTTPException(status_code=exc.status_code, detail=exc.detail)
 
 
@@ -127,6 +136,7 @@ async def kb_create(
             actor_role=developer.role,
             name=body.name,
             description=body.description,
+            embedding_profile_id=body.embedding_profile_id,
         )
     except KBServiceError as exc:
         _raise_kb_error(exc)
@@ -173,6 +183,8 @@ async def kb_update(
             kb_id=kb_id,
             name=body.name,
             description=body.description,
+            embedding_profile_id=body.embedding_profile_id,
+            confirm_regeneration=body.confirm_regeneration,
         )
     except KBServiceError as exc:
         _raise_kb_error(exc)
@@ -182,6 +194,26 @@ async def kb_update(
         await _upsert_kb_ref(db, org_id, kb)
         await db.commit()
     return payload
+
+
+@router.post("/v1/knowledge-bases/{kb_id}/embedding-change-impact")
+async def kb_update_embedding_change_impact(
+    kb_id: uuid.UUID,
+    body: KnowledgeBaseEmbeddingChangeImpactRequest,
+    developer: DeveloperAccount = Depends(get_current_developer),
+):
+    org_id = _require_org_membership(developer)
+    require_org_role(developer, ORG_ADMIN_ROLES)
+    try:
+        return await kb_embedding_change_impact(
+            org_id=org_id,
+            actor_id=str(developer.id),
+            actor_role=developer.role,
+            kb_id=kb_id,
+            embedding_profile_id=body.embedding_profile_id,
+        )
+    except KBServiceError as exc:
+        _raise_kb_error(exc)
 
 
 @router.delete("/v1/knowledge-bases/{kb_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -482,14 +514,13 @@ async def app_kb_assignments_put(
     }
 
 
-@router.get("/v1/organizations/embedding-config")
-async def organization_embedding_get(
+@router.get("/v1/organizations/embedding-profiles")
+async def organization_embedding_profiles_list(
     developer: DeveloperAccount = Depends(get_current_developer),
 ):
     org_id = _require_org_membership(developer)
-    require_org_role(developer, ORG_ADMIN_ROLES)
     try:
-        return await get_embedding_config(
+        return await list_embedding_profiles(
             org_id=org_id,
             actor_id=str(developer.id),
             actor_role=developer.role,
@@ -498,21 +529,89 @@ async def organization_embedding_get(
         _raise_kb_error(exc)
 
 
-@router.put("/v1/organizations/embedding-config")
-async def organization_embedding_put(
-    body: OrganizationEmbeddingConfigUpdate,
+@router.post("/v1/organizations/embedding-profiles", status_code=status.HTTP_201_CREATED)
+async def organization_embedding_profiles_create(
+    body: OrganizationEmbeddingProfileCreate,
     developer: DeveloperAccount = Depends(get_current_developer),
 ):
     org_id = _require_org_membership(developer)
     require_org_role(developer, ORG_ADMIN_ROLES)
     try:
-        return await put_embedding_config(
+        return await create_embedding_profile(
             org_id=org_id,
             actor_id=str(developer.id),
             actor_role=developer.role,
+            name=body.name,
             provider=body.provider,
             model=body.model,
             api_key=body.api_key,
+            api_base=body.api_base,
         )
     except KBServiceError as exc:
         _raise_kb_error(exc)
+
+
+@router.patch("/v1/organizations/embedding-profiles/{profile_id}")
+async def organization_embedding_profiles_update(
+    profile_id: uuid.UUID,
+    body: OrganizationEmbeddingProfileUpdate,
+    developer: DeveloperAccount = Depends(get_current_developer),
+):
+    org_id = _require_org_membership(developer)
+    require_org_role(developer, ORG_ADMIN_ROLES)
+    try:
+        return await update_embedding_profile(
+            org_id=org_id,
+            actor_id=str(developer.id),
+            actor_role=developer.role,
+            profile_id=profile_id,
+            name=body.name,
+            provider=body.provider,
+            model=body.model,
+            api_key=body.api_key,
+            api_base=body.api_base,
+            confirm_regeneration=body.confirm_regeneration,
+        )
+    except KBServiceError as exc:
+        _raise_kb_error(exc)
+
+
+@router.post("/v1/organizations/embedding-profiles/{profile_id}/change-impact")
+async def organization_embedding_profiles_change_impact(
+    profile_id: uuid.UUID,
+    body: OrganizationEmbeddingProfileChangeImpactRequest,
+    developer: DeveloperAccount = Depends(get_current_developer),
+):
+    org_id = _require_org_membership(developer)
+    require_org_role(developer, ORG_ADMIN_ROLES)
+    try:
+        return await embedding_profile_change_impact(
+            org_id=org_id,
+            actor_id=str(developer.id),
+            actor_role=developer.role,
+            profile_id=profile_id,
+            provider=body.provider,
+            model=body.model,
+            api_base=body.api_base,
+        )
+    except KBServiceError as exc:
+        _raise_kb_error(exc)
+
+
+@router.delete("/v1/organizations/embedding-profiles/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def organization_embedding_profiles_delete(
+    profile_id: uuid.UUID,
+    developer: DeveloperAccount = Depends(get_current_developer),
+) -> Response:
+    org_id = _require_org_membership(developer)
+    require_org_role(developer, ORG_ADMIN_ROLES)
+    try:
+        await delete_embedding_profile(
+            org_id=org_id,
+            actor_id=str(developer.id),
+            actor_role=developer.role,
+            profile_id=profile_id,
+        )
+    except KBServiceError as exc:
+        _raise_kb_error(exc)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -13,6 +13,7 @@ from ios_app_agent.database import get_db
 from ios_app_agent.middleware.auth import get_app_from_api_key
 from ios_app_agent.models.agent_config import AgentConfig
 from ios_app_agent.models.app import App
+from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.schemas.ws_protocol import ToolResultPayload
 from ios_app_agent.services.function_service import get_eligible_functions
@@ -94,6 +95,18 @@ async def send_message_sse(
     agent_config = config_result.scalar_one_or_none()
     if not agent_config:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Agent not configured")
+    if agent_config.llm_profile_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="LLM profile is not configured")
+
+    profile = await db.get(OrganizationLLMProviderProfile, agent_config.llm_profile_id)
+    if profile is None or profile.organization_id != app.organization_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Configured LLM profile is invalid")
+
+    # Runtime fields are resolved from org-scoped profile (hard cutover).
+    agent_config.llm_provider = profile.provider
+    agent_config.llm_model = profile.model
+    agent_config.llm_api_key_encrypted = profile.api_key_encrypted
+    agent_config.llm_api_base = profile.api_base
 
     if await is_session_expired(db, session, agent_config.session_ttl_minutes):
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Session expired")

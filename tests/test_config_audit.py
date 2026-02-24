@@ -7,9 +7,7 @@ def make_cfg(**kwargs):
     cfg = MagicMock()
     defaults = {
         "system_prompt": "Hello",
-        "llm_provider": "openai",
-        "llm_model": "gpt-4o",
-        "llm_api_base": None,
+        "llm_profile_id": None,
         "temperature": 0.7,
         "max_tokens": 2048,
         "max_tool_rounds": 5,
@@ -22,35 +20,28 @@ def make_cfg(**kwargs):
 
 
 def test_llm_fields_changed():
-    old = make_cfg(llm_provider="openai", llm_model="gpt-4o")
-    updates = {"llm_provider": "anthropic", "llm_model": "claude-sonnet-4-5"}
-    events = _compute_config_audit_events(old, updates, api_key_rotated=False)
+    old = make_cfg(llm_profile_id=None)
+    updates = {"llm_profile_id": "8b9c6ef2-6f38-4721-b53b-71f4cad08f2a"}
+    events = _compute_config_audit_events(old, updates)
     assert any(event["type"] == "config.llm.updated" for event in events)
 
 
 def test_prompt_changed():
     old = make_cfg(system_prompt="Old prompt")
     updates = {"system_prompt": "New prompt"}
-    events = _compute_config_audit_events(old, updates, api_key_rotated=False)
+    events = _compute_config_audit_events(old, updates)
     assert any(event["type"] == "config.prompt.updated" for event in events)
 
 
 def test_limits_changed():
     old = make_cfg(temperature=0.7)
     updates = {"temperature": 1.0}
-    events = _compute_config_audit_events(old, updates, api_key_rotated=False)
+    events = _compute_config_audit_events(old, updates)
     assert any(event["type"] == "config.limits.updated" for event in events)
 
 
 def test_no_change_no_events():
-    old = make_cfg(llm_provider="openai")
-    updates = {"llm_provider": "openai"}
-    events = _compute_config_audit_events(old, updates, api_key_rotated=False)
+    old = make_cfg(llm_profile_id=None)
+    updates = {"llm_profile_id": None}
+    events = _compute_config_audit_events(old, updates)
     assert events == []
-
-
-def test_api_key_rotated_emits_llm_event():
-    old = make_cfg()
-    updates = {}
-    events = _compute_config_audit_events(old, updates, api_key_rotated=True)
-    assert any(event["type"] == "config.llm.updated" for event in events)

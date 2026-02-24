@@ -8,6 +8,7 @@ from ios_app_agent.models.base import Base, TimestampMixin, UUIDMixin
 if TYPE_CHECKING:
     from ios_app_agent.models.app import App
     from ios_app_agent.models.developer import DeveloperAccount
+    from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
     from ios_app_agent.models.organization_invitation import OrganizationInvitation
 
 
@@ -21,4 +22,8 @@ class Organization(Base, UUIDMixin, TimestampMixin):
     apps: Mapped[list["App"]] = relationship(back_populates="organization")
     invitations: Mapped[list["OrganizationInvitation"]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"
+    )
+    llm_provider_profiles: Mapped[list["OrganizationLLMProviderProfile"]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan",
     )
