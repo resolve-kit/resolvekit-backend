@@ -8,6 +8,7 @@ def make_cfg(**kwargs):
     defaults = {
         "system_prompt": "Hello",
         "llm_profile_id": None,
+        "llm_model": "gpt-4o",
         "temperature": 0.7,
         "max_tokens": 2048,
         "max_tool_rounds": 5,
@@ -22,6 +23,13 @@ def make_cfg(**kwargs):
 def test_llm_fields_changed():
     old = make_cfg(llm_profile_id=None)
     updates = {"llm_profile_id": "8b9c6ef2-6f38-4721-b53b-71f4cad08f2a"}
+    events = _compute_config_audit_events(old, updates)
+    assert any(event["type"] == "config.llm.updated" for event in events)
+
+
+def test_llm_model_changed():
+    old = make_cfg(llm_profile_id="8b9c6ef2-6f38-4721-b53b-71f4cad08f2a", llm_model="gpt-4o")
+    updates = {"llm_model": "gpt-4o-mini"}
     events = _compute_config_audit_events(old, updates)
     assert any(event["type"] == "config.llm.updated" for event in events)
 

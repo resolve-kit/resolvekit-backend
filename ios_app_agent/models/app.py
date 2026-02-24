@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ios_app_agent.models.base import Base, TimestampMixin, UUIDMixin
@@ -25,6 +25,8 @@ class App(Base, UUIDMixin, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(255))
     bundle_id: Mapped[str | None] = mapped_column(String(255))
+    integration_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    integration_version: Mapped[int] = mapped_column(Integer, default=1)
 
     developer: Mapped["DeveloperAccount"] = relationship(back_populates="apps")
     organization: Mapped["Organization"] = relationship(back_populates="apps")

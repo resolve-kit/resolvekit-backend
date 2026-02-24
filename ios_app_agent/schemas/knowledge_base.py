@@ -46,22 +46,23 @@ class AppKnowledgeBaseAssignmentsUpdate(BaseModel):
 
 class OrganizationEmbeddingProfileCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    provider: str = Field(min_length=1, max_length=64)
-    model: str = Field(min_length=1, max_length=128)
-    api_key: str = Field(min_length=1, max_length=4096)
-    api_base: str | None = Field(default=None, max_length=255)
+    llm_profile_id: uuid.UUID
+    embedding_model: str = Field(min_length=1, max_length=128)
+
+    model_config = {"extra": "forbid"}
 
 
 class OrganizationEmbeddingProfileUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
-    provider: str | None = Field(default=None, min_length=1, max_length=64)
-    model: str | None = Field(default=None, min_length=1, max_length=128)
-    api_key: str | None = Field(default=None, min_length=1, max_length=4096)
-    api_base: str | None = Field(default=None, max_length=255)
+    llm_profile_id: uuid.UUID | None = None
+    embedding_model: str | None = Field(default=None, min_length=1, max_length=128)
     confirm_regeneration: bool = False
+
+    model_config = {"extra": "forbid"}
 
 
 class OrganizationEmbeddingProfileChangeImpactRequest(BaseModel):
-    provider: str | None = Field(default=None, min_length=1, max_length=64)
-    model: str | None = Field(default=None, min_length=1, max_length=128)
-    api_base: str | None = Field(default=None, max_length=255)
+    llm_profile_id: uuid.UUID | None = None
+    embedding_model: str | None = Field(default=None, min_length=1, max_length=128)
+
+    model_config = {"extra": "forbid"}

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,12 @@ from ios_app_agent.models.developer import DeveloperAccount
 from ios_app_agent.models.message import Message
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.schemas.session import MessageOut, SessionCreate, SessionOut, SessionWSTicketOut
+from ios_app_agent.services.chat_access_service import (
+    CHAT_CAPABILITY_HEADER,
+    ensure_chat_available_for_app,
+    issue_chat_capability_token,
+    validate_chat_capability_token,
+)
 from ios_app_agent.services.ws_ticket_service import issue_ws_ticket
 
 # SDK endpoints (API key auth)
@@ -27,6 +33,8 @@ async def create_session(
     app: App = Depends(get_app_from_api_key),
     db: AsyncSession = Depends(get_db),
 ):
+    ensure_chat_available_for_app(app)
+
     session = ChatSession(
         app_id=app.id,
         device_id=body.device_id,
@@ -38,6 +46,7 @@ async def create_session(
     db.add(session)
     await db.commit()
     await db.refresh(session)
+    chat_capability_token = issue_chat_capability_token(session_id=session.id, app=app)
 
     return SessionOut(
         id=session.id,
@@ -47,15 +56,23 @@ async def create_session(
         last_activity_at=session.last_activity_at,
         created_at=session.created_at,
         ws_url=f"/v1/sessions/{session.id}/ws",
+        chat_capability_token=chat_capability_token,
     )
 
 
 @sdk_router.post("/{session_id}/ws-ticket", response_model=SessionWSTicketOut)
 async def create_ws_ticket(
     session_id: uuid.UUID,
+    request: Request,
     app: App = Depends(get_app_from_api_key),
     db: AsyncSession = Depends(get_db),
 ):
+    validate_chat_capability_token(
+        token=request.headers.get(CHAT_CAPABILITY_HEADER),
+        session_id=session_id,
+        app=app,
+    )
+
     session = await db.get(ChatSession, session_id)
     if not session or session.app_id != app.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")

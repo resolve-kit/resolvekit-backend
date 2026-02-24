@@ -1,11 +1,12 @@
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AgentConfigUpdate(BaseModel):
     system_prompt: str | None = None
     llm_profile_id: uuid.UUID | None = None
+    llm_model: str | None = Field(default=None, min_length=1, max_length=100)
     temperature: float | None = None
     max_tokens: int | None = None
     max_tool_rounds: int | None = None
@@ -20,7 +21,7 @@ class AgentConfigOut(BaseModel):
     llm_profile_id: uuid.UUID | None
     llm_profile_name: str | None
     llm_provider: str | None
-    llm_model: str | None
+    llm_model: str
     has_llm_api_key: bool
     llm_api_base: str | None
     temperature: float

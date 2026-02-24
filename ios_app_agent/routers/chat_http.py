@@ -3,7 +3,7 @@ import json
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -16,6 +16,7 @@ from ios_app_agent.models.app import App
 from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.schemas.ws_protocol import ToolResultPayload
+from ios_app_agent.services.chat_access_service import CHAT_CAPABILITY_HEADER, validate_chat_capability_token
 from ios_app_agent.services.function_service import get_eligible_functions
 from ios_app_agent.services.orchestrator import MessageSender, run_agent_loop
 from ios_app_agent.services.session_service import is_session_expired
@@ -84,9 +85,16 @@ class SSESender(MessageSender):
 async def send_message_sse(
     session_id: uuid.UUID,
     body: ChatMessageBody,
+    request: Request,
     app: App = Depends(get_app_from_api_key),
     db: AsyncSession = Depends(get_db),
 ):
+    validate_chat_capability_token(
+        token=request.headers.get(CHAT_CAPABILITY_HEADER),
+        session_id=session_id,
+        app=app,
+    )
+
     session = await db.get(ChatSession, session_id)
     if not session or session.app_id != app.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
@@ -102,7 +110,7 @@ async def send_message_sse(
     if profile is None or profile.organization_id != app.organization_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Configured LLM profile is invalid")
 
-    # Runtime fields are resolved from org-scoped profile (hard cutover).
+    # Runtime provider credentials are resolved from org-scoped profile.
     agent_config.llm_provider = profile.provider
     agent_config.llm_model = profile.model
     agent_config.llm_api_key_encrypted = profile.api_key_encrypted
@@ -135,8 +143,15 @@ async def send_message_sse(
 async def submit_tool_result(
     session_id: uuid.UUID,
     body: ToolResultPayload,
+    request: Request,
     app: App = Depends(get_app_from_api_key),
 ):
+    validate_chat_capability_token(
+        token=request.headers.get(CHAT_CAPABILITY_HEADER),
+        session_id=session_id,
+        app=app,
+    )
+
     fut = _pending_tool_results.get(_pending_key(session_id, app.id, body.call_id))
     if not fut:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pending tool call with this ID")

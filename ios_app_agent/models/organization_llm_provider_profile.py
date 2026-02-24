@@ -24,7 +24,8 @@ class OrganizationLLMProviderProfile(Base, UUIDMixin):
     )
     name: Mapped[str] = mapped_column(String(120))
     provider: Mapped[str] = mapped_column(String(50))
-    model: Mapped[str] = mapped_column(String(128))
+    # Legacy column kept for DB compatibility; app-level model is selected in AgentConfig.
+    model: Mapped[str] = mapped_column(String(128), default="default")
     api_key_encrypted: Mapped[str] = mapped_column(Text)
     api_base: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

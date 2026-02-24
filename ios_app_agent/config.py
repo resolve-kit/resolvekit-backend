@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     # SDK compatibility policy
     minimum_sdk_version: str = "1.0.0"
     supported_sdk_major_versions: list[int] = [1]
+    chat_capability_secret: str | None = None
+    chat_capability_ttl_seconds: int = 300
 
     # Knowledge base microservice
     kb_service_base_url: str = "http://kb-service:8100"

@@ -12,6 +12,7 @@ class AppCreate(BaseModel):
 class AppUpdate(BaseModel):
     name: str | None = None
     bundle_id: str | None = None
+    integration_enabled: bool | None = None
 
 
 class AppOut(BaseModel):
@@ -20,6 +21,7 @@ class AppOut(BaseModel):
     organization_id: uuid.UUID
     name: str
     bundle_id: str | None
+    integration_enabled: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

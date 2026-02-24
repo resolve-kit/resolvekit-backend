@@ -32,6 +32,7 @@ class SessionOut(BaseModel):
     last_activity_at: datetime
     created_at: datetime
     ws_url: str | None = None
+    chat_capability_token: str | None = None
 
     model_config = {"from_attributes": True}
 

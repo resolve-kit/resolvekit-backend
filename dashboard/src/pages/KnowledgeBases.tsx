@@ -28,11 +28,34 @@ interface EmbeddingProfile {
   id: string;
   organization_id: string;
   name: string;
+  llm_profile_id: string;
+  llm_profile_name: string;
   provider: string;
-  model: string;
+  embedding_model: string;
   api_base: string | null;
   updated_at: string;
   created_at: string;
+}
+
+interface OrganizationLlmProfile {
+  id: string;
+  name: string;
+  provider: string;
+  has_api_key: boolean;
+  api_base: string | null;
+}
+
+interface EmbeddingModelItem {
+  id: string;
+  name: string;
+}
+
+interface EmbeddingModelsResponse {
+  llm_profile_id: string;
+  provider: string;
+  models: EmbeddingModelItem[];
+  is_dynamic: boolean;
+  error: string | null;
 }
 
 interface ImpactResponse {
@@ -92,10 +115,8 @@ type ConfirmAction =
       profileId: string;
       payload: {
         name: string;
-        provider: string;
-        model: string;
-        api_key: string | null;
-        api_base: string | null;
+        llm_profile_id: string;
+        embedding_model: string;
       };
       impact: ImpactResponse;
     }
@@ -115,21 +136,24 @@ export default function KnowledgeBases() {
 
   const [embeddingProfiles, setEmbeddingProfiles] = useState<EmbeddingProfile[]>([]);
   const [embeddingLoading, setEmbeddingLoading] = useState(true);
+  const [organizationLlmProfiles, setOrganizationLlmProfiles] = useState<OrganizationLlmProfile[]>([]);
 
   const [newProfileName, setNewProfileName] = useState("");
-  const [newProfileProvider, setNewProfileProvider] = useState("openai");
-  const [newProfileModel, setNewProfileModel] = useState("");
-  const [newProfileApiKey, setNewProfileApiKey] = useState("");
-  const [newProfileApiBase, setNewProfileApiBase] = useState("");
+  const [newProfileLlmProfileId, setNewProfileLlmProfileId] = useState("");
+  const [newProfileEmbeddingModel, setNewProfileEmbeddingModel] = useState("");
+  const [newProfileEmbeddingModels, setNewProfileEmbeddingModels] = useState<EmbeddingModelItem[]>([]);
+  const [newProfileModelsLoading, setNewProfileModelsLoading] = useState(false);
+  const [newProfileModelsError, setNewProfileModelsError] = useState<string | null>(null);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [deletingProfileId, setDeletingProfileId] = useState<string | null>(null);
 
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editProfileName, setEditProfileName] = useState("");
-  const [editProfileProvider, setEditProfileProvider] = useState("");
-  const [editProfileModel, setEditProfileModel] = useState("");
-  const [editProfileApiBase, setEditProfileApiBase] = useState("");
-  const [editProfileApiKey, setEditProfileApiKey] = useState("");
+  const [editProfileLlmProfileId, setEditProfileLlmProfileId] = useState("");
+  const [editProfileEmbeddingModel, setEditProfileEmbeddingModel] = useState("");
+  const [editProfileEmbeddingModels, setEditProfileEmbeddingModels] = useState<EmbeddingModelItem[]>([]);
+  const [editProfileModelsLoading, setEditProfileModelsLoading] = useState(false);
+  const [editProfileModelsError, setEditProfileModelsError] = useState<string | null>(null);
   const [isSavingProfileEdit, setIsSavingProfileEdit] = useState(false);
 
   const [newKbName, setNewKbName] = useState("");
@@ -170,6 +194,11 @@ export default function KnowledgeBases() {
     [embeddingProfiles, kbEmbeddingDraftId]
   );
 
+  const selectedNewProfileLlm = useMemo(
+    () => organizationLlmProfiles.find((profile) => profile.id === newProfileLlmProfileId) ?? null,
+    [organizationLlmProfiles, newProfileLlmProfileId]
+  );
+
   async function loadEmbeddingProfiles() {
     setEmbeddingLoading(true);
     try {
@@ -181,6 +210,76 @@ export default function KnowledgeBases() {
       toast(err instanceof ApiError ? err.detail : "Failed to load embedding profiles", "error");
     } finally {
       setEmbeddingLoading(false);
+    }
+  }
+
+  async function loadOrganizationLlmProfiles() {
+    try {
+      const profiles = await api<OrganizationLlmProfile[]>("/v1/organizations/llm-profiles");
+      setOrganizationLlmProfiles(profiles);
+      setNewProfileLlmProfileId((prev) => prev || profiles[0]?.id || "");
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to load organization LLM profiles", "error");
+    }
+  }
+
+  async function loadEmbeddingModelsForLlmProfile(
+    llmProfileId: string,
+    target: "new" | "edit",
+  ) {
+    if (!llmProfileId) {
+      if (target === "new") {
+        setNewProfileEmbeddingModels([]);
+        setNewProfileEmbeddingModel("");
+        setNewProfileModelsError(null);
+      } else {
+        setEditProfileEmbeddingModels([]);
+        setEditProfileEmbeddingModel("");
+        setEditProfileModelsError(null);
+      }
+      return;
+    }
+
+    if (target === "new") {
+      setNewProfileModelsLoading(true);
+      setNewProfileModelsError(null);
+    } else {
+      setEditProfileModelsLoading(true);
+      setEditProfileModelsError(null);
+    }
+
+    try {
+      const payload = await api<EmbeddingModelsResponse>(
+        `/v1/organizations/embedding-models?llm_profile_id=${encodeURIComponent(llmProfileId)}`
+      );
+      const models = payload.models ?? [];
+      if (target === "new") {
+        setNewProfileEmbeddingModels(models);
+        setNewProfileEmbeddingModel((prev) =>
+          prev && models.some((model) => model.id === prev) ? prev : (models[0]?.id ?? "")
+        );
+        setNewProfileModelsError(payload.error ?? null);
+      } else {
+        setEditProfileEmbeddingModels(models);
+        setEditProfileEmbeddingModel((prev) =>
+          prev && models.some((model) => model.id === prev) ? prev : (models[0]?.id ?? "")
+        );
+        setEditProfileModelsError(payload.error ?? null);
+      }
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to load embedding models", "error");
+      if (target === "new") {
+        setNewProfileEmbeddingModels([]);
+        setNewProfileEmbeddingModel("");
+        setNewProfileModelsError(err instanceof ApiError ? err.detail : "Model catalog unavailable");
+      } else {
+        setEditProfileEmbeddingModels([]);
+        setEditProfileEmbeddingModel("");
+        setEditProfileModelsError(err instanceof ApiError ? err.detail : "Model catalog unavailable");
+      }
+    } finally {
+      if (target === "new") setNewProfileModelsLoading(false);
+      else setEditProfileModelsLoading(false);
     }
   }
 
@@ -214,8 +313,26 @@ export default function KnowledgeBases() {
   }
 
   useEffect(() => {
-    void Promise.all([loadEmbeddingProfiles(), loadKnowledgeBases()]);
+    void Promise.all([loadEmbeddingProfiles(), loadKnowledgeBases(), loadOrganizationLlmProfiles()]);
   }, []);
+
+  useEffect(() => {
+    if (!newProfileLlmProfileId) {
+      setNewProfileEmbeddingModels([]);
+      setNewProfileEmbeddingModel("");
+      return;
+    }
+    void loadEmbeddingModelsForLlmProfile(newProfileLlmProfileId, "new");
+  }, [newProfileLlmProfileId]);
+
+  useEffect(() => {
+    if (!editProfileLlmProfileId) {
+      setEditProfileEmbeddingModels([]);
+      setEditProfileEmbeddingModel("");
+      return;
+    }
+    void loadEmbeddingModelsForLlmProfile(editProfileLlmProfileId, "edit");
+  }, [editProfileLlmProfileId]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -236,7 +353,7 @@ export default function KnowledgeBases() {
   }, [selectedKb?.id, selectedKb?.embedding_profile_id]);
 
   async function createEmbeddingProfile() {
-    if (!newProfileName.trim() || !newProfileProvider.trim() || !newProfileModel.trim() || !newProfileApiKey.trim()) {
+    if (!newProfileName.trim() || !newProfileLlmProfileId || !newProfileEmbeddingModel.trim()) {
       return;
     }
 
@@ -246,16 +363,12 @@ export default function KnowledgeBases() {
         method: "POST",
         body: JSON.stringify({
           name: newProfileName.trim(),
-          provider: newProfileProvider.trim(),
-          model: newProfileModel.trim(),
-          api_key: newProfileApiKey.trim(),
-          api_base: newProfileApiBase.trim() || null,
+          llm_profile_id: newProfileLlmProfileId,
+          embedding_model: newProfileEmbeddingModel.trim(),
         }),
       });
       setNewProfileName("");
-      setNewProfileModel("");
-      setNewProfileApiKey("");
-      setNewProfileApiBase("");
+      setNewProfileEmbeddingModel("");
       toast("Embedding profile created", "success");
       await Promise.all([loadEmbeddingProfiles(), loadKnowledgeBases()]);
     } catch (err: unknown) {
@@ -268,10 +381,8 @@ export default function KnowledgeBases() {
   function startEditingProfile(profile: EmbeddingProfile) {
     setEditingProfileId(profile.id);
     setEditProfileName(profile.name);
-    setEditProfileProvider(profile.provider);
-    setEditProfileModel(profile.model);
-    setEditProfileApiBase(profile.api_base || "");
-    setEditProfileApiKey("");
+    setEditProfileLlmProfileId(profile.llm_profile_id);
+    setEditProfileEmbeddingModel(profile.embedding_model);
   }
 
   async function deleteEmbeddingProfile(profileId: string) {
@@ -297,16 +408,13 @@ export default function KnowledgeBases() {
 
     const payload = {
       name: editProfileName.trim(),
-      provider: editProfileProvider.trim(),
-      model: editProfileModel.trim(),
-      api_key: editProfileApiKey.trim() || null,
-      api_base: editProfileApiBase.trim() || null,
+      llm_profile_id: editProfileLlmProfileId,
+      embedding_model: editProfileEmbeddingModel.trim(),
     };
 
     const behaviorChanged =
-      payload.provider !== original.provider ||
-      payload.model !== original.model ||
-      payload.api_base !== (original.api_base || null);
+      payload.llm_profile_id !== original.llm_profile_id ||
+      payload.embedding_model !== original.embedding_model;
 
     if (behaviorChanged) {
       try {
@@ -315,9 +423,8 @@ export default function KnowledgeBases() {
           {
             method: "POST",
             body: JSON.stringify({
-              provider: payload.provider,
-              model: payload.model,
-              api_base: payload.api_base,
+              llm_profile_id: payload.llm_profile_id,
+              embedding_model: payload.embedding_model,
             }),
           }
         );
@@ -343,10 +450,8 @@ export default function KnowledgeBases() {
     profileId: string,
     payload: {
       name: string;
-      provider: string;
-      model: string;
-      api_key: string | null;
-      api_base: string | null;
+      llm_profile_id: string;
+      embedding_model: string;
     },
     confirmRegeneration: boolean
   ) {
@@ -360,7 +465,6 @@ export default function KnowledgeBases() {
         }),
       });
       setEditingProfileId(null);
-      setEditProfileApiKey("");
       toast("Embedding profile updated", "success");
       await Promise.all([loadEmbeddingProfiles(), loadKnowledgeBases()]);
     } catch (err: unknown) {
@@ -595,48 +699,80 @@ export default function KnowledgeBases() {
       <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up space-y-4">
         <h2 className="text-sm font-semibold text-strong">Embedding Profiles</h2>
         <p className="text-xs text-subtle">
-          Configure organization-wide embedding provider/model profiles. Changing provider/model can trigger full vector regeneration.
+          Link each embedding profile to an organization LLM profile, then choose an embedding-capable model.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+        {organizationLlmProfiles.length === 0 && (
+          <div className="rounded-lg border border-warning-dim bg-warning-subtle px-3 py-2">
+            <p className="text-xs text-warning">
+              No organization LLM profiles configured. Create one in Organization Admin first.
+            </p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <Input
             label="Profile Name"
             placeholder="OpenAI Embeddings"
             value={newProfileName}
             onChange={(e) => setNewProfileName(e.target.value)}
           />
-          <Input
-            label="Provider"
-            placeholder="openai"
-            value={newProfileProvider}
-            onChange={(e) => setNewProfileProvider(e.target.value)}
-          />
-          <Input
-            label="Model"
-            placeholder="text-embedding-3-small"
-            value={newProfileModel}
-            onChange={(e) => setNewProfileModel(e.target.value)}
-          />
-          <Input
-            label="API Key"
-            type="password"
-            placeholder="sk-..."
-            value={newProfileApiKey}
-            onChange={(e) => setNewProfileApiKey(e.target.value)}
-          />
-          <Input
-            label="API Base (optional)"
-            placeholder="https://api.example.com/v1"
-            value={newProfileApiBase}
-            onChange={(e) => setNewProfileApiBase(e.target.value)}
-            mono
-          />
+          <Select
+            label="LLM Profile"
+            value={newProfileLlmProfileId}
+            onChange={(e) => setNewProfileLlmProfileId(e.target.value)}
+          >
+            <option value="">Select LLM profile</option>
+            {organizationLlmProfiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {profile.name} · {profile.provider}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Embedding Model"
+            value={newProfileEmbeddingModel}
+            onChange={(e) => setNewProfileEmbeddingModel(e.target.value)}
+            disabled={!newProfileLlmProfileId || newProfileModelsLoading}
+          >
+            <option value="">
+              {newProfileModelsLoading
+                ? "Loading models..."
+                : newProfileEmbeddingModels.length === 0
+                  ? "No embedding models available"
+                  : "Select embedding model"}
+            </option>
+            {newProfileEmbeddingModels.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.name}
+              </option>
+            ))}
+          </Select>
           <div className="flex items-end">
-            <Button className="w-full" loading={isCreatingProfile} onClick={createEmbeddingProfile}>
+            <Button
+              className="w-full"
+              loading={isCreatingProfile}
+              onClick={createEmbeddingProfile}
+              disabled={
+                organizationLlmProfiles.length === 0 ||
+                !newProfileName.trim() ||
+                !newProfileLlmProfileId ||
+                !newProfileEmbeddingModel
+              }
+            >
               Add
             </Button>
           </div>
         </div>
+
+        {selectedNewProfileLlm && (
+          <p className="text-xs text-subtle">
+            Credentials source: {selectedNewProfileLlm.name} ({selectedNewProfileLlm.provider})
+          </p>
+        )}
+        {newProfileModelsError && (
+          <p className="text-xs text-warning">Model catalog note: {newProfileModelsError}</p>
+        )}
 
         {embeddingLoading ? (
           <p className="text-xs text-subtle">Loading embedding profiles...</p>
@@ -647,36 +783,50 @@ export default function KnowledgeBases() {
             {embeddingProfiles.map((profile) => (
               <div key={profile.id} className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
                 {editingProfileId === profile.id ? (
-                  <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <Input
                       label="Name"
                       value={editProfileName}
                       onChange={(e) => setEditProfileName(e.target.value)}
                     />
-                    <Input
-                      label="Provider"
-                      value={editProfileProvider}
-                      onChange={(e) => setEditProfileProvider(e.target.value)}
-                    />
-                    <Input
-                      label="Model"
-                      value={editProfileModel}
-                      onChange={(e) => setEditProfileModel(e.target.value)}
-                    />
-                    <Input
-                      label="Rotate API Key (optional)"
-                      type="password"
-                      value={editProfileApiKey}
-                      onChange={(e) => setEditProfileApiKey(e.target.value)}
-                    />
-                    <Input
-                      label="API Base"
-                      value={editProfileApiBase}
-                      onChange={(e) => setEditProfileApiBase(e.target.value)}
-                      mono
-                    />
+                    <Select
+                      label="LLM Profile"
+                      value={editProfileLlmProfileId}
+                      onChange={(e) => setEditProfileLlmProfileId(e.target.value)}
+                    >
+                      <option value="">Select LLM profile</option>
+                      {organizationLlmProfiles.map((llmProfile) => (
+                        <option key={llmProfile.id} value={llmProfile.id}>
+                          {llmProfile.name} · {llmProfile.provider}
+                        </option>
+                      ))}
+                    </Select>
+                    <Select
+                      label="Embedding Model"
+                      value={editProfileEmbeddingModel}
+                      onChange={(e) => setEditProfileEmbeddingModel(e.target.value)}
+                      disabled={!editProfileLlmProfileId || editProfileModelsLoading}
+                    >
+                      <option value="">
+                        {editProfileModelsLoading
+                          ? "Loading models..."
+                          : editProfileEmbeddingModels.length === 0
+                            ? "No embedding models available"
+                            : "Select embedding model"}
+                      </option>
+                      {editProfileEmbeddingModels.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </Select>
                     <div className="flex items-end gap-2">
-                      <Button size="sm" loading={isSavingProfileEdit} onClick={saveEmbeddingProfileEdit}>
+                      <Button
+                        size="sm"
+                        loading={isSavingProfileEdit}
+                        onClick={saveEmbeddingProfileEdit}
+                        disabled={!editProfileName.trim() || !editProfileLlmProfileId || !editProfileEmbeddingModel}
+                      >
                         Save
                       </Button>
                       <Button
@@ -687,15 +837,22 @@ export default function KnowledgeBases() {
                         Cancel
                       </Button>
                     </div>
+                    {editProfileModelsError && (
+                      <p className="text-xs text-warning md:col-span-4">
+                        Model catalog note: {editProfileModelsError}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm text-strong">{profile.name}</p>
                       <p className="text-xs text-subtle">
-                        {profile.provider}/{profile.model}
+                        {profile.provider}/{profile.embedding_model}
                       </p>
-                      {profile.api_base && <p className="text-xs text-dim font-mono truncate">{profile.api_base}</p>}
+                      <p className="text-xs text-dim truncate">
+                        LLM profile: {profile.llm_profile_name}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="default">Updated {new Date(profile.updated_at).toLocaleDateString()}</Badge>
@@ -744,7 +901,7 @@ export default function KnowledgeBases() {
             <option value="">Select profile</option>
             {embeddingProfiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
-                {profile.name} · {profile.provider}/{profile.model}
+                {profile.name} · {profile.provider}/{profile.embedding_model}
               </option>
             ))}
           </Select>
@@ -829,7 +986,7 @@ export default function KnowledgeBases() {
                     <option value="">Select profile</option>
                     {embeddingProfiles.map((profile) => (
                       <option key={profile.id} value={profile.id}>
-                        {profile.name} · {profile.provider}/{profile.model}
+                        {profile.name} · {profile.provider}/{profile.embedding_model}
                       </option>
                     ))}
                   </Select>
@@ -858,7 +1015,7 @@ export default function KnowledgeBases() {
                 )}
                 {selectedEmbeddingProfile && (
                   <p className="text-xs text-subtle">
-                    Active target profile: {selectedEmbeddingProfile.provider}/{selectedEmbeddingProfile.model}
+                    Active target profile: {selectedEmbeddingProfile.provider}/{selectedEmbeddingProfile.embedding_model}
                   </p>
                 )}
               </div>

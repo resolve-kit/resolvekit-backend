@@ -17,6 +17,11 @@ from ios_app_agent.models.knowledge_base_ref import KnowledgeBaseRef
 from ios_app_agent.models.message import Message
 from ios_app_agent.models.playbook import Playbook, PlaybookFunction
 from ios_app_agent.models.session import ChatSession
+from ios_app_agent.services.chat_access_service import (
+    CHAT_UNAVAILABLE_CODE,
+    CHAT_UNAVAILABLE_MESSAGE,
+    is_chat_unavailable_provider_error,
+)
 from ios_app_agent.services.function_service import get_function_timeout, validate_function_exists
 from ios_app_agent.services.kb_service_client import KBServiceError, search_multiple_knowledge_bases
 from ios_app_agent.services.llm_service import build_tools, call_llm, generate_tool_descriptions
@@ -220,6 +225,20 @@ async def run_agent_loop(
             response = await call_llm(config, llm_messages, tools_payload)
         except Exception as e:
             logger.exception("llm_call_failed session_id=%s app_id=%s", session.id, session.app_id)
+            if is_chat_unavailable_provider_error(e):
+                logger.warning(
+                    "llm_call_mapped_chat_unavailable session_id=%s app_id=%s error_type=%s error=%s",
+                    session.id,
+                    session.app_id,
+                    e.__class__.__name__,
+                    str(e),
+                )
+                await sender.send_error(
+                    CHAT_UNAVAILABLE_CODE,
+                    CHAT_UNAVAILABLE_MESSAGE,
+                    recoverable=True,
+                )
+                return
             await sender.send_error(
                 "llm_error",
                 "Assistant is temporarily unavailable. Please try again.",

@@ -80,6 +80,9 @@ async def update_app(
         app.name = body.name
     if body.bundle_id is not None:
         app.bundle_id = body.bundle_id
+    if body.integration_enabled is not None and body.integration_enabled != app.integration_enabled:
+        app.integration_enabled = body.integration_enabled
+        app.integration_version += 1
     await db.commit()
     await db.refresh(app)
     return app

@@ -12,11 +12,13 @@ interface App {
   id: string;
   name: string;
   bundle_id: string | null;
+  integration_enabled: boolean;
   created_at: string;
 }
 
 interface ConfigSummary {
   llm_profile_id: string | null;
+  llm_model: string;
 }
 
 interface ApiKeySummary {
@@ -66,6 +68,7 @@ export default function Apps() {
   const [showCreate, setShowCreate] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmToggleAppId, setConfirmToggleAppId] = useState<string | null>(null);
   const [newAppChecklistId, setNewAppChecklistId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -87,7 +90,7 @@ export default function Apps() {
           ]);
 
           const missing: string[] = [];
-          if (!config.llm_profile_id) {
+          if (!config.llm_profile_id || !config.llm_model) {
             missing.push("LLM");
           }
           if (!apiKeys.some((key) => key.is_active)) {
@@ -146,7 +149,21 @@ export default function Apps() {
     toast("App deleted", "info");
   }
 
+  async function toggleIntegration(id: string, enable: boolean) {
+    try {
+      const updated = await api<App>(`/v1/apps/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ integration_enabled: enable }),
+      });
+      setApps((prev) => prev.map((app) => (app.id === id ? updated : app)));
+      toast(enable ? "App integration enabled" : "App integration disabled", "info");
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to update integration", "error");
+    }
+  }
+
   const appToDelete = apps.find((a) => a.id === confirmDeleteId);
+  const appToToggle = apps.find((a) => a.id === confirmToggleAppId) ?? null;
   const checklistApp = apps.find((a) => a.id === newAppChecklistId) ?? null;
 
   return (
@@ -290,6 +307,9 @@ export default function Apps() {
                     {app.bundle_id}
                   </p>
                 )}
+                <p className={`text-[10px] mt-1 ${app.integration_enabled ? "text-success" : "text-warning"}`}>
+                  Integration {app.integration_enabled ? "Enabled" : "Disabled"}
+                </p>
                 {appMissingConfig[app.id] && appMissingConfig[app.id].length > 0 && (
                   <p className="text-[10px] text-danger mt-1">
                     Configuration Incomplete · Missing {appMissingConfig[app.id].join(", ")}
@@ -312,6 +332,17 @@ export default function Apps() {
                   {item.label}
                 </Link>
               ))}
+              <button
+                type="button"
+                onClick={() => setConfirmToggleAppId(app.id)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  app.integration_enabled
+                    ? "bg-warning-subtle border-warning-dim text-warning hover:text-body"
+                    : "bg-success-subtle border-success-dim text-success hover:text-body"
+                }`}
+              >
+                {app.integration_enabled ? "Disable Integration" : "Enable Integration"}
+              </button>
             </div>
           </div>
         ))}
@@ -336,6 +367,24 @@ export default function Apps() {
         confirmVariant="danger"
         onConfirm={() => deleteApp(confirmDeleteId!)}
         onCancel={() => setConfirmDeleteId(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmToggleAppId !== null}
+        title={appToToggle?.integration_enabled ? "Disable App Integration" : "Enable App Integration"}
+        description={
+          appToToggle?.integration_enabled
+            ? `Disable "${appToToggle.name}" integration? The SDK will show "Chat is unavailable, try again later".`
+            : `Enable "${appToToggle?.name}" integration so the SDK can resume chat.`
+        }
+        confirmLabel={appToToggle?.integration_enabled ? "Disable Integration" : "Enable Integration"}
+        confirmVariant={appToToggle?.integration_enabled ? "danger" : "primary"}
+        onConfirm={async () => {
+          if (!appToToggle) return;
+          await toggleIntegration(appToToggle.id, !appToToggle.integration_enabled);
+          setConfirmToggleAppId(null);
+        }}
+        onCancel={() => setConfirmToggleAppId(null)}
       />
     </div>
   );

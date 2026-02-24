@@ -34,6 +34,8 @@ class OrganizationEmbeddingProfile(Base, UUIDMixin, TimestampMixin):
 
     organization_id: Mapped[uuid.UUID] = mapped_column(index=True)
     name: Mapped[str] = mapped_column(String(120))
+    llm_profile_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    llm_profile_name: Mapped[str] = mapped_column(String(120))
     provider: Mapped[str] = mapped_column(String(64))
     model: Mapped[str] = mapped_column(String(128))
     api_key_encrypted: Mapped[str] = mapped_column(Text)

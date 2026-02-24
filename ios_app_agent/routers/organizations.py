@@ -21,7 +21,9 @@ from ios_app_agent.schemas.organization import (
     OrganizationOut,
 )
 from ios_app_agent.schemas.provider_profiles import (
+    OrganizationEmbeddingModelsOut,
     OrganizationLLMProfileCreate,
+    OrganizationLlmModelsOut,
     OrganizationLLMProfileOut,
     OrganizationLLMProfileUpdate,
 )
@@ -32,9 +34,14 @@ from ios_app_agent.services.authorization_service import (
     ORG_ROLE_OWNER,
     require_org_role,
 )
-from ios_app_agent.services.encryption import encrypt
+from ios_app_agent.services.encryption import decrypt, encrypt
 from ios_app_agent.services.organization_service import normalize_email
-from ios_app_agent.services.provider_service import list_providers
+from ios_app_agent.services.provider_service import (
+    list_embedding_models_for_provider,
+    list_models_for_provider,
+    list_providers,
+    test_provider_connection,
+)
 
 INVITATION_TTL_DAYS = 7
 
@@ -68,7 +75,6 @@ def _profile_to_out(profile: OrganizationLLMProviderProfile) -> OrganizationLLMP
         organization_id=profile.organization_id,
         name=profile.name,
         provider=profile.provider,
-        model=profile.model,
         has_api_key=bool(profile.api_key_encrypted),
         api_base=profile.api_base,
         created_at=profile.created_at,
@@ -97,6 +103,58 @@ async def get_llm_provider_catalog(
     return list_providers()
 
 
+@router.get("/embedding-models", response_model=OrganizationEmbeddingModelsOut)
+async def get_embedding_models_for_llm_profile(
+    llm_profile_id: uuid.UUID,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_org_membership(developer)
+    profile = await db.get(OrganizationLLMProviderProfile, llm_profile_id)
+    if profile is None or profile.organization_id != developer.organization_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LLM profile not found")
+
+    api_key = decrypt(profile.api_key_encrypted)
+    models, is_dynamic, error = await list_embedding_models_for_provider(
+        profile.provider,
+        api_key=api_key,
+        api_base=profile.api_base,
+    )
+    return OrganizationEmbeddingModelsOut(
+        llm_profile_id=profile.id,
+        provider=profile.provider,
+        models=models,
+        is_dynamic=is_dynamic,
+        error=error,
+    )
+
+
+@router.get("/llm-models", response_model=OrganizationLlmModelsOut)
+async def get_llm_models_for_profile(
+    llm_profile_id: uuid.UUID,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_org_membership(developer)
+    profile = await db.get(OrganizationLLMProviderProfile, llm_profile_id)
+    if profile is None or profile.organization_id != developer.organization_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LLM profile not found")
+
+    api_key = decrypt(profile.api_key_encrypted)
+    models, is_dynamic, error = await list_models_for_provider(
+        profile.provider,
+        api_key=api_key,
+        api_base=profile.api_base,
+    )
+    return OrganizationLlmModelsOut(
+        llm_profile_id=profile.id,
+        provider=profile.provider,
+        models=models,
+        is_dynamic=is_dynamic,
+        error=error,
+    )
+
+
 @router.get("/llm-profiles", response_model=list[OrganizationLLMProfileOut])
 async def list_llm_profiles(
     developer: DeveloperAccount = Depends(get_current_developer),
@@ -120,13 +178,23 @@ async def create_llm_profile(
     _require_org_membership(developer)
     _require_org_admin(developer)
 
+    provider = body.provider.strip().lower()
+    api_key = body.api_key.strip()
+    if not api_key:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="API key required")
+    api_base = body.api_base.strip() if body.api_base else None
+    connection_check = await test_provider_connection(provider, api_key, api_base)
+    if not connection_check["ok"]:
+        error_text = connection_check["error"] if isinstance(connection_check.get("error"), str) else "Invalid provider API key"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_text)
+
     profile = OrganizationLLMProviderProfile(
         organization_id=developer.organization_id,
         name=body.name.strip(),
-        provider=body.provider.strip(),
-        model=body.model.strip(),
-        api_key_encrypted=encrypt(body.api_key),
-        api_base=(body.api_base.strip() if body.api_base else None),
+        provider=provider,
+        model="default",
+        api_key_encrypted=encrypt(api_key),
+        api_base=api_base,
     )
     db.add(profile)
     try:
@@ -155,14 +223,38 @@ async def update_llm_profile(
     updates = body.model_dump(exclude_unset=True)
     if "name" in updates and body.name is not None:
         profile.name = body.name.strip()
-    if "provider" in updates and body.provider is not None:
-        profile.provider = body.provider.strip()
-    if "model" in updates and body.model is not None:
-        profile.model = body.model.strip()
+
+    next_provider = body.provider.strip().lower() if body.provider is not None else profile.provider
     if "api_base" in updates:
-        profile.api_base = body.api_base.strip() if body.api_base else None
-    if "api_key" in updates and body.api_key is not None:
-        profile.api_key_encrypted = encrypt(body.api_key)
+        next_api_base = body.api_base.strip() if body.api_base else None
+    else:
+        next_api_base = profile.api_base
+    if body.api_key is not None:
+        next_api_key = body.api_key.strip()
+        if not next_api_key:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="API key required")
+    else:
+        next_api_key = decrypt(profile.api_key_encrypted)
+
+    needs_connection_check = (
+        "provider" in updates
+        or "api_base" in updates
+        or "api_key" in updates
+    )
+    if needs_connection_check:
+        connection_check = await test_provider_connection(next_provider, next_api_key, next_api_base)
+        if not connection_check["ok"]:
+            error_text = (
+                connection_check["error"]
+                if isinstance(connection_check.get("error"), str)
+                else "Invalid provider API key"
+            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_text)
+
+    profile.provider = next_provider
+    profile.api_base = next_api_base
+    if body.api_key is not None:
+        profile.api_key_encrypted = encrypt(next_api_key)
 
     try:
         await db.commit()

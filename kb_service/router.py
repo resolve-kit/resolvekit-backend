@@ -53,8 +53,10 @@ def _serialize_profile(profile: OrganizationEmbeddingProfile) -> dict[str, Any]:
         "id": str(profile.id),
         "organization_id": str(profile.organization_id),
         "name": profile.name,
+        "llm_profile_id": str(profile.llm_profile_id),
+        "llm_profile_name": profile.llm_profile_name,
         "provider": profile.provider,
-        "model": profile.model,
+        "embedding_model": profile.model,
         "api_base": profile.api_base,
         "updated_at": profile.updated_at.isoformat(),
         "created_at": profile.created_at.isoformat(),
@@ -653,8 +655,10 @@ async def embedding_profiles_create(
     profile = OrganizationEmbeddingProfile(
         organization_id=body.organization_id,
         name=body.name.strip(),
+        llm_profile_id=body.llm_profile_id,
+        llm_profile_name=body.llm_profile_name.strip(),
         provider=body.provider.strip(),
-        model=body.model.strip(),
+        model=body.embedding_model.strip(),
         api_key_encrypted=encrypt_secret(body.api_key),
         api_base=body.api_base.strip() if body.api_base else None,
     )
@@ -683,7 +687,7 @@ async def embedding_profiles_change_impact(
     updates = body.model_dump(exclude_unset=True)
 
     provider = body.provider.strip() if body.provider else profile.provider
-    model = body.model.strip() if body.model else profile.model
+    embedding_model = body.embedding_model.strip() if body.embedding_model else profile.model
     if "api_base" in updates:
         api_base = body.api_base.strip() if body.api_base else None
     else:
@@ -691,7 +695,7 @@ async def embedding_profiles_change_impact(
 
     behavior_changed = (
         provider != profile.provider
-        or model != profile.model
+        or embedding_model != profile.model
         or api_base != profile.api_base
     )
     if not behavior_changed:
@@ -721,8 +725,10 @@ async def embedding_profiles_update(
 
     updates = body.model_dump(exclude_unset=True)
     next_name = body.name.strip() if body.name is not None else profile.name
+    next_llm_profile_id = body.llm_profile_id if body.llm_profile_id is not None else profile.llm_profile_id
+    next_llm_profile_name = body.llm_profile_name.strip() if body.llm_profile_name is not None else profile.llm_profile_name
     next_provider = body.provider.strip() if body.provider is not None else profile.provider
-    next_model = body.model.strip() if body.model is not None else profile.model
+    next_model = body.embedding_model.strip() if body.embedding_model is not None else profile.model
     if "api_base" in updates:
         next_api_base = body.api_base.strip() if body.api_base else None
     else:
@@ -759,6 +765,8 @@ async def embedding_profiles_update(
         )
 
     profile.name = next_name
+    profile.llm_profile_id = next_llm_profile_id
+    profile.llm_profile_name = next_llm_profile_name
     profile.provider = next_provider
     profile.model = next_model
     profile.api_base = next_api_base

@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +16,13 @@ from ios_app_agent.models.api_key import ApiKey
 from ios_app_agent.models.app import App
 from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from ios_app_agent.models.session import ChatSession
+from ios_app_agent.services.chat_access_service import (
+    CHAT_CAPABILITY_QUERY,
+    CHAT_UNAVAILABLE_CODE,
+    CHAT_UNAVAILABLE_MESSAGE,
+    ensure_chat_available_for_app,
+    validate_chat_capability_token,
+)
 from ios_app_agent.services.function_service import get_eligible_functions
 from ios_app_agent.services.orchestrator import MessageSender, run_agent_loop
 from ios_app_agent.services.session_service import is_session_expired
@@ -116,6 +123,16 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
             await ws.close(code=4001)
             return
 
+        capability_token = ws.query_params.get(CHAT_CAPABILITY_QUERY)
+        try:
+            validate_chat_capability_token(token=capability_token, session_id=session_id, app=app)
+        except HTTPException:
+            await ws.send_json(
+                {"type": "error", "payload": {"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE, "recoverable": True}}
+            )
+            await ws.close(code=4003)
+            return
+
         # Validate session
         session = await db.get(ChatSession, session_id)
         if not session or session.app_id != app.id:
@@ -145,7 +162,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
             await ws.close(code=4002)
             return
 
-        # Runtime fields are resolved from org-scoped profile (hard cutover).
+        # Runtime provider credentials are resolved from org-scoped profile.
         agent_config.llm_provider = profile.provider
         agent_config.llm_model = profile.model
         agent_config.llm_api_key_encrypted = profile.api_key_encrypted
@@ -181,6 +198,13 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                         sender.resolve_tool_result(call_id, payload)
 
                 elif msg_type == "chat_message":
+                    await db.refresh(app)
+                    try:
+                        ensure_chat_available_for_app(app)
+                    except HTTPException:
+                        await sender.send_error(CHAT_UNAVAILABLE_CODE, CHAT_UNAVAILABLE_MESSAGE)
+                        continue
+
                     # Check if a turn is already running
                     if agent_task is not None and not agent_task.done():
                         await sender.send_error("turn_in_progress", "A turn is already in progress")

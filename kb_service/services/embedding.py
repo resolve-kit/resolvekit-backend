@@ -3,6 +3,7 @@ import math
 from dataclasses import dataclass
 from typing import Iterable
 
+import httpx
 import litellm
 
 _LOCAL_DIM = 256
@@ -44,11 +45,58 @@ def _normalize_api_key(raw_key: str) -> str:
     return key
 
 
+def _resolve_nexos_base_url(api_base: str | None) -> str:
+    if api_base and api_base.strip():
+        return api_base.rstrip("/")
+    return "https://api.nexos.ai/v1"
+
+
+async def _nexos_embedding(
+    *,
+    runtime: EmbeddingRuntimeConfig,
+    texts: list[str],
+) -> list[list[float]]:
+    token = _normalize_api_key(runtime.api_key)
+    base_url = _resolve_nexos_base_url(runtime.api_base)
+    url = f"{base_url}/embeddings"
+    payload = {
+        "model": runtime.model,
+        "input": texts,
+    }
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        response = await client.post(
+            url,
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    raw_vectors = data.get("data", []) if isinstance(data, dict) else []
+    vectors: list[list[float]] = []
+    for item in raw_vectors:
+        if not isinstance(item, dict):
+            continue
+        embedding = item.get("embedding")
+        if isinstance(embedding, list):
+            vectors.append([float(v) for v in embedding])
+    if len(vectors) != len(texts):
+        return [_local_embedding(text) for text in texts]
+    return [_normalize(v) for v in vectors]
+
+
 async def _provider_embedding(
     *,
     runtime: EmbeddingRuntimeConfig,
     texts: list[str],
 ) -> list[list[float]]:
+    if runtime.provider == "nexos":
+        return await _nexos_embedding(runtime=runtime, texts=texts)
+
     model = runtime.model
     if runtime.provider and runtime.provider != "nexos" and "/" not in model:
         model = f"{runtime.provider}/{model}"

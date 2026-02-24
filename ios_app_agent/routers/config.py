@@ -29,7 +29,7 @@ from ios_app_agent.services.provider_service import (
 
 router = APIRouter(prefix="/v1/apps/{app_id}/config", tags=["config"])
 
-_LLM_FIELDS = {"llm_profile_id"}
+_LLM_FIELDS = {"llm_profile_id", "llm_model"}
 _PROMPT_FIELDS = {"system_prompt"}
 _LIMITS_FIELDS = {
     "temperature",
@@ -97,7 +97,7 @@ def config_to_out(cfg: AgentConfig, profile: OrganizationLLMProviderProfile | No
         llm_profile_id=cfg.llm_profile_id,
         llm_profile_name=profile.name if profile else None,
         llm_provider=profile.provider if profile else None,
-        llm_model=profile.model if profile else None,
+        llm_model=cfg.llm_model,
         has_llm_api_key=bool(profile and profile.api_key_encrypted),
         llm_api_base=profile.api_base if profile else None,
         temperature=cfg.temperature,
@@ -207,6 +207,8 @@ async def update_config(
     cfg = await _get_or_create_config(db, app_id)
 
     updates = body.model_dump(exclude_unset=True)
+    if "llm_model" in updates and updates["llm_model"] is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="LLM model is required")
     if "llm_profile_id" in updates and updates["llm_profile_id"] is not None:
         await _get_profile_for_app(
             db,

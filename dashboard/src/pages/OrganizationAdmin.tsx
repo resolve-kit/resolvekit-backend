@@ -51,7 +51,6 @@ interface OrganizationLlmProfile {
   organization_id: string;
   name: string;
   provider: string;
-  model: string;
   has_api_key: boolean;
   api_base: string | null;
   created_at: string;
@@ -74,7 +73,6 @@ export default function OrganizationAdmin() {
   const [llmProfiles, setLlmProfiles] = useState<OrganizationLlmProfile[]>([]);
   const [llmProfileName, setLlmProfileName] = useState("");
   const [llmProvider, setLlmProvider] = useState("openai");
-  const [llmModel, setLlmModel] = useState("");
   const [llmApiKey, setLlmApiKey] = useState("");
   const [llmApiBase, setLlmApiBase] = useState("");
   const [creatingLlmProfile, setCreatingLlmProfile] = useState(false);
@@ -183,7 +181,7 @@ export default function OrganizationAdmin() {
 
   async function createLlmProfile(e: FormEvent) {
     e.preventDefault();
-    if (!llmProfileName.trim() || !llmProvider.trim() || !llmModel.trim() || !llmApiKey.trim()) return;
+    if (!llmProfileName.trim() || !llmProvider.trim() || !llmApiKey.trim()) return;
 
     setCreatingLlmProfile(true);
     try {
@@ -192,13 +190,11 @@ export default function OrganizationAdmin() {
         body: JSON.stringify({
           name: llmProfileName.trim(),
           provider: llmProvider.trim(),
-          model: llmModel.trim(),
           api_key: llmApiKey.trim(),
           api_base: llmApiBase.trim() || null,
         }),
       });
       setLlmProfileName("");
-      setLlmModel("");
       setLlmApiKey("");
       setLlmApiBase("");
       toast("LLM profile created", "success");
@@ -285,12 +281,12 @@ export default function OrganizationAdmin() {
         <div>
           <h2 className="text-sm font-semibold text-strong mb-1">Organization LLM Profiles</h2>
           <p className="text-xs text-subtle">
-            Configure reusable provider/model credentials once, then select a profile per app.
+            Configure reusable provider credentials once. Models are selected per app and embeddings in Knowledge Bases.
           </p>
         </div>
 
         {canManageOrganization && (
-          <form onSubmit={createLlmProfile} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <form onSubmit={createLlmProfile} className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <Input
               label="Profile Name"
               value={llmProfileName}
@@ -310,13 +306,6 @@ export default function OrganizationAdmin() {
               ))}
             </Select>
             <Input
-              label="Model"
-              value={llmModel}
-              onChange={(e) => setLlmModel(e.target.value)}
-              placeholder="gpt-4o"
-              required
-            />
-            <Input
               label="API Key"
               type="password"
               value={llmApiKey}
@@ -329,8 +318,11 @@ export default function OrganizationAdmin() {
                 Add Profile
               </Button>
             </div>
+            <p className="md:col-span-4 text-xs text-subtle">
+              The API key is validated with a live provider request before the profile is saved.
+            </p>
             {selectedLlmProvider?.custom_base_url && (
-              <div className="md:col-span-5">
+              <div className="md:col-span-4">
                 <Input
                   label="API Base URL (optional)"
                   value={llmApiBase}
@@ -356,9 +348,7 @@ export default function OrganizationAdmin() {
               >
                 <div className="min-w-0">
                   <p className="text-sm text-strong">{profile.name}</p>
-                  <p className="text-xs text-subtle">
-                    {profile.provider}/{profile.model}
-                  </p>
+                  <p className="text-xs text-subtle">{profile.provider}</p>
                   {profile.api_base && (
                     <p className="text-xs text-dim font-mono truncate">{profile.api_base}</p>
                   )}

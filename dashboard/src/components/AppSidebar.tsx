@@ -24,6 +24,7 @@ interface AppSummary {
 interface ConfigSummary {
   system_prompt: string;
   llm_profile_id: string | null;
+  llm_model: string;
 }
 
 interface FunctionSummary {
@@ -67,7 +68,8 @@ export default function AppSidebar() {
       setMissingConfig({
         llm:
           !config ||
-          !config.llm_profile_id,
+          !config.llm_profile_id ||
+          !config.llm_model,
         "api-keys": activeApiKeys === 0,
         functions: activeFunctions === 0,
       });

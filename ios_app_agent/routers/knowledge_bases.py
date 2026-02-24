@@ -11,6 +11,7 @@ from ios_app_agent.models.app import App
 from ios_app_agent.models.app_knowledge_base import AppKnowledgeBase
 from ios_app_agent.models.developer import DeveloperAccount
 from ios_app_agent.models.knowledge_base_ref import KnowledgeBaseRef
+from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from ios_app_agent.schemas.knowledge_base import (
     AppKnowledgeBaseAssignmentsUpdate,
     KnowledgeBaseCreate,
@@ -24,6 +25,7 @@ from ios_app_agent.schemas.knowledge_base import (
     OrganizationEmbeddingProfileUpdate,
 )
 from ios_app_agent.services.authorization_service import ORG_ADMIN_ROLES, require_org_role
+from ios_app_agent.services.encryption import decrypt
 from ios_app_agent.services.kb_service_client import (
     KBServiceError,
     add_upload_source,
@@ -61,6 +63,18 @@ def _raise_kb_error(exc: KBServiceError) -> None:
     if exc.code:
         raise HTTPException(status_code=exc.status_code, detail={"code": exc.code, "detail": exc.detail})
     raise HTTPException(status_code=exc.status_code, detail=exc.detail)
+
+
+async def _get_org_llm_profile_or_404(
+    db: AsyncSession,
+    *,
+    organization_id: uuid.UUID,
+    llm_profile_id: uuid.UUID,
+) -> OrganizationLLMProviderProfile:
+    profile = await db.get(OrganizationLLMProviderProfile, llm_profile_id)
+    if profile is None or profile.organization_id != organization_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LLM profile not found")
+    return profile
 
 
 async def _upsert_kb_ref(db: AsyncSession, organization_id: uuid.UUID, kb_payload: dict[str, Any]) -> KnowledgeBaseRef:
@@ -533,19 +547,27 @@ async def organization_embedding_profiles_list(
 async def organization_embedding_profiles_create(
     body: OrganizationEmbeddingProfileCreate,
     developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
 ):
     org_id = _require_org_membership(developer)
     require_org_role(developer, ORG_ADMIN_ROLES)
+    llm_profile = await _get_org_llm_profile_or_404(
+        db,
+        organization_id=org_id,
+        llm_profile_id=body.llm_profile_id,
+    )
     try:
         return await create_embedding_profile(
             org_id=org_id,
             actor_id=str(developer.id),
             actor_role=developer.role,
             name=body.name,
-            provider=body.provider,
-            model=body.model,
-            api_key=body.api_key,
-            api_base=body.api_base,
+            llm_profile_id=llm_profile.id,
+            llm_profile_name=llm_profile.name,
+            provider=llm_profile.provider,
+            embedding_model=body.embedding_model,
+            api_key=decrypt(llm_profile.api_key_encrypted),
+            api_base=llm_profile.api_base,
         )
     except KBServiceError as exc:
         _raise_kb_error(exc)
@@ -556,9 +578,19 @@ async def organization_embedding_profiles_update(
     profile_id: uuid.UUID,
     body: OrganizationEmbeddingProfileUpdate,
     developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
 ):
     org_id = _require_org_membership(developer)
     require_org_role(developer, ORG_ADMIN_ROLES)
+
+    llm_profile: OrganizationLLMProviderProfile | None = None
+    if body.llm_profile_id is not None:
+        llm_profile = await _get_org_llm_profile_or_404(
+            db,
+            organization_id=org_id,
+            llm_profile_id=body.llm_profile_id,
+        )
+
     try:
         return await update_embedding_profile(
             org_id=org_id,
@@ -566,10 +598,12 @@ async def organization_embedding_profiles_update(
             actor_role=developer.role,
             profile_id=profile_id,
             name=body.name,
-            provider=body.provider,
-            model=body.model,
-            api_key=body.api_key,
-            api_base=body.api_base,
+            llm_profile_id=llm_profile.id if llm_profile else None,
+            llm_profile_name=llm_profile.name if llm_profile else None,
+            provider=llm_profile.provider if llm_profile else None,
+            embedding_model=body.embedding_model,
+            api_key=decrypt(llm_profile.api_key_encrypted) if llm_profile else None,
+            api_base=llm_profile.api_base if llm_profile else None,
             confirm_regeneration=body.confirm_regeneration,
         )
     except KBServiceError as exc:
@@ -581,18 +615,29 @@ async def organization_embedding_profiles_change_impact(
     profile_id: uuid.UUID,
     body: OrganizationEmbeddingProfileChangeImpactRequest,
     developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
 ):
     org_id = _require_org_membership(developer)
     require_org_role(developer, ORG_ADMIN_ROLES)
+
+    llm_profile: OrganizationLLMProviderProfile | None = None
+    if body.llm_profile_id is not None:
+        llm_profile = await _get_org_llm_profile_or_404(
+            db,
+            organization_id=org_id,
+            llm_profile_id=body.llm_profile_id,
+        )
+
     try:
         return await embedding_profile_change_impact(
             org_id=org_id,
             actor_id=str(developer.id),
             actor_role=developer.role,
             profile_id=profile_id,
-            provider=body.provider,
-            model=body.model,
-            api_base=body.api_base,
+            llm_profile_id=llm_profile.id if llm_profile else None,
+            provider=llm_profile.provider if llm_profile else None,
+            embedding_model=body.embedding_model,
+            api_base=llm_profile.api_base if llm_profile else None,
         )
     except KBServiceError as exc:
         _raise_kb_error(exc)

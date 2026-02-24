@@ -68,22 +68,27 @@ class EmbeddingProfileGetRequest(OrganizationScopedRequest):
 
 class EmbeddingProfileCreateRequest(OrganizationScopedRequest):
     name: str = Field(min_length=1, max_length=120)
+    llm_profile_id: uuid.UUID
+    llm_profile_name: str = Field(min_length=1, max_length=120)
     provider: str = Field(min_length=1, max_length=64)
-    model: str = Field(min_length=1, max_length=128)
+    embedding_model: str = Field(min_length=1, max_length=128)
     api_key: str = Field(min_length=1, max_length=4096)
     api_base: str | None = Field(default=None, max_length=255)
 
 
 class EmbeddingProfileUpdateRequest(EmbeddingProfileGetRequest):
     name: str | None = Field(default=None, min_length=1, max_length=120)
+    llm_profile_id: uuid.UUID | None = None
+    llm_profile_name: str | None = Field(default=None, min_length=1, max_length=120)
     provider: str | None = Field(default=None, min_length=1, max_length=64)
-    model: str | None = Field(default=None, min_length=1, max_length=128)
+    embedding_model: str | None = Field(default=None, min_length=1, max_length=128)
     api_key: str | None = Field(default=None, min_length=1, max_length=4096)
     api_base: str | None = Field(default=None, max_length=255)
     confirm_regeneration: bool = False
 
 
 class EmbeddingProfileChangeImpactRequest(EmbeddingProfileGetRequest):
+    llm_profile_id: uuid.UUID | None = None
     provider: str | None = Field(default=None, min_length=1, max_length=64)
-    model: str | None = Field(default=None, min_length=1, max_length=128)
+    embedding_model: str | None = Field(default=None, min_length=1, max_length=128)
     api_base: str | None = Field(default=None, max_length=255)
