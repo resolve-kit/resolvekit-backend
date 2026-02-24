@@ -31,6 +31,26 @@ def canonicalize_url(url: str) -> str:
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path or "/", "", parsed.query, ""))
 
 
+def _scope_path_prefix(path: str) -> str:
+    if not path or path == "/":
+        return "/"
+    if path.endswith("/"):
+        return path
+
+    trimmed = path.strip("/")
+    parts = [part for part in trimmed.split("/") if part]
+    if not parts:
+        return "/"
+
+    # Single-segment paths (e.g. "/docs") are usually section roots.
+    if len(parts) == 1:
+        return f"/{parts[0]}/"
+
+    # Multi-segment leaf paths are treated as document URLs; crawl peers in the parent directory.
+    parent = "/" + "/".join(parts[:-1])
+    return parent.rstrip("/") + "/"
+
+
 def _is_same_scope(root_url: str, candidate_url: str) -> bool:
     root = urlparse(root_url)
     cand = urlparse(candidate_url)
@@ -40,11 +60,9 @@ def _is_same_scope(root_url: str, candidate_url: str) -> bool:
         return False
     root_path = root.path or "/"
     cand_path = cand.path or "/"
-    if not root_path.endswith("/"):
-        root_path = f"{root_path}/"
     if cand_path == root.path:
         return True
-    return cand_path.startswith(root_path)
+    return cand_path.startswith(_scope_path_prefix(root_path))
 
 
 class _HTMLContentParser(HTMLParser):
@@ -105,15 +123,15 @@ def _extract_markdown_from_result(result: Any) -> str:
         return ""
     if isinstance(markdown, str):
         return markdown.strip()
-    raw = getattr(markdown, "raw_markdown", None)
-    if isinstance(raw, str) and raw.strip():
-        return raw.strip()
+    fit_md = getattr(markdown, "fit_markdown", None)
+    if isinstance(fit_md, str) and fit_md.strip():
+        return fit_md.strip()
     cited = getattr(markdown, "markdown_with_citations", None)
     if isinstance(cited, str) and cited.strip():
         return cited.strip()
-    fit_md = getattr(markdown, "fit_markdown", None)
-    if isinstance(fit_md, str):
-        return fit_md.strip()
+    raw = getattr(markdown, "raw_markdown", None)
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
     return ""
 
 
