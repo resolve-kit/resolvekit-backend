@@ -59,15 +59,21 @@ export async function api<T = unknown>(
     ...(options.headers as Record<string, string>),
   };
   const token = getToken();
+  const isAuthRoute = path.startsWith("/v1/auth/");
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   if (res.status === 204) return undefined as T;
   if (res.status === 401) {
-    clearToken();
-    window.dispatchEvent(new CustomEvent("auth:expired"));
-    throw new ApiError(401, "Session expired");
+    const body = await res.json().catch(() => ({ detail: res.statusText })) as { detail?: unknown };
+    const detail = formatErrorDetail(body.detail, res.statusText || "Unauthorized");
+    if (!isAuthRoute) {
+      clearToken();
+      window.dispatchEvent(new CustomEvent("auth:expired"));
+      throw new ApiError(401, "Session expired");
+    }
+    throw new ApiError(401, detail);
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText })) as { detail?: unknown };
