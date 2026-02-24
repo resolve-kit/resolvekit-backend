@@ -103,6 +103,8 @@ interface SearchHit {
   score: number;
 }
 
+const DOCUMENTS_PER_PAGE = 10;
+
 type ConfirmAction =
   | {
       kind: "kb-embedding-change";
@@ -167,6 +169,7 @@ export default function KnowledgeBases() {
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [jobs, setJobs] = useState<KnowledgeJob[]>([]);
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
+  const [documentsPage, setDocumentsPage] = useState(1);
 
   const [newUrl, setNewUrl] = useState("");
   const [newUrlTitle, setNewUrlTitle] = useState("");
@@ -193,6 +196,12 @@ export default function KnowledgeBases() {
     () => embeddingProfiles.find((profile) => profile.id === kbEmbeddingDraftId) ?? null,
     [embeddingProfiles, kbEmbeddingDraftId]
   );
+
+  const totalDocumentPages = Math.max(1, Math.ceil(documents.length / DOCUMENTS_PER_PAGE));
+  const pagedDocuments = useMemo(() => {
+    const start = (documentsPage - 1) * DOCUMENTS_PER_PAGE;
+    return documents.slice(start, start + DOCUMENTS_PER_PAGE);
+  }, [documents, documentsPage]);
 
   const selectedNewProfileLlm = useMemo(
     () => organizationLlmProfiles.find((profile) => profile.id === newProfileLlmProfileId) ?? null,
@@ -302,7 +311,7 @@ export default function KnowledgeBases() {
       const [sourcesPayload, jobsPayload, docsPayload] = await Promise.all([
         api<{ items: KnowledgeSource[] }>(`/v1/knowledge-bases/${kbId}/sources`),
         api<{ items: KnowledgeJob[] }>(`/v1/knowledge-bases/${kbId}/jobs`),
-        api<{ items: KnowledgeDocument[] }>(`/v1/knowledge-bases/${kbId}/documents?limit=100`),
+        api<{ items: KnowledgeDocument[] }>(`/v1/knowledge-bases/${kbId}/documents?limit=200`),
       ]);
       setSources(sourcesPayload.items ?? []);
       setJobs(jobsPayload.items ?? []);
@@ -339,10 +348,19 @@ export default function KnowledgeBases() {
       setSources([]);
       setJobs([]);
       setDocuments([]);
+      setDocumentsPage(1);
       return;
     }
     void loadKbDetails(selectedId);
   }, [selectedId]);
+
+  useEffect(() => {
+    setDocumentsPage(1);
+  }, [selectedId]);
+
+  useEffect(() => {
+    setDocumentsPage((current) => Math.min(current, totalDocumentPages));
+  }, [totalDocumentPages]);
 
   useEffect(() => {
     if (!selectedKb) {
@@ -1144,7 +1162,7 @@ export default function KnowledgeBases() {
                   <p className="text-xs text-subtle">No indexed documents yet.</p>
                 ) : (
                   <div className="space-y-2">
-                    {documents.map((doc) => (
+                    {pagedDocuments.map((doc) => (
                       <div
                         key={doc.id}
                         className="rounded-lg border border-border bg-canvas/40 px-3 py-2 flex items-center justify-between gap-3"
@@ -1160,6 +1178,29 @@ export default function KnowledgeBases() {
                         </Button>
                       </div>
                     ))}
+                    <div className="flex items-center justify-between pt-2">
+                      <p className="text-xs text-subtle">
+                        Page {documentsPage} of {totalDocumentPages}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={documentsPage <= 1}
+                          onClick={() => setDocumentsPage((current) => Math.max(1, current - 1))}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={documentsPage >= totalDocumentPages}
+                          onClick={() => setDocumentsPage((current) => Math.min(totalDocumentPages, current + 1))}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
