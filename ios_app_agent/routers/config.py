@@ -40,19 +40,25 @@ _LIMITS_FIELDS = {
 }
 
 
+def _json_safe(value: object) -> object:
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    return value
+
+
 def _compute_config_audit_events(
     old_cfg: AgentConfig,
     updates: dict[str, object],
 ) -> list[dict[str, object]]:
     events: list[dict[str, object]] = []
 
-    llm_before = {field: getattr(old_cfg, field) for field in _LLM_FIELDS}
-    llm_after = {field: updates.get(field, getattr(old_cfg, field)) for field in _LLM_FIELDS}
+    llm_before = {field: _json_safe(getattr(old_cfg, field)) for field in _LLM_FIELDS}
+    llm_after = {field: _json_safe(updates.get(field, getattr(old_cfg, field))) for field in _LLM_FIELDS}
     if llm_before != llm_after:
         events.append({"type": "config.llm.updated", "diff": {"before": llm_before, "after": llm_after}})
 
-    prompt_before = {field: getattr(old_cfg, field) for field in _PROMPT_FIELDS}
-    prompt_after = {field: updates.get(field, getattr(old_cfg, field)) for field in _PROMPT_FIELDS}
+    prompt_before = {field: _json_safe(getattr(old_cfg, field)) for field in _PROMPT_FIELDS}
+    prompt_after = {field: _json_safe(updates.get(field, getattr(old_cfg, field))) for field in _PROMPT_FIELDS}
     if prompt_before != prompt_after:
         events.append(
             {
@@ -61,8 +67,8 @@ def _compute_config_audit_events(
             }
         )
 
-    limits_before = {field: getattr(old_cfg, field) for field in _LIMITS_FIELDS}
-    limits_after = {field: updates.get(field, getattr(old_cfg, field)) for field in _LIMITS_FIELDS}
+    limits_before = {field: _json_safe(getattr(old_cfg, field)) for field in _LIMITS_FIELDS}
+    limits_after = {field: _json_safe(updates.get(field, getattr(old_cfg, field))) for field in _LIMITS_FIELDS}
     if limits_before != limits_after:
         events.append(
             {

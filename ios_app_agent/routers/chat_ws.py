@@ -20,6 +20,7 @@ from ios_app_agent.services.chat_access_service import (
     CHAT_CAPABILITY_QUERY,
     CHAT_UNAVAILABLE_CODE,
     CHAT_UNAVAILABLE_MESSAGE,
+    apply_runtime_llm_profile,
     ensure_chat_available_for_app,
     validate_chat_capability_token,
 )
@@ -163,10 +164,8 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
             return
 
         # Runtime provider credentials are resolved from org-scoped profile.
-        agent_config.llm_provider = profile.provider
-        agent_config.llm_model = profile.model
-        agent_config.llm_api_key_encrypted = profile.api_key_encrypted
-        agent_config.llm_api_base = profile.api_base
+        # The model remains app-configured on AgentConfig.
+        apply_runtime_llm_profile(agent_config, profile)
 
         # Check expiry
         if await is_session_expired(db, session, agent_config.session_ttl_minutes):

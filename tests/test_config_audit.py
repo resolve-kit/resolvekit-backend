@@ -1,3 +1,5 @@
+import json
+import uuid
 from unittest.mock import MagicMock
 
 from ios_app_agent.routers.config import _compute_config_audit_events
@@ -53,3 +55,11 @@ def test_no_change_no_events():
     updates = {"llm_profile_id": None}
     events = _compute_config_audit_events(old, updates)
     assert events == []
+
+
+def test_llm_profile_uuid_diff_is_json_serializable():
+    old = make_cfg(llm_profile_id=uuid.uuid4())
+    updates = {"llm_profile_id": uuid.uuid4()}
+    events = _compute_config_audit_events(old, updates)
+    llm_event = next(event for event in events if event["type"] == "config.llm.updated")
+    json.dumps(llm_event["diff"])

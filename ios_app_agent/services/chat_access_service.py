@@ -35,6 +35,13 @@ def ensure_chat_available_for_app(app: App) -> None:
         raise chat_unavailable_http_exception()
 
 
+def apply_runtime_llm_profile(agent_config: Any, profile: Any) -> None:
+    """Inject runtime provider credentials without changing selected app model."""
+    agent_config.llm_provider = profile.provider
+    agent_config.llm_api_key_encrypted = profile.api_key_encrypted
+    agent_config.llm_api_base = profile.api_base
+
+
 def issue_chat_capability_token(
     *,
     session_id: uuid.UUID,

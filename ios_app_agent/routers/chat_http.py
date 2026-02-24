@@ -16,7 +16,11 @@ from ios_app_agent.models.app import App
 from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.schemas.ws_protocol import ToolResultPayload
-from ios_app_agent.services.chat_access_service import CHAT_CAPABILITY_HEADER, validate_chat_capability_token
+from ios_app_agent.services.chat_access_service import (
+    CHAT_CAPABILITY_HEADER,
+    apply_runtime_llm_profile,
+    validate_chat_capability_token,
+)
 from ios_app_agent.services.function_service import get_eligible_functions
 from ios_app_agent.services.orchestrator import MessageSender, run_agent_loop
 from ios_app_agent.services.session_service import is_session_expired
@@ -111,10 +115,8 @@ async def send_message_sse(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Configured LLM profile is invalid")
 
     # Runtime provider credentials are resolved from org-scoped profile.
-    agent_config.llm_provider = profile.provider
-    agent_config.llm_model = profile.model
-    agent_config.llm_api_key_encrypted = profile.api_key_encrypted
-    agent_config.llm_api_base = profile.api_base
+    # The model remains app-configured on AgentConfig.
+    apply_runtime_llm_profile(agent_config, profile)
 
     if await is_session_expired(db, session, agent_config.session_ttl_minutes):
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Session expired")
