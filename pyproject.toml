@@ -23,6 +23,8 @@ dependencies = [
     "python-jose[cryptography]>=3.3",
     "email-validator>=2.3.0",
     "httpx>=0.28",
+    "crawl4ai>=0.7.6",
+    "chardet>=5.2,<6",
     "packaging>=24.2",
 ]
 

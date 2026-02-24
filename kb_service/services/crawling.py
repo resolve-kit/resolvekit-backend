@@ -1,12 +1,15 @@
 from collections import deque
 from dataclasses import dataclass
 from html.parser import HTMLParser
+import os
 from typing import Any
 from urllib.parse import urljoin, urlparse, urlunparse
 
 import httpx
 
 from kb_service.config import settings
+
+os.environ.setdefault("CRAWL4_AI_BASE_DIRECTORY", settings.crawl4ai_base_directory)
 
 try:
     # Primary crawler path (Context7-guided integration).

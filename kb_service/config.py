@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     use_crawl4ai: bool = True
     crawl4ai_headless: bool = True
     crawl4ai_verbose: bool = False
+    crawl4ai_base_directory: str = "/tmp/crawl4ai"
 
     worker_poll_seconds: float = 2.0
     worker_enabled: bool = True
