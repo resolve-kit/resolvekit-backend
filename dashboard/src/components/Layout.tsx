@@ -5,15 +5,6 @@ import { clearToken } from "../api/client";
 import { DirtyStateProvider } from "../context/DirtyStateContext";
 import AppSidebar from "./AppSidebar";
 
-function decodeEmail(token: string): string {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.sub || payload.email || "";
-  } catch {
-    return "";
-  }
-}
-
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,8 +26,6 @@ export default function Layout() {
 
   if (!token) return null;
 
-  const email = decodeEmail(token);
-
   return (
     <DirtyStateProvider>
       <div className="min-h-screen bg-canvas">
@@ -45,11 +34,6 @@ export default function Layout() {
           style={{ height: "var(--nav-height)" }}
         >
           <Link to="/apps" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-display font-bold text-xs leading-none">
-                IA
-              </span>
-            </div>
             <span className="font-display font-semibold text-strong text-sm tracking-tight">
               Playbook
             </span>
@@ -77,11 +61,6 @@ export default function Layout() {
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            {email && (
-              <span className="text-xs text-subtle hidden sm:block font-mono">
-                {email}
-              </span>
-            )}
             <button
               onClick={() => {
                 clearToken();

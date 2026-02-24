@@ -104,13 +104,7 @@ export default function Login() {
       {/* Card */}
       <div className="relative w-full max-w-sm animate-fade-in-up">
         <div className="bg-surface border border-border rounded-2xl p-8 shadow-2xl">
-          {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-accent flex items-center justify-center mb-4">
-              <span className="text-white font-display font-bold text-lg leading-none">
-                IA
-              </span>
-            </div>
             <h1 className="font-display text-xl font-semibold text-strong">
               {isSignup
                 ? signupIntent === "create-org"
