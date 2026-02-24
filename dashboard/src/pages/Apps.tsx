@@ -15,6 +15,22 @@ interface App {
   created_at: string;
 }
 
+interface ConfigSummary {
+  llm_provider: string;
+  llm_model: string;
+  has_llm_api_key: boolean;
+}
+
+interface ApiKeySummary {
+  id: string;
+  is_active: boolean;
+}
+
+interface FunctionSummary {
+  id: string;
+  is_active: boolean;
+}
+
 function AppIcon({ name }: { name: string }) {
   const palettes = [
     "bg-accent-subtle text-accent border-accent-dim",
@@ -33,25 +49,68 @@ function AppIcon({ name }: { name: string }) {
 }
 
 const APP_NAV_ITEMS = [
-  { label: "Config", slug: "config" },
-  { label: "Functions", slug: "functions" },
-  { label: "Sessions", slug: "sessions" },
+  { label: "LLM", slug: "llm" },
   { label: "API Keys", slug: "api-keys" },
+  { label: "Functions", slug: "functions" },
+  { label: "Agent", slug: "agent" },
+  { label: "Limits", slug: "limits" },
+  { label: "Sessions", slug: "sessions" },
   { label: "Playbooks", slug: "playbooks" },
+  { label: "Audit", slug: "audit" },
 ];
 
 export default function Apps() {
   const [apps, setApps] = useState<App[]>([]);
+  const [appMissingConfig, setAppMissingConfig] = useState<Record<string, string[]>>({});
   const [newName, setNewName] = useState("");
   const [newBundleId, setNewBundleId] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [newAppChecklistId, setNewAppChecklistId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    api<App[]>("/v1/apps").then(setApps);
+    api<App[]>("/v1/apps").then((loadedApps) => {
+      setApps(loadedApps);
+      void loadAppConfigStatus(loadedApps);
+    });
   }, []);
+
+  async function loadAppConfigStatus(targetApps: App[]) {
+    const entries = await Promise.all(
+      targetApps.map(async (app) => {
+        try {
+          const [config, apiKeys, functions] = await Promise.all([
+            api<ConfigSummary>(`/v1/apps/${app.id}/config`),
+            api<ApiKeySummary[]>(`/v1/apps/${app.id}/api-keys`),
+            api<FunctionSummary[]>(`/v1/apps/${app.id}/functions`),
+          ]);
+
+          const missing: string[] = [];
+          if (
+            !config.has_llm_api_key ||
+            config.llm_provider.trim().length === 0 ||
+            config.llm_model.trim().length === 0
+          ) {
+            missing.push("LLM");
+          }
+          if (!apiKeys.some((key) => key.is_active)) {
+            missing.push("API Keys");
+          }
+          if (!functions.some((fn) => fn.is_active)) {
+            missing.push("Functions");
+          }
+
+          return [app.id, missing] as const;
+        } catch {
+          return [app.id, ["LLM", "API Keys", "Functions"]] as const;
+        }
+      })
+    );
+
+    setAppMissingConfig(Object.fromEntries(entries));
+  }
 
   async function createApp() {
     if (!newName.trim()) return;
@@ -65,6 +124,11 @@ export default function Apps() {
         }),
       });
       setApps([app, ...apps]);
+      setAppMissingConfig((prev) => ({
+        ...prev,
+        [app.id]: ["LLM", "API Keys", "Functions"],
+      }));
+      setNewAppChecklistId(app.id);
       setNewName("");
       setNewBundleId("");
       setShowCreate(false);
@@ -79,10 +143,16 @@ export default function Apps() {
   async function deleteApp(id: string) {
     await api(`/v1/apps/${id}`, { method: "DELETE" });
     setApps(apps.filter((a) => a.id !== id));
+    setAppMissingConfig((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     toast("App deleted", "info");
   }
 
   const appToDelete = apps.find((a) => a.id === confirmDeleteId);
+  const checklistApp = apps.find((a) => a.id === newAppChecklistId) ?? null;
 
   return (
     <div>
@@ -149,6 +219,51 @@ export default function Apps() {
         </div>
       )}
 
+      {checklistApp && (
+        <div className="bg-accent-subtle border border-accent-dim rounded-xl p-4 mb-6 animate-fade-in-up">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-strong mb-1">
+                Setup needed for {checklistApp.name}
+              </p>
+              <p className="text-xs text-subtle mb-3">
+                To make this app work end-to-end, configure these sections:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to={`/apps/${checklistApp.id}/llm`}
+                  className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
+                >
+                  1. LLM + API Key
+                </Link>
+                <Link
+                  to={`/apps/${checklistApp.id}/api-keys`}
+                  className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
+                >
+                  2. Generate API Key
+                </Link>
+                <Link
+                  to={`/apps/${checklistApp.id}/functions`}
+                  className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
+                >
+                  3. Register Functions (SDK)
+                </Link>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNewAppChecklistId(null)}
+              className="text-subtle hover:text-body transition-colors p-1"
+              aria-label="Dismiss setup checklist"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* App grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {apps.map((app, i) => (
@@ -179,6 +294,14 @@ export default function Apps() {
                   <p className="text-xs text-dim font-mono mt-0.5 truncate">
                     {app.bundle_id}
                   </p>
+                )}
+                {appMissingConfig[app.id] && appMissingConfig[app.id].length > 0 && (
+                  <p className="text-[10px] text-danger mt-1">
+                    Configuration Incomplete · Missing {appMissingConfig[app.id].join(", ")}
+                  </p>
+                )}
+                {appMissingConfig[app.id] && appMissingConfig[app.id].length === 0 && (
+                  <p className="text-[10px] text-success mt-1">Configuration Complete</p>
                 )}
               </div>
             </div>

@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ from ios_app_agent.models.developer import DeveloperAccount
 from ios_app_agent.models.function_registry import RegisteredFunction
 from ios_app_agent.models.session import ChatSession
 from ios_app_agent.schemas.function_registry import FunctionBulkSync, FunctionOut, FunctionUpdate
+from ios_app_agent.services.audit_service import AuditService
 from ios_app_agent.services.function_service import get_eligible_functions
 
 # SDK endpoints (API key auth)
@@ -114,6 +115,7 @@ async def update_function(
     app_id: uuid.UUID,
     function_id: uuid.UUID,
     body: FunctionUpdate,
+    request: Request,
     developer: DeveloperAccount = Depends(get_current_developer),
     db: AsyncSession = Depends(get_db),
 ):
@@ -126,10 +128,47 @@ async def update_function(
     if not fn or fn.app_id != app_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Function not found")
 
-    for field, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    old_is_active = fn.is_active
+    old_override = fn.description_override
+
+    for field, value in updates.items():
         setattr(fn, field, value)
+
     await db.commit()
     await db.refresh(fn)
+
+    ip_address = request.client.host if request.client else None
+    emitted_event = False
+
+    if "is_active" in updates and fn.is_active != old_is_active:
+        event_type = "function.activated" if fn.is_active else "function.deactivated"
+        await AuditService.emit(
+            db=db,
+            app_id=app_id,
+            actor_email=developer.email,
+            event_type=event_type,
+            entity_id=str(function_id),
+            entity_name=fn.name,
+            ip_address=ip_address,
+        )
+        emitted_event = True
+
+    if "description_override" in updates and fn.description_override != old_override:
+        await AuditService.emit(
+            db=db,
+            app_id=app_id,
+            actor_email=developer.email,
+            event_type="function.override_set",
+            entity_id=str(function_id),
+            entity_name=fn.name,
+            ip_address=ip_address,
+        )
+        emitted_event = True
+
+    if emitted_event:
+        await db.commit()
+
     return fn
 
 

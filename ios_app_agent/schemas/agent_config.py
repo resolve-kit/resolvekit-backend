@@ -36,6 +36,7 @@ class AgentConfigOut(BaseModel):
 class ProviderInfo(BaseModel):
     id: str
     name: str
+    custom_base_url: bool = False
 
 
 class ModelInfo(BaseModel):
@@ -48,3 +49,22 @@ class ModelsResponse(BaseModel):
     models: list[ModelInfo]
     is_dynamic: bool
     error: str | None = None
+
+
+class ModelsLookupRequest(BaseModel):
+    provider: str | None = None
+    llm_api_key: str | None = None
+    llm_api_base: str | None = None
+
+
+class ConnectionTestRequest(BaseModel):
+    provider: str
+    model: str | None = None
+    llm_api_key: str | None = None
+    llm_api_base: str | None = None
+
+
+class ConnectionTestResult(BaseModel):
+    ok: bool
+    latency_ms: int | None
+    error: str | None

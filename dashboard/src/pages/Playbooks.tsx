@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import {
-  AppNav,
   Badge,
   Button,
   ConfirmDialog,
@@ -57,7 +56,6 @@ export default function Playbooks() {
   const [appFunctions, setAppFunctions] = useState<AppFunction[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [detailTab, setDetailTab] = useState<"details" | "steps">("details");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Form state
@@ -88,7 +86,6 @@ export default function Playbooks() {
     setSelected(pb);
     setSteps(pb.functions);
     setEditMode(false);
-    setDetailTab("details");
   }
 
   function startEdit() {
@@ -127,7 +124,7 @@ export default function Playbooks() {
       await selectPlaybook(pb.id);
       toast("Playbook created", "success");
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Failed to create playbook", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to create playbook", "error");
     }
   }
 
@@ -148,7 +145,7 @@ export default function Playbooks() {
       await selectPlaybook(selected.id);
       toast("Playbook updated", "success");
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Failed to update playbook", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to update playbook", "error");
     }
   }
 
@@ -178,7 +175,7 @@ export default function Playbooks() {
       await loadPlaybooks();
       toast("Steps saved", "success");
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Failed to save steps", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to save steps", "error");
     } finally {
       setIsSavingSteps(false);
     }
@@ -230,8 +227,6 @@ export default function Playbooks() {
 
   return (
     <div>
-      <AppNav appId={appId!} />
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-strong">
@@ -431,133 +426,114 @@ export default function Playbooks() {
                   </div>
                 </div>
 
-                {/* Inline tabs */}
-                <div className="flex border-b border-border px-5">
-                  {(["details", "steps"] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setDetailTab(tab)}
-                      className={`relative py-2.5 px-1 mr-6 text-sm font-medium capitalize transition-colors ${
-                        detailTab === tab
-                          ? "text-strong"
-                          : "text-subtle hover:text-body"
-                      }`}
-                    >
-                      {tab === "details" ? "Details" : "Function Steps"}
-                      {detailTab === tab && (
-                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent rounded-t-full" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <div className="p-5 space-y-5">
+                  <div className="space-y-4">
+                    {selected.description && (
+                      <p className="text-sm text-subtle">
+                        {selected.description}
+                      </p>
+                    )}
+                    <div>
+                      <h3 className="text-xs text-muted uppercase tracking-wider mb-2">
+                        LLM Instructions
+                      </h3>
+                      <pre className="bg-canvas border border-border rounded-lg p-3 text-sm text-body whitespace-pre-wrap font-body">
+                        {selected.instructions || "(none)"}
+                      </pre>
+                    </div>
+                  </div>
 
-                {/* Tab content */}
-                <div className="p-5">
-                  {detailTab === "details" ? (
-                    <div className="space-y-4">
-                      {selected.description && (
-                        <p className="text-sm text-subtle">
-                          {selected.description}
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs text-muted uppercase tracking-wider">
+                        Function Steps
+                      </h3>
+                    </div>
+
+                    <div className="space-y-2 mb-4">
+                      {steps.length === 0 && (
+                        <p className="text-subtle text-sm text-center py-4">
+                          No function steps assigned yet.
                         </p>
                       )}
-                      <div>
-                        <h3 className="text-xs text-muted uppercase tracking-wider mb-2">
-                          LLM Instructions
-                        </h3>
-                        <pre className="bg-canvas border border-border rounded-lg p-3 text-sm text-body whitespace-pre-wrap font-body">
-                          {selected.instructions || "(none)"}
-                        </pre>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      {/* Steps list */}
-                      <div className="space-y-2 mb-4">
-                        {steps.length === 0 && (
-                          <p className="text-subtle text-sm text-center py-4">
-                            No function steps assigned yet.
-                          </p>
-                        )}
-                        {steps.map((step, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-start gap-3 bg-surface-2 border border-border rounded-xl p-3"
-                          >
-                            {/* Step order circle */}
-                            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-accent-subtle border border-accent-dim text-accent text-xs flex items-center justify-center font-mono font-medium">
-                              {idx + 1}
-                            </div>
-
-                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              <Select
-                                value={step.function_id}
-                                onChange={(e) =>
-                                  updateStep(idx, "function_id", e.target.value)
-                                }
-                              >
-                                {appFunctions
-                                  .filter((f) => f.is_active)
-                                  .map((f) => (
-                                    <option key={f.id} value={f.id}>
-                                      {f.name}
-                                    </option>
-                                  ))}
-                              </Select>
-                              <Input
-                                value={step.step_description || ""}
-                                onChange={(e) =>
-                                  updateStep(
-                                    idx,
-                                    "step_description",
-                                    e.target.value || null
-                                  )
-                                }
-                                placeholder="Step note (optional)"
-                              />
-                            </div>
-
-                            <button
-                              onClick={() => removeStep(idx)}
-                              className="flex-shrink-0 text-muted hover:text-danger transition-colors mt-1.5"
-                              title="Remove step"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={addStep}
-                          icon={
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                          }
-                          disabled={
-                            appFunctions.filter((f) => f.is_active).length === 0
-                          }
+                      {steps.map((step, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-3 bg-surface-2 border border-border rounded-xl p-3"
                         >
-                          Add Step
-                        </Button>
-                        {steps.length > 0 && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={saveSteps}
-                            loading={isSavingSteps}
+                          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-accent-subtle border border-accent-dim text-accent text-xs flex items-center justify-center font-mono font-medium">
+                            {idx + 1}
+                          </div>
+
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <Select
+                              value={step.function_id}
+                              onChange={(e) =>
+                                updateStep(idx, "function_id", e.target.value)
+                              }
+                            >
+                              {appFunctions
+                                .filter((f) => f.is_active)
+                                .map((f) => (
+                                  <option key={f.id} value={f.id}>
+                                    {f.name}
+                                  </option>
+                                ))}
+                            </Select>
+                            <Input
+                              value={step.step_description || ""}
+                              onChange={(e) =>
+                                updateStep(
+                                  idx,
+                                  "step_description",
+                                  e.target.value || null
+                                )
+                              }
+                              placeholder="Step note (optional)"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => removeStep(idx)}
+                            className="flex-shrink-0 text-muted hover:text-danger transition-colors mt-1.5"
+                            title="Remove step"
                           >
-                            Save Steps
-                          </Button>
-                        )}
-                      </div>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={addStep}
+                        icon={
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                        }
+                        disabled={
+                          appFunctions.filter((f) => f.is_active).length === 0
+                        }
+                      >
+                        Add Step
+                      </Button>
+                      {steps.length > 0 && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={saveSteps}
+                          loading={isSavingSteps}
+                        >
+                          Save Steps
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </>
             )}

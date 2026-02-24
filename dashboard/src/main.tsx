@@ -4,12 +4,15 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./index.css";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
+import AgentPrompt from "./pages/AgentPrompt";
+import AuditLog from "./pages/AuditLog";
 import Apps from "./pages/Apps";
-import AppConfig from "./pages/AppConfig";
-import Functions from "./pages/Functions";
-import Sessions from "./pages/Sessions";
 import ApiKeys from "./pages/ApiKeys";
+import Functions from "./pages/Functions";
+import LimitsConfig from "./pages/LimitsConfig";
+import LlmConfig from "./pages/LlmConfig";
 import Playbooks from "./pages/Playbooks";
+import Sessions from "./pages/Sessions";
 import { ToastProvider, ToastContainer } from "./components/ui";
 
 function App() {
@@ -19,11 +22,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
           <Route path="/apps" element={<Apps />} />
-          <Route path="/apps/:appId/config" element={<AppConfig />} />
+          <Route path="/apps/:appId/agent" element={<AgentPrompt />} />
+          <Route path="/apps/:appId/llm" element={<LlmConfig />} />
+          <Route path="/apps/:appId/limits" element={<LimitsConfig />} />
           <Route path="/apps/:appId/functions" element={<Functions />} />
           <Route path="/apps/:appId/sessions" element={<Sessions />} />
           <Route path="/apps/:appId/api-keys" element={<ApiKeys />} />
           <Route path="/apps/:appId/playbooks" element={<Playbooks />} />
+          <Route path="/apps/:appId/audit" element={<AuditLog />} />
         </Route>
         <Route path="*" element={<Navigate to="/apps" />} />
       </Routes>

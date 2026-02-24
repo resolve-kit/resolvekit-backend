@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
-  AppNav,
   Badge,
   Button,
   PageSpinner,
@@ -98,8 +97,6 @@ export default function Functions() {
 
   return (
     <div>
-      <AppNav appId={appId!} />
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-strong">
@@ -256,8 +253,9 @@ export default function Functions() {
             <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
               <span className="font-mono text-muted text-sm">fn</span>
             </div>
-            <p className="text-sm">
-              No functions registered yet. Functions are registered by the iOS SDK.
+            <p className="text-sm">No functions registered yet.</p>
+            <p className="text-xs mt-2 text-muted">
+              Open your iOS app with SDK + API key configured to register functions here.
             </p>
           </div>
         )}

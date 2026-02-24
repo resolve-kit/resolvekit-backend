@@ -6,7 +6,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ios_app_agent.config import settings
 from ios_app_agent.database import async_session_factory
-from ios_app_agent.routers import api_keys, apps, auth, chat_http, chat_ws, config, functions, playbooks, sdk, sessions
+from ios_app_agent.routers import (
+    api_keys,
+    apps,
+    audit,
+    auth,
+    chat_http,
+    chat_ws,
+    config,
+    functions,
+    playbooks,
+    sdk,
+    sessions,
+)
 from ios_app_agent.services.session_service import expire_stale_sessions
 
 
@@ -65,6 +77,7 @@ app.include_router(auth.router)
 app.include_router(apps.router)
 app.include_router(api_keys.router)
 app.include_router(config.router)
+app.include_router(audit.router)
 
 # Function management
 app.include_router(functions.sdk_router)

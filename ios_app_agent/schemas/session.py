@@ -27,6 +27,7 @@ class SessionOut(BaseModel):
     id: uuid.UUID
     app_id: uuid.UUID
     device_id: str | None
+    client_context: dict[str, Any] | None = None
     status: str
     last_activity_at: datetime
     created_at: datetime

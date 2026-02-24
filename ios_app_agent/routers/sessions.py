@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -72,6 +73,7 @@ async def create_ws_ticket(
 async def list_sessions(
     app_id: uuid.UUID,
     status_filter: str | None = Query(None, alias="status"),
+    before: str | None = Query(default=None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     developer: DeveloperAccount = Depends(get_current_developer),
@@ -85,7 +87,17 @@ async def list_sessions(
     query = select(ChatSession).where(ChatSession.app_id == app_id)
     if status_filter:
         query = query.where(ChatSession.status == status_filter)
-    query = query.order_by(ChatSession.last_activity_at.desc()).offset(offset).limit(limit)
+    if before:
+        cursor = before.replace("Z", "+00:00")
+        try:
+            before_dt = datetime.fromisoformat(cursor)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid before cursor") from exc
+        query = query.where(ChatSession.created_at < before_dt)
+
+    query = query.order_by(ChatSession.created_at.desc()).limit(limit)
+    if not before:
+        query = query.offset(offset)
 
     result = await db.execute(query)
     return result.scalars().all()

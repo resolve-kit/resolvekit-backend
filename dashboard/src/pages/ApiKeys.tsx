@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
-  AppNav,
   Badge,
   Button,
   ConfirmDialog,
@@ -80,8 +79,6 @@ export default function ApiKeys() {
 
   return (
     <div>
-      <AppNav appId={appId!} />
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-strong">

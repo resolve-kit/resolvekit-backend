@@ -2,7 +2,7 @@ import hashlib
 import secrets
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,7 @@ from ios_app_agent.models.api_key import ApiKey
 from ios_app_agent.models.app import App
 from ios_app_agent.models.developer import DeveloperAccount
 from ios_app_agent.schemas.app import ApiKeyCreate, ApiKeyCreated, ApiKeyOut
+from ios_app_agent.services.audit_service import AuditService
 
 router = APIRouter(prefix="/v1/apps/{app_id}/api-keys", tags=["api-keys"])
 
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/v1/apps/{app_id}/api-keys", tags=["api-keys"])
 async def create_api_key(
     app_id: uuid.UUID,
     body: ApiKeyCreate,
+    request: Request,
     developer: DeveloperAccount = Depends(get_current_developer),
     db: AsyncSession = Depends(get_db),
 ):
@@ -36,6 +38,17 @@ async def create_api_key(
     db.add(api_key)
     await db.commit()
     await db.refresh(api_key)
+
+    await AuditService.emit(
+        db=db,
+        app_id=app_id,
+        actor_email=developer.email,
+        event_type="apikey.created",
+        entity_id=str(api_key.id),
+        entity_name=body.label or api_key.key_prefix,
+        ip_address=request.client.host if request.client else None,
+    )
+    await db.commit()
 
     return ApiKeyCreated(
         id=api_key.id,
@@ -66,6 +79,7 @@ async def list_api_keys(
 async def revoke_api_key(
     app_id: uuid.UUID,
     key_id: uuid.UUID,
+    request: Request,
     developer: DeveloperAccount = Depends(get_current_developer),
     db: AsyncSession = Depends(get_db),
 ):
@@ -79,4 +93,13 @@ async def revoke_api_key(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API key not found")
 
     api_key.is_active = False
+    await AuditService.emit(
+        db=db,
+        app_id=app_id,
+        actor_email=developer.email,
+        event_type="apikey.revoked",
+        entity_id=str(key_id),
+        entity_name=api_key.label or api_key.key_prefix,
+        ip_address=request.client.host if request.client else None,
+    )
     await db.commit()

@@ -1,5 +1,6 @@
 import re
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -7,10 +8,10 @@ import httpx
 from ios_app_agent.schemas.agent_config import ModelInfo, ProviderInfo
 
 PROVIDERS: list[ProviderInfo] = [
-    ProviderInfo(id="openai", name="OpenAI"),
-    ProviderInfo(id="anthropic", name="Anthropic"),
-    ProviderInfo(id="google", name="Google"),
-    ProviderInfo(id="nexos", name="Nexos AI"),
+    ProviderInfo(id="openai", name="OpenAI", custom_base_url=False),
+    ProviderInfo(id="anthropic", name="Anthropic", custom_base_url=False),
+    ProviderInfo(id="google", name="Google", custom_base_url=False),
+    ProviderInfo(id="nexos", name="Nexos AI", custom_base_url=True),
 ]
 
 FALLBACK_MODELS: dict[str, list[ModelInfo]] = {
@@ -153,3 +154,37 @@ def _filter_openai_models(raw: list[dict[str, Any]]) -> list[ModelInfo]:
             models.append(ModelInfo(id=mid, name=mid))
     models.sort(key=lambda x: x.id)
     return models
+
+
+async def test_provider_connection(
+    provider: str,
+    api_key: str | None,
+    api_base: str | None,
+) -> dict[str, object]:
+    if not api_key:
+        return {"ok": False, "latency_ms": None, "error": "API key required"}
+
+    start = time.monotonic()
+    try:
+        models, is_dynamic, error = await list_models_for_provider(provider, api_key, api_base)
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+        if error:
+            return {"ok": False, "latency_ms": None, "error": error}
+        if not is_dynamic:
+            return {
+                "ok": False,
+                "latency_ms": None,
+                "error": "Could not verify connection with live provider response",
+            }
+        if not models:
+            return {
+                "ok": False,
+                "latency_ms": None,
+                "error": "No models returned - check your API key",
+            }
+        return {"ok": True, "latency_ms": elapsed_ms, "error": None}
+    except Exception as exc:
+        return {"ok": False, "latency_ms": None, "error": str(exc)}
+
+
+test_provider_connection.__test__ = False
