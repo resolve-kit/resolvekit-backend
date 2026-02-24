@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import {
   AppNav,
   Badge,
@@ -48,7 +48,7 @@ export default function Functions() {
         "success"
       );
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Failed to update function", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to update function", "error");
     }
   }
 
@@ -67,7 +67,7 @@ export default function Functions() {
       setEditingId(null);
       toast("Description override saved", "success");
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Failed to save override", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to save override", "error");
     }
   }
 
@@ -81,7 +81,7 @@ export default function Functions() {
       setEditingId(null);
       toast("Override cleared", "info");
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Failed to clear override", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to clear override", "error");
     }
   }
 

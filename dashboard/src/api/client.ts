@@ -12,9 +12,24 @@ export function clearToken() {
   localStorage.removeItem("token");
 }
 
+export class ApiError extends Error {
+  status: number;
+  detail: string;
+
+  constructor(
+    status: number,
+    detail: string,
+  ) {
+    super(detail);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 export async function api<T = unknown>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit & { signal?: AbortSignal } = {},
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -28,12 +43,12 @@ export async function api<T = unknown>(
   if (res.status === 204) return undefined as T;
   if (res.status === 401) {
     clearToken();
-    window.location.href = "/login";
-    throw new Error("Session expired");
+    window.dispatchEvent(new CustomEvent("auth:expired"));
+    throw new ApiError(401, "Session expired");
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(body.detail || res.statusText);
+    throw new ApiError(res.status, body.detail || res.statusText);
   }
   return res.json();
 }

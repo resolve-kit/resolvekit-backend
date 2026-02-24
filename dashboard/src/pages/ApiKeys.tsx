@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import {
   AppNav,
   Badge,
@@ -52,7 +52,7 @@ export default function ApiKeys() {
       setNewLabel("");
       toast("API key generated", "success");
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Failed to generate key", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to generate key", "error");
     } finally {
       setIsGenerating(false);
     }

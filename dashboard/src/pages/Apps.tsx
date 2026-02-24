@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import {
   Button,
   Input,
@@ -70,7 +70,7 @@ export default function Apps() {
       setShowCreate(false);
       toast("App created successfully", "success");
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Failed to create app", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to create app", "error");
     } finally {
       setIsCreating(false);
     }

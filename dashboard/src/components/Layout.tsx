@@ -19,6 +19,15 @@ export default function Layout() {
     if (!token) navigate("/login");
   }, [token, navigate]);
 
+  useEffect(() => {
+    function handleAuthExpired() {
+      clearToken();
+      navigate("/login");
+    }
+    window.addEventListener("auth:expired", handleAuthExpired);
+    return () => window.removeEventListener("auth:expired", handleAuthExpired);
+  }, [navigate]);
+
   if (!token) return null;
 
   const email = decodeEmail(token);
