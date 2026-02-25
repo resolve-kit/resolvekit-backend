@@ -161,6 +161,15 @@ Create a new chat session.
     "sdk_name": "playbook-ios-sdk",
     "sdk_version": "1.0.0"
   },
+  "llm_context": {
+    "location": {
+      "city": "Vilnius",
+      "country": "LT",
+      "timezone": "Europe/Vilnius"
+    },
+    "network_type": "wifi",
+    "is_traveling": false
+  },
   "entitlements": ["pro"],
   "capabilities": ["camera", "location"],
   "metadata": {
@@ -174,9 +183,18 @@ Create a new chat session.
 |-------|------|----------|---------|-------------|
 | `device_id` | string | no | `null` | Stable device identifier. |
 | `client` | object | no | `null` | Structured compatibility context (recommended). |
+| `llm_context` | object | no | `{}` | Custom JSON context injected into LLM routing, prompt context, and KB query shaping. |
 | `entitlements` | string[] | no | `[]` | User/app entitlements (for paywall-aware tool access). |
 | `capabilities` | string[] | no | `[]` | Device/runtime capabilities. |
 | `metadata` | object | no | `{}` | Arbitrary key-value pairs stored with the session. |
+
+`llm_context` validation limits:
+- Maximum 50 top-level keys
+- Maximum key length 64 characters
+- Maximum serialized size 8192 bytes
+
+Use `llm_context` for model-personalization signals (for example location, account mode, environment).  
+Use `metadata` for operational/session diagnostics.
 
 **Response:** `201 Created`
 
@@ -185,6 +203,24 @@ Create a new chat session.
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "app_id": "uuid",
   "device_id": "iPhone15-ABC123",
+  "client_context": {
+    "platform": "ios",
+    "os_name": "iOS",
+    "os_version": "18.2",
+    "app_version": "1.0.3",
+    "app_build": "103",
+    "sdk_name": "playbook-ios-sdk",
+    "sdk_version": "1.0.0"
+  },
+  "llm_context": {
+    "location": {
+      "city": "Vilnius",
+      "country": "LT",
+      "timezone": "Europe/Vilnius"
+    },
+    "network_type": "wifi",
+    "is_traveling": false
+  },
   "status": "active",
   "last_activity_at": "2026-02-19T10:00:00Z",
   "created_at": "2026-02-19T10:00:00Z",
@@ -491,6 +527,13 @@ Before each turn, the backend computes eligible tools for the current session:
 - Required capabilities present
 
 Only eligible tools are passed to the LLM.
+
+`llm_context` usage in the pipeline:
+- Included in router classification context (scope + KB prefetch intent)
+- Injected into the system prompt as session custom context
+- Used to enrich KB prefetch and internal `kb_search` fallback queries
+
+`llm_context` does **not** affect compatibility gating directly. Tool eligibility remains based on function availability rules, `client` context, `entitlements`, and `capabilities`.
 
 This is what happens inside the server after the SDK sends a `chat_message`:
 

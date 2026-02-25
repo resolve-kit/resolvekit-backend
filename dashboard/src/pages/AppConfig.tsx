@@ -15,6 +15,7 @@ import {
 
 interface Config {
   system_prompt: string;
+  scope_mode: "open" | "strict";
   llm_provider: string;
   llm_model: string;
   has_llm_api_key: boolean;
@@ -73,7 +74,9 @@ export default function AppConfig() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    api<Config>(`/v1/apps/${appId}/config`).then(setConfig);
+    api<Config>(`/v1/apps/${appId}/config`).then((data) =>
+      setConfig({ ...data, scope_mode: data.scope_mode ?? "open" })
+    );
     api<ProviderInfo[]>(`/v1/apps/${appId}/config/providers`).then(
       setProviders
     );
@@ -128,7 +131,7 @@ export default function AppConfig() {
         method: "PUT",
         body: JSON.stringify(body),
       });
-      setConfig(updated);
+      setConfig({ ...updated, scope_mode: updated.scope_mode ?? "open" });
       setLlmApiKey("");
       toast("Configuration saved", "success");
     } catch (err: unknown) {
@@ -166,13 +169,50 @@ export default function AppConfig() {
           <FormSection title="Agent Behavior">
             <Textarea
               label="System Prompt"
+              hint="Describe your app clearly so the agent understands its purpose and scope. The more specific you are, the better the agent will perform."
               value={config.system_prompt}
               onChange={(e) =>
                 setConfig({ ...config, system_prompt: e.target.value })
               }
               rows={5}
-              placeholder="You are a helpful iOS app assistant..."
+              placeholder={`Describe your app and what it does. For example:
+
+"My app is a home automation controller that lets users manage smart lights, thermostats, and door locks. Users should be helped with device pairing, automation setup, scheduling, and troubleshooting connectivity issues."
+
+This description is shown to the AI on every conversation turn to define what it should help with.`}
             />
+            <div className="mt-4">
+              <label className="text-xs font-medium text-subtle block mb-2">
+                Scope Mode
+              </label>
+              <div className="flex gap-6">
+                {(["open", "strict"] as const).map((mode) => (
+                  <label
+                    key={mode}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <input
+                      type="radio"
+                      name="scope_mode"
+                      value={mode}
+                      checked={config.scope_mode === mode}
+                      onChange={() => setConfig({ ...config, scope_mode: mode })}
+                      className="accent-accent"
+                    />
+                    <span className="text-sm text-body capitalize">{mode}</span>
+                    <span className="text-xs text-subtle ml-1">
+                      {mode === "open"
+                        ? "- agent can answer any question"
+                        : "- only answers app-related questions"}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-subtle mt-1.5">
+                In strict mode, the agent politely declines questions unrelated
+                to your app.
+              </p>
+            </div>
           </FormSection>
 
           {/* LLM Provider */}

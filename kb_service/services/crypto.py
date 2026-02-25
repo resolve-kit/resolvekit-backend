@@ -1,13 +1,21 @@
+from functools import lru_cache
+
 from cryptography.fernet import Fernet
 
 from kb_service.config import settings
 
-_fernet = Fernet(settings.encryption_key.encode())
+
+@lru_cache(maxsize=1)
+def _get_fernet() -> Fernet:
+    try:
+        return Fernet(settings.encryption_key.encode())
+    except Exception as exc:
+        raise ValueError("KBS_ENCRYPTION_KEY must be a valid Fernet key (32 url-safe base64-encoded bytes).") from exc
 
 
 def encrypt_secret(value: str) -> str:
-    return _fernet.encrypt(value.encode()).decode()
+    return _get_fernet().encrypt(value.encode()).decode()
 
 
 def decrypt_secret(value: str) -> str:
-    return _fernet.decrypt(value.encode()).decode()
+    return _get_fernet().decrypt(value.encode()).decode()

@@ -30,7 +30,7 @@ from ios_app_agent.services.provider_service import (
 router = APIRouter(prefix="/v1/apps/{app_id}/config", tags=["config"])
 
 _LLM_FIELDS = {"llm_profile_id", "llm_model"}
-_PROMPT_FIELDS = {"system_prompt"}
+_PROMPT_FIELDS = {"system_prompt", "scope_mode"}
 _LIMITS_FIELDS = {
     "temperature",
     "max_tokens",
@@ -100,6 +100,7 @@ def config_to_out(cfg: AgentConfig, profile: OrganizationLLMProviderProfile | No
         id=cfg.id,
         app_id=cfg.app_id,
         system_prompt=cfg.system_prompt,
+        scope_mode=cfg.scope_mode,
         llm_profile_id=cfg.llm_profile_id,
         llm_profile_name=profile.name if profile else None,
         llm_provider=profile.provider if profile else None,

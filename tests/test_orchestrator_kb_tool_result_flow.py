@@ -69,7 +69,13 @@ def _response_with_final_text() -> SimpleNamespace:
 async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pytest.MonkeyPatch) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(
+        id=uuid.uuid4(),
+        app_id=uuid.uuid4(),
+        client_context={"platform": "ios", "os_name": "iOS", "os_version": "18.2"},
+        metadata_={},
+        llm_context={"location": {"city": "Vilnius", "country": "LT"}, "network_type": "wifi"},
+    )
     config = SimpleNamespace(system_prompt="You are support.", max_tool_rounds=3, max_context_messages=20)
 
     org_id = uuid.uuid4()
@@ -86,6 +92,19 @@ async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pyte
     monkeypatch.setattr(orchestrator, "load_context_messages", AsyncMock(return_value=[]))
     monkeypatch.setattr(orchestrator, "build_playbook_prompt", AsyncMock(return_value=""))
     monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(org_id, [kb_id])))
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=True,
+                rejection_reason=None,
+                needs_kb=False,
+                kb_query=None,
+                intent="Password reset",
+            )
+        ),
+    )
     monkeypatch.setattr(
         orchestrator,
         "call_llm",
@@ -105,8 +124,15 @@ async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pyte
     )
 
     kb_search_mock.assert_awaited_once()
+    kb_query = kb_search_mock.await_args.kwargs["query"]
+    assert "reset password" in kb_query
+    assert "Client platform context:" in kb_query
+    assert "Platform: ios" in kb_query
+    assert "Session custom context:" in kb_query
+    assert "Vilnius" in kb_query
     tool_results = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "tool_result"]
     assert len(tool_results) == 1
     payload = json.loads(tool_results[0].content or "{}")
     assert payload.get("items")
+    assert "Platform: ios" in payload.get("query", "")
     assert sender.turn_complete_text == "Use Settings > Account > Reset Password."

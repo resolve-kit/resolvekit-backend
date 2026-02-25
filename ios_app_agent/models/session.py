@@ -24,6 +24,7 @@ class ChatSession(Base, UUIDMixin, TimestampMixin):
     )
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
     client_context: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    llm_context: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     entitlements: Mapped[list[str]] = mapped_column(JSONB, default=list)
     capabilities: Mapped[list[str]] = mapped_column(JSONB, default=list)
 

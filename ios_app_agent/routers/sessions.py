@@ -40,6 +40,7 @@ async def create_session(
         device_id=body.device_id,
         metadata_=body.metadata,
         client_context=body.client.model_dump(exclude_none=True) if body.client else {},
+        llm_context=body.llm_context,
         entitlements=body.entitlements,
         capabilities=body.capabilities,
     )
@@ -52,6 +53,8 @@ async def create_session(
         id=session.id,
         app_id=session.app_id,
         device_id=session.device_id,
+        client_context=session.client_context,
+        llm_context=session.llm_context,
         status=session.status,
         last_activity_at=session.last_activity_at,
         created_at=session.created_at,

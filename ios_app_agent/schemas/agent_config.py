@@ -1,10 +1,12 @@
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
 class AgentConfigUpdate(BaseModel):
     system_prompt: str | None = None
+    scope_mode: Literal["open", "strict"] | None = None
     llm_profile_id: uuid.UUID | None = None
     llm_model: str | None = Field(default=None, min_length=1, max_length=100)
     temperature: float | None = None
@@ -18,6 +20,7 @@ class AgentConfigOut(BaseModel):
     id: uuid.UUID
     app_id: uuid.UUID
     system_prompt: str
+    scope_mode: str
     llm_profile_id: uuid.UUID | None
     llm_profile_name: str | None
     llm_provider: str | None

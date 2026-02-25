@@ -1,8 +1,9 @@
 import asyncio
 import json
 import logging
+import re
 import uuid
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import select
@@ -22,6 +23,7 @@ from ios_app_agent.services.chat_access_service import (
     CHAT_UNAVAILABLE_MESSAGE,
     is_chat_unavailable_provider_error,
 )
+from ios_app_agent.services.compatibility_service import function_is_eligible
 from ios_app_agent.services.function_service import get_function_timeout, validate_function_exists
 from ios_app_agent.services.kb_service_client import KBServiceError, search_multiple_knowledge_bases
 from ios_app_agent.services.llm_service import build_tools, call_llm, generate_tool_descriptions
@@ -30,6 +32,324 @@ from ios_app_agent.services.session_service import get_next_sequence, load_conte
 logger = logging.getLogger(__name__)
 
 KB_SEARCH_TOOL_NAME = "kb_search"
+KB_PREFETCH_MAX_ITEMS = 5
+KB_PREFETCH_MAX_CHARS = 1200
+
+BASE_PROMPT = """\
+You are an assistant for a software product. Your role is to help users, answer questions about the product,
+and guide them through features using the tools and documentation available to you.
+
+Guidelines:
+- Be helpful, concise, and clear. Avoid unnecessary technical jargon unless the user is clearly technical.
+- If client platform context is provided (for example iOS, Android, web, tvOS), tailor instructions to that
+  platform. Do not list steps for other platforms unless the user asks.
+- If pre-loaded documentation appears under "## Relevant Documentation", treat it as your primary source for
+  product-specific questions before drawing on general knowledge.
+- If support workflows appear under "## Available Playbooks", follow the relevant workflow step-by-step when the
+  user's request matches it.
+- Use the kb_search tool only for follow-up queries that require finding additional documentation not already in the
+  pre-loaded context above, and include platform terms when relevant.
+- For multi-step tasks, briefly explain each step before performing it so the user understands what is happening.
+- Synthesize answers in your own words. Do not dump raw link lists or markdown URLs unless the user explicitly asks
+  for links.
+- If you cannot resolve the issue, clearly explain what you tried and suggest contacting support.\
+"""
+
+ROUTER_SYSTEM_PROMPT = """\
+You are a routing classifier for an assistant.
+Analyze the user's message and return a JSON object with exactly these fields:
+
+{
+  "in_scope": <bool>,
+  "rejection_reason": <string or null>,
+  "needs_kb": <bool>,
+  "kb_query": <string or null>,
+  "intent": <string>
+}
+
+Rules:
+- in_scope: true if the message relates to using, troubleshooting, or understanding the product described in the
+  product context. false if it is entirely unrelated to the product.
+- rejection_reason: a short, polite user-facing sentence explaining why the message is out of scope. Only set when
+  in_scope is false; null otherwise.
+- needs_kb: true if answering would likely benefit from searching product documentation.
+- kb_query: if needs_kb is true, write a focused semantic search query optimized for finding relevant documentation.
+  If client platform context is available, include it in the query. null otherwise.
+- intent: one short sentence describing what the user wants.
+
+Return only the JSON object. No markdown, no explanation.\
+"""
+
+
+@dataclass
+class RouterResult:
+    in_scope: bool
+    rejection_reason: str | None
+    needs_kb: bool
+    kb_query: str | None
+    intent: str
+
+
+def _context_value(session: ChatSession, key: str) -> str | None:
+    client = getattr(session, "client_context", {}) or {}
+    metadata = getattr(session, "metadata_", {}) or {}
+
+    candidate = client.get(key) or metadata.get(key)
+    if isinstance(candidate, str):
+        cleaned = candidate.strip()
+        return cleaned or None
+    return None
+
+
+def _build_platform_context(session: ChatSession) -> str:
+    fields = {
+        "Platform": _context_value(session, "platform"),
+        "OS": _context_value(session, "os_name"),
+        "OS Version": _context_value(session, "os_version"),
+        "App Version": _context_value(session, "app_version"),
+        "App Build": _context_value(session, "app_build"),
+        "SDK": _context_value(session, "sdk_name"),
+        "SDK Version": _context_value(session, "sdk_version"),
+    }
+    lines = [f"{label}: {value}" for label, value in fields.items() if value]
+    return "\n".join(lines)
+
+
+def _sanitize_doc_content(text: str) -> str:
+    # Replace markdown links with link text, then drop bare URLs.
+    content = re.sub(r"\[([^\]]+)\]\(https?://[^)]+\)", r"\1", text)
+    content = re.sub(r"https?://\S+", "", content)
+    content = re.sub(r"\s+\n", "\n", content)
+    return content.strip()
+
+
+def _session_llm_context(session: ChatSession) -> dict[str, Any]:
+    raw = getattr(session, "llm_context", {}) or {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _format_custom_context_for_prompt(value: dict[str, Any]) -> str:
+    if not value:
+        return ""
+    return json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True)
+
+
+def _collect_custom_context_query_lines(value: Any, prefix: str, lines: list[str], limit: int = 12) -> None:
+    if len(lines) >= limit:
+        return
+
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if not isinstance(key, str):
+                continue
+            next_prefix = f"{prefix}.{key}" if prefix else key
+            _collect_custom_context_query_lines(nested, next_prefix, lines, limit)
+            if len(lines) >= limit:
+                return
+        return
+
+    if isinstance(value, list):
+        scalars: list[str] = []
+        for item in value:
+            if isinstance(item, (str, int, float, bool)):
+                text = str(item).strip()
+                if text:
+                    scalars.append(text)
+            if len(scalars) == 4:
+                break
+        if scalars and prefix:
+            lines.append(f"{prefix}: {', '.join(scalars)}")
+        return
+
+    if isinstance(value, (str, int, float, bool)) and prefix:
+        text = str(value).strip()
+        if text:
+            lines.append(f"{prefix}: {text[:120]}")
+
+
+def _format_custom_context_for_query(value: dict[str, Any]) -> str:
+    if not value:
+        return ""
+    lines: list[str] = []
+    _collect_custom_context_query_lines(value, "", lines)
+    return "\n".join(lines)
+
+
+def _augment_query_with_session_context(query: str, platform_context: str = "", custom_context: str = "") -> str:
+    base_query = query.strip()
+    if not base_query:
+        return base_query
+
+    sections = [base_query]
+    if platform_context:
+        sections.append(f"Client platform context:\n{platform_context}")
+    if custom_context:
+        sections.append(f"Session custom context:\n{custom_context}")
+    return "\n\n".join(sections)
+
+
+def _sanitize_kb_item(item: dict[str, Any]) -> dict[str, Any]:
+    sanitized: dict[str, Any] = {}
+    for key, value in item.items():
+        if not isinstance(value, str):
+            sanitized[key] = value
+            continue
+
+        normalized_key = key.lower()
+        if normalized_key in {"url", "link", "source_url", "href"} or normalized_key.endswith("_url"):
+            continue
+        if normalized_key in {"content", "text", "snippet", "summary"}:
+            cleaned = _sanitize_doc_content(value)
+            if cleaned:
+                sanitized[key] = cleaned
+            continue
+        sanitized[key] = value
+    return sanitized
+
+
+def _strip_json_fence(raw: str) -> str:
+    stripped = raw.strip()
+    if not stripped.startswith("```"):
+        return stripped
+
+    parts = stripped.split("```")
+    if len(parts) < 2:
+        return stripped
+    fenced = parts[1].strip()
+    if fenced.lower().startswith("json"):
+        fenced = fenced[4:].strip()
+    return fenced
+
+
+async def _run_router(
+    config: AgentConfig,
+    user_text: str,
+    session_id: uuid.UUID,
+    platform_context: str,
+    custom_context: str,
+) -> RouterResult:
+    """Classify whether the message is in-scope and whether KB prefetch is useful."""
+    router_messages = [
+        {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f"Product context:\n{config.system_prompt}\n\n"
+                f"Client platform context:\n{platform_context or 'Unknown'}\n\n"
+                f"Session custom context:\n{custom_context or 'None'}\n\n"
+                f"User message:\n{user_text}"
+            ),
+        },
+    ]
+    try:
+        response = await call_llm(config, router_messages, tools=None)
+        raw_content = response.choices[0].message.content if response.choices else ""
+        raw = _strip_json_fence(str(raw_content or ""))
+        data = json.loads(raw)
+        rejection_reason = data.get("rejection_reason")
+        kb_query = data.get("kb_query")
+        return RouterResult(
+            in_scope=bool(data.get("in_scope", True)),
+            rejection_reason=rejection_reason if isinstance(rejection_reason, str) else None,
+            needs_kb=bool(data.get("needs_kb", False)),
+            kb_query=kb_query if isinstance(kb_query, str) else None,
+            intent=str(data.get("intent", "")),
+        )
+    except Exception:
+        logger.warning(
+            "router_failed session_id=%s app_id=%s defaulting_to_fail_open",
+            session_id,
+            getattr(config, "app_id", None),
+        )
+        return RouterResult(
+            in_scope=True,
+            rejection_reason=None,
+            needs_kb=True,
+            kb_query=user_text,
+            intent="",
+        )
+
+
+async def _prefetch_kb_context(
+    *,
+    session_id: uuid.UUID,
+    app_org_id: uuid.UUID | None,
+    assigned_kb_ids: list[uuid.UUID],
+    query: str,
+    platform_context: str = "",
+    custom_context: str = "",
+    top_k: int = KB_PREFETCH_MAX_ITEMS,
+) -> str:
+    """Pre-search KB and return a formatted documentation section for prompt enrichment."""
+    if not app_org_id or not assigned_kb_ids:
+        return ""
+
+    search_query = _augment_query_with_session_context(
+        query,
+        platform_context=platform_context,
+        custom_context=custom_context,
+    )
+
+    result = await execute_internal_kb_tool_call(
+        session_id=session_id,
+        app_org_id=app_org_id,
+        assigned_kb_ids=assigned_kb_ids,
+        arguments={"query": search_query, "top_k": top_k},
+    )
+    items = result.get("items", [])
+    if not isinstance(items, list) or not items:
+        return ""
+
+    sections = ["\n\n## Relevant Documentation"]
+    for item in items[:KB_PREFETCH_MAX_ITEMS]:
+        if not isinstance(item, dict):
+            continue
+        title = item.get("title") or item.get("source_title") or "Untitled"
+        content = item.get("content") or item.get("text") or item.get("snippet") or ""
+        content_text = _sanitize_doc_content(str(content))
+        if not content_text:
+            continue
+        if len(content_text) > KB_PREFETCH_MAX_CHARS:
+            content_text = f"{content_text[:KB_PREFETCH_MAX_CHARS].rstrip()}..."
+        sections.append(f"\n### {title}\n{content_text}")
+
+    if len(sections) == 1:
+        return ""
+    return "\n".join(sections)
+
+
+def _assemble_system_prompt(
+    *,
+    dev_prompt: str,
+    scope_mode: str,
+    platform_context: str,
+    custom_context: str,
+    kb_context: str,
+    playbook_prompt: str,
+) -> str:
+    """Assemble the complete system prompt in stable section order."""
+    sections = [BASE_PROMPT]
+    if dev_prompt.strip():
+        sections.append(f"\n\n## About This Product\n{dev_prompt.strip()}")
+    if platform_context:
+        sections.append(f"\n\n## Client Platform Context\n{platform_context}")
+    if custom_context:
+        sections.append(f"\n\n## Session Custom Context\n{custom_context}")
+    if scope_mode == "strict":
+        sections.append(
+            "\n\n## Scope\nYou are only permitted to help users with questions and tasks directly related to this "
+            "product. If the user asks about topics unrelated to this product, politely decline and redirect them "
+            "to their product-related needs."
+        )
+    if kb_context:
+        sections.append(kb_context)
+    if playbook_prompt:
+        sections.append(playbook_prompt)
+    return "".join(sections)
+
+
+async def _noop_str() -> str:
+    return ""
 
 
 def _build_kb_search_tool() -> dict[str, Any]:
@@ -104,9 +424,15 @@ async def execute_internal_kb_tool_call(
             query=query,
             limit=top_k,
         )
+        raw_items = search_result.get("items", [])
+        items: list[dict[str, Any]] = []
+        if isinstance(raw_items, list):
+            for raw_item in raw_items:
+                if isinstance(raw_item, dict):
+                    items.append(_sanitize_kb_item(raw_item))
         return {
             "query": query,
-            "items": search_result.get("items", []),
+            "items": items,
         }
     except KBServiceError as exc:
         return {"error": exc.detail}
@@ -133,7 +459,11 @@ class MessageSender:
         raise NotImplementedError
 
 
-async def build_playbook_prompt(db: AsyncSession, app_id: uuid.UUID) -> str:
+async def build_playbook_prompt(
+    db: AsyncSession,
+    app_id: uuid.UUID,
+    session: ChatSession | None = None,
+) -> str:
     """Load active playbooks and format them as a system prompt section."""
     result = await db.execute(
         select(Playbook)
@@ -151,6 +481,12 @@ async def build_playbook_prompt(db: AsyncSession, app_id: uuid.UUID) -> str:
         if pb.instructions:
             sections.append(pb.instructions)
         steps = sorted(pb.playbook_functions, key=lambda pf: pf.step_order)
+        if session is not None:
+            eligible_steps: list[PlaybookFunction] = []
+            for pf in steps:
+                if pf.function and function_is_eligible(pf.function, session):
+                    eligible_steps.append(pf)
+            steps = eligible_steps
         if steps:
             sections.append("Steps:")
             for pf in steps:
@@ -183,19 +519,66 @@ async def run_agent_loop(
 
     # 2. Build context
     sdk_tools = build_tools(functions) if functions else []
-    app_org_id, assigned_kb_ids = await _load_kb_assignment_context(db, session.app_id)
+    platform_context = _build_platform_context(session)
+    raw_custom_context = _session_llm_context(session)
+    custom_context_prompt = _format_custom_context_for_prompt(raw_custom_context)
+    custom_context_query = _format_custom_context_for_query(raw_custom_context)
+    router_result, (app_org_id, assigned_kb_ids) = await asyncio.gather(
+        _run_router(config, user_text, session.id, platform_context, custom_context_prompt),
+        _load_kb_assignment_context(db, session.app_id),
+    )
+
+    scope_mode = str(getattr(config, "scope_mode", "open") or "open")
+    if not router_result.in_scope and scope_mode == "strict":
+        rejection_text = router_result.rejection_reason or "I can only help with questions related to this product."
+        seq = await get_next_sequence(db, session.id)
+        rejection_msg = Message(
+            session_id=session.id,
+            sequence_number=seq,
+            role="assistant",
+            content=rejection_text,
+        )
+        db.add(rejection_msg)
+        await db.commit()
+        await sender.send_turn_complete(rejection_text, None)
+        return
+
+    should_prefetch = bool(
+        router_result.needs_kb
+        and (router_result.kb_query or user_text).strip()
+        and app_org_id is not None
+        and assigned_kb_ids
+    )
+    playbook_prompt, kb_context = await asyncio.gather(
+        build_playbook_prompt(db, session.app_id, session),
+        _prefetch_kb_context(
+            session_id=session.id,
+            app_org_id=app_org_id,
+            assigned_kb_ids=assigned_kb_ids,
+            query=(router_result.kb_query or user_text).strip(),
+            platform_context=platform_context,
+            custom_context=custom_context_query,
+        )
+        if should_prefetch
+        else _noop_str(),
+    )
+
     tools = list(sdk_tools)
     if assigned_kb_ids:
         tools.append(_build_kb_search_tool())
     tools_payload = tools or None
     tool_round = 0
-    playbook_prompt = await build_playbook_prompt(db, session.app_id)
 
     while tool_round < config.max_tool_rounds:
         context_msgs = await load_context_messages(db, session.id, config.max_context_messages)
-        system_prompt = config.system_prompt
-        if playbook_prompt:
-            system_prompt += playbook_prompt
+        system_prompt = _assemble_system_prompt(
+            dev_prompt=config.system_prompt,
+            scope_mode=scope_mode,
+            platform_context=platform_context,
+            custom_context=custom_context_prompt,
+            kb_context=kb_context,
+            playbook_prompt=playbook_prompt,
+        )
         llm_messages = [{"role": "system", "content": system_prompt}]
         for msg in context_msgs:
             if msg.role == "tool_call":
@@ -321,11 +704,17 @@ async def run_agent_loop(
             for info in tc_infos:
                 if not info["is_kb_internal"]:
                     continue
+                kb_arguments = dict(info["arguments"]) if isinstance(info["arguments"], dict) else {}
+                kb_arguments["query"] = _augment_query_with_session_context(
+                    str(kb_arguments.get("query", "")),
+                    platform_context=platform_context,
+                    custom_context=custom_context_query,
+                )
                 kb_payload = await execute_internal_kb_tool_call(
                     session_id=session.id,
                     app_org_id=app_org_id,
                     assigned_kb_ids=assigned_kb_ids,
-                    arguments=info["arguments"],
+                    arguments=kb_arguments,
                 )
 
                 seq = await get_next_sequence(db, session.id)

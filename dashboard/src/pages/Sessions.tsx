@@ -11,6 +11,7 @@ interface Session {
   last_activity_at: string;
   created_at: string;
   client_context?: Record<string, string | null>;
+  llm_context?: Record<string, unknown>;
 }
 
 interface Message {
@@ -63,6 +64,48 @@ function ToolCallCard({ calls }: { calls: unknown }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function isScalar(value: unknown): value is string | number | boolean {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+}
+
+function LLMContextCard({ context }: { context: Record<string, unknown> }) {
+  const scalarEntries = Object.entries(context).filter(([, value]) => isScalar(value));
+  const complexEntries = Object.entries(context).filter(
+    ([, value]) => value !== null && value !== undefined && !isScalar(value)
+  );
+
+  if (scalarEntries.length === 0 && complexEntries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-2">
+      <p className="text-[10px] uppercase tracking-widest text-subtle mb-1.5">Custom Context</p>
+      {scalarEntries.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {scalarEntries.map(([key, value]) => (
+            <span key={key} className="text-xs text-muted font-mono">
+              {key}: {String(value)}
+            </span>
+          ))}
+        </div>
+      )}
+      {complexEntries.length > 0 && (
+        <div className="space-y-1">
+          {complexEntries.map(([key, value]) => (
+            <details key={key} className="text-xs font-mono bg-canvas border border-border rounded p-2">
+              <summary className="cursor-pointer text-muted">{key}</summary>
+              <pre className="text-dim overflow-auto max-h-44 mt-2 whitespace-pre-wrap">
+                {JSON.stringify(value, null, 2)}
+              </pre>
+            </details>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -252,6 +295,7 @@ export default function Sessions() {
                       ))}
                   </div>
                 )}
+                {selectedSession.llm_context && <LLMContextCard context={selectedSession.llm_context} />}
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3">

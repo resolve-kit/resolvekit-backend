@@ -73,3 +73,36 @@ async def test_execute_internal_kb_tool_call_surfaces_search_errors(monkeypatch:
     )
 
     assert payload == {"error": "KB service unavailable"}
+
+
+@pytest.mark.asyncio
+async def test_execute_internal_kb_tool_call_sanitizes_url_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    search_mock = AsyncMock(
+        return_value={
+            "items": [
+                {
+                    "title": "Slow Connection",
+                    "snippet": (
+                        "Read [the guide](https://support.example.com/guide) and "
+                        "also visit https://support.example.com/linux."
+                    ),
+                    "source_url": "https://support.example.com/guide",
+                }
+            ]
+        }
+    )
+    monkeypatch.setattr("ios_app_agent.services.orchestrator.search_multiple_knowledge_bases", search_mock)
+
+    payload = await execute_internal_kb_tool_call(
+        session_id=uuid.uuid4(),
+        app_org_id=uuid.uuid4(),
+        assigned_kb_ids=[uuid.uuid4()],
+        arguments={"query": "slow internet"},
+    )
+
+    assert payload["query"] == "slow internet"
+    assert len(payload["items"]) == 1
+    item = payload["items"][0]
+    assert item["title"] == "Slow Connection"
+    assert item["snippet"] == "Read the guide and also visit"
+    assert "source_url" not in item
