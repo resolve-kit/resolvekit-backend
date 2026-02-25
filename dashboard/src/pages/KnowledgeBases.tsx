@@ -7,7 +7,6 @@ import {
   ConfirmDialog,
   Input,
   Select,
-  Textarea,
   useToast,
 } from "../components/ui";
 
@@ -104,6 +103,28 @@ interface SearchHit {
 }
 
 const DOCUMENTS_PER_PAGE = 10;
+const SUPPORTED_UPLOAD_FORMATS = [
+  ".txt",
+  ".md",
+  ".markdown",
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".ppt",
+  ".pptx",
+  ".rtf",
+  ".odt",
+  ".html",
+  ".htm",
+  ".csv",
+  ".tsv",
+  ".xlsx",
+  ".xls",
+  ".json",
+  ".xml",
+  ".yaml",
+  ".yml",
+];
 
 type ConfirmAction =
   | {
@@ -176,7 +197,7 @@ export default function KnowledgeBases() {
   const [isAddingUrl, setIsAddingUrl] = useState(false);
 
   const [uploadTitle, setUploadTitle] = useState("");
-  const [uploadContent, setUploadContent] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -600,22 +621,25 @@ export default function KnowledgeBases() {
   }
 
   async function addUploadSource() {
-    if (!selectedId || !uploadTitle.trim() || !uploadContent.trim()) return;
+    if (!selectedId || !uploadFile) return;
     setIsUploading(true);
     try {
-      await api(`/v1/knowledge-bases/${selectedId}/sources/upload`, {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      if (uploadTitle.trim()) {
+        formData.append("title", uploadTitle.trim());
+      }
+
+      await api(`/v1/knowledge-bases/${selectedId}/sources/upload-file`, {
         method: "POST",
-        body: JSON.stringify({
-          title: uploadTitle.trim(),
-          content: uploadContent,
-        }),
+        body: formData,
       });
       setUploadTitle("");
-      setUploadContent("");
-      toast("Content uploaded. Ingestion job queued.", "success");
+      setUploadFile(null);
+      toast("File uploaded. Ingestion job queued.", "success");
       await loadKbDetails(selectedId);
     } catch (err: unknown) {
-      toast(err instanceof ApiError ? err.detail : "Failed to upload knowledge content", "error");
+      toast(err instanceof ApiError ? err.detail : "Failed to upload knowledge file", "error");
     } finally {
       setIsUploading(false);
     }
@@ -1060,23 +1084,31 @@ export default function KnowledgeBases() {
                   </div>
                 </div>
 
-                <h3 className="text-sm font-semibold text-strong">Add Text/Markdown Content</h3>
+                <h3 className="text-sm font-semibold text-strong">Add File Source</h3>
                 <div className="space-y-3">
                   <Input
-                    label="Content Title"
+                    label="Title (optional)"
                     placeholder="FAQ v1"
                     value={uploadTitle}
                     onChange={(e) => setUploadTitle(e.target.value)}
                   />
-                  <Textarea
-                    label="Content"
-                    placeholder="Paste markdown or support notes..."
-                    rows={8}
-                    value={uploadContent}
-                    onChange={(e) => setUploadContent(e.target.value)}
-                  />
-                  <Button loading={isUploading} onClick={addUploadSource}>
-                    Upload Content
+                  <div>
+                    <label className="text-sm font-medium text-strong mb-1 block">File</label>
+                    <input
+                      type="file"
+                      onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                      className="w-full rounded-xl border border-border bg-canvas px-3 py-2 text-sm text-strong"
+                    />
+                    <p className="text-xs text-subtle mt-1">
+                      Supported formats: {SUPPORTED_UPLOAD_FORMATS.join(", ")}
+                    </p>
+                    <p className="text-xs text-subtle mt-1">Maximum size: 25 MB per file.</p>
+                    {uploadFile && (
+                      <p className="text-xs text-subtle mt-1 truncate">Selected: {uploadFile.name}</p>
+                    )}
+                  </div>
+                  <Button loading={isUploading} onClick={addUploadSource} disabled={!uploadFile}>
+                    Upload File
                   </Button>
                 </div>
               </div>
@@ -1113,9 +1145,11 @@ export default function KnowledgeBases() {
                           >
                             {source.status}
                           </Badge>
-                          <Button size="sm" variant="outline" onClick={() => void recrawlSource(source.id)}>
-                            Recrawl
-                          </Button>
+                          {source.source_type === "url" && (
+                            <Button size="sm" variant="outline" onClick={() => void recrawlSource(source.id)}>
+                              Recrawl
+                            </Button>
+                          )}
                           <Button size="sm" variant="outline" onClick={() => void removeSource(source.id)}>
                             Remove
                           </Button>

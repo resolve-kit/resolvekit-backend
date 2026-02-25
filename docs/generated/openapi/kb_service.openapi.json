@@ -1,6 +1,43 @@
 {
   "components": {
     "schemas": {
+      "Body_add_upload_file_internal_sources_add_upload_file_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          },
+          "kb_id": {
+            "format": "uuid",
+            "title": "Kb Id",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "organization_id",
+          "kb_id",
+          "file"
+        ],
+        "title": "Body_add_upload_file_internal_sources_add_upload_file_post",
+        "type": "object"
+      },
       "DocumentDeleteRequest": {
         "properties": {
           "document_id": {
@@ -1519,6 +1556,50 @@
           }
         ],
         "summary": "Add Upload",
+        "tags": [
+          "kb-internal"
+        ]
+      }
+    },
+    "/internal/sources/add-upload-file": {
+      "post": {
+        "operationId": "add_upload_file_internal_sources_add_upload_file_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_add_upload_file_internal_sources_add_upload_file_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Upload File",
         "tags": [
           "kb-internal"
         ]

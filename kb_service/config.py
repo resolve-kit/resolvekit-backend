@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     crawl4ai_headless: bool = True
     crawl4ai_verbose: bool = False
     crawl4ai_base_directory: str = "/tmp/crawl4ai"
+    upload_max_file_bytes: int = 25 * 1024 * 1024
+    upload_allowed_extensions: str = (
+        ".txt,.md,.markdown,.pdf,.doc,.docx,.ppt,.pptx,.rtf,.odt,.html,.htm,"
+        ".csv,.tsv,.xlsx,.xls,.json,.xml,.yaml,.yml"
+    )
+    upload_ocr_enabled: bool = False
 
     worker_poll_seconds: float = 2.0
     worker_enabled: bool = True

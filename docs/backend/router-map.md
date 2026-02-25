@@ -123,6 +123,7 @@ Source/document lifecycle:
 - `GET /v1/knowledge-bases/{kb_id}/sources`
 - `POST /v1/knowledge-bases/{kb_id}/sources/url`
 - `POST /v1/knowledge-bases/{kb_id}/sources/upload`
+- `POST /v1/knowledge-bases/{kb_id}/sources/upload-file`
 - `POST /v1/knowledge-bases/{kb_id}/sources/{source_id}/recrawl`
 - `DELETE /v1/knowledge-bases/{kb_id}/sources/{source_id}`
 - `GET /v1/knowledge-bases/{kb_id}/jobs`
@@ -161,6 +162,7 @@ Sources:
 - `POST /internal/sources/list`
 - `POST /internal/sources/add-url`
 - `POST /internal/sources/add-upload`
+- `POST /internal/sources/add-upload-file`
 - `POST /internal/sources/recrawl`
 - `POST /internal/sources/delete`
 
@@ -183,4 +185,3 @@ Embedding profiles:
 Health:
 
 - `GET /internal/health`
-

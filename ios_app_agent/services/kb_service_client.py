@@ -94,6 +94,42 @@ async def _call_internal(
     return data
 
 
+async def _call_internal_multipart(
+    path: str,
+    *,
+    data: dict[str, str],
+    files: dict[str, tuple[str, bytes, str]],
+    org_id: uuid.UUID,
+    actor_id: str,
+    actor_role: str,
+) -> dict[str, Any]:
+    token = _build_service_token(org_id=org_id, actor_id=actor_id, actor_role=actor_role)
+    timeout = httpx.Timeout(
+        timeout=settings.kb_service_timeout_seconds,
+        connect=settings.kb_service_connect_timeout_seconds,
+    )
+    url = f"{settings.kb_service_base_url.rstrip('/')}{path}"
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(
+                url,
+                data=data,
+                files=files,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+    except httpx.HTTPError as exc:
+        raise KBServiceError(status_code=503, detail="Knowledge base service unavailable") from exc
+
+    if not response.is_success:
+        detail, code = _extract_error(response)
+        raise KBServiceError(status_code=response.status_code, detail=detail, code=code)
+
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise KBServiceError(status_code=502, detail="Knowledge base service returned invalid response")
+    return payload
+
+
 async def list_knowledge_bases(*, org_id: uuid.UUID, actor_id: str, actor_role: str) -> dict[str, Any]:
     return await _call_internal(
         "/internal/kbs/list",
@@ -262,6 +298,40 @@ async def add_upload_source(
             "kb_id": str(kb_id),
             "title": title,
             "content": content,
+        },
+        org_id=org_id,
+        actor_id=actor_id,
+        actor_role=actor_role,
+    )
+
+
+async def add_upload_file_source(
+    *,
+    org_id: uuid.UUID,
+    actor_id: str,
+    actor_role: str,
+    kb_id: uuid.UUID,
+    filename: str,
+    content: bytes,
+    content_type: str | None,
+    title: str | None,
+) -> dict[str, Any]:
+    fields: dict[str, str] = {
+        "organization_id": str(org_id),
+        "kb_id": str(kb_id),
+    }
+    if title is not None:
+        fields["title"] = title
+
+    return await _call_internal_multipart(
+        "/internal/sources/add-upload-file",
+        data=fields,
+        files={
+            "file": (
+                filename,
+                content,
+                content_type or "application/octet-stream",
+            )
         },
         org_id=org_id,
         actor_id=actor_id,

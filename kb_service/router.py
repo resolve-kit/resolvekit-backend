@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +34,7 @@ from kb_service.schemas import (
     SourceMutateRequest,
 )
 from kb_service.services.crypto import encrypt_secret
+from kb_service.services.document_conversion import DocumentConversionError, convert_uploaded_file_bytes
 from kb_service.services.ingestion import enqueue_ingestion_job, serialize_job
 from kb_service.services.search import search_chunks
 
@@ -480,6 +481,51 @@ async def add_upload(
     return {"source": _serialize_source(source), "job": serialize_job(job)}
 
 
+@router.post("/sources/add-upload-file", status_code=status.HTTP_201_CREATED)
+async def add_upload_file(
+    organization_id: uuid.UUID = Form(...),
+    kb_id: uuid.UUID = Form(...),
+    file: UploadFile = File(...),
+    title: str | None = Form(default=None),
+    principal: ServicePrincipal = Depends(get_service_principal),
+    db: AsyncSession = Depends(get_db),
+):
+    _ensure_org_scope(principal, organization_id)
+    kb = await _get_kb_or_404(db, organization_id, kb_id)
+
+    filename = (file.filename or "").strip()
+    try:
+        payload = await file.read()
+        converted = convert_uploaded_file_bytes(
+            filename=filename,
+            content=payload,
+            content_type=file.content_type,
+            title=title,
+        )
+    except DocumentConversionError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+    source = KnowledgeSource(
+        knowledge_base_id=kb.id,
+        source_type="upload",
+        title=converted.title,
+        upload_content=converted.markdown,
+        status="pending",
+    )
+    db.add(source)
+    await db.flush()
+    job = await enqueue_ingestion_job(
+        db,
+        organization_id=organization_id,
+        knowledge_base_id=kb.id,
+        source_id=source.id,
+    )
+    await db.commit()
+    await db.refresh(source)
+    await db.refresh(job)
+    return {"source": _serialize_source(source), "job": serialize_job(job)}
+
+
 @router.post("/sources/recrawl")
 async def recrawl(
     body: SourceMutateRequest,
@@ -491,6 +537,11 @@ async def recrawl(
     source = await db.get(KnowledgeSource, body.source_id)
     if not source or source.knowledge_base_id != body.kb_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+    if source.source_type != "url":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Recrawl is only supported for URL sources",
+        )
     source.status = "pending"
     source.last_error = None
     job = await enqueue_ingestion_job(

@@ -58,3 +58,30 @@ async def test_search_chunks_handles_empty_chunk_set_without_crashing(
     )
 
     assert result == []
+
+
+def test_weighted_rrf_score_prefers_hybrid_match() -> None:
+    # Hybrid candidate should outrank single-signal candidates.
+    hybrid = search_service._weighted_rrf_score(semantic_rank=2, lexical_rank=2)
+    semantic_only = search_service._weighted_rrf_score(semantic_rank=1, lexical_rank=None)
+    lexical_only = search_service._weighted_rrf_score(semantic_rank=None, lexical_rank=1)
+
+    assert hybrid > semantic_only
+    assert hybrid > lexical_only
+
+
+@pytest.mark.asyncio
+async def test_load_postgres_lexical_ranks_fails_open_on_db_errors() -> None:
+    class _FailingDB:
+        async def execute(self, _query):  # noqa: ANN001
+            raise RuntimeError("fts unavailable")
+
+    rank_map, score_map = await search_service._load_postgres_lexical_ranks(
+        db=_FailingDB(),
+        kb_ids=[uuid.uuid4()],
+        query="reset password",
+        limit=10,
+    )
+
+    assert rank_map == {}
+    assert score_map == {}

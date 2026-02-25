@@ -125,14 +125,12 @@ async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pyte
 
     kb_search_mock.assert_awaited_once()
     kb_query = kb_search_mock.await_args.kwargs["query"]
-    assert "reset password" in kb_query
-    assert "Client platform context:" in kb_query
-    assert "Platform: ios" in kb_query
-    assert "Session custom context:" in kb_query
-    assert "Vilnius" in kb_query
+    assert kb_query == "reset password"
+    assert "Client platform context:" not in kb_query
+    assert "Session custom context:" not in kb_query
     tool_results = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "tool_result"]
     assert len(tool_results) == 1
     payload = json.loads(tool_results[0].content or "{}")
     assert payload.get("items")
-    assert "Platform: ios" in payload.get("query", "")
+    assert payload.get("query") == "reset password"
     assert sender.turn_complete_text == "Use Settings > Account > Reset Password."

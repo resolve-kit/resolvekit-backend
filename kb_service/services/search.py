@@ -1,27 +1,34 @@
-import re
 import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from kb_service.models import KnowledgeBase, KnowledgeChunk, KnowledgeDocument
 from kb_service.services.embedding import cosine_similarity, embed_texts
 from kb_service.services.embedding_runtime import runtime_from_kb_active
 
-_WORD_RE = re.compile(r"[a-zA-Z0-9_]{2,}")
+_RRF_K = 60
+_SEMANTIC_RRF_WEIGHT = 0.7
+_LEXICAL_RRF_WEIGHT = 0.3
+_SEMANTIC_CANDIDATE_MULTIPLIER = 20
+_LEXICAL_CANDIDATE_MULTIPLIER = 20
+_MIN_CANDIDATE_POOL = 100
 
 
-def _tokens(text: str) -> list[str]:
-    return _WORD_RE.findall(text.lower())
-
-
-def _lexical_score(query_tokens: list[str], content: str) -> float:
-    if not query_tokens:
-        return 0.0
-    content_lower = content.lower()
-    return float(sum(content_lower.count(token) for token in query_tokens))
+def _weighted_rrf_score(
+    *,
+    semantic_rank: int | None,
+    lexical_rank: int | None,
+    k: int = _RRF_K,
+) -> float:
+    score = 0.0
+    if semantic_rank is not None:
+        score += _SEMANTIC_RRF_WEIGHT / float(k + semantic_rank)
+    if lexical_rank is not None:
+        score += _LEXICAL_RRF_WEIGHT / float(k + lexical_rank)
+    return score
 
 
 @dataclass
@@ -39,6 +46,46 @@ async def _load_chunks_for_kbs(db: AsyncSession, kb_ids: list[uuid.UUID]) -> lis
         select(KnowledgeChunk).where(KnowledgeChunk.knowledge_base_id.in_(kb_ids))
     )
     return result.scalars().all()
+
+
+async def _load_postgres_lexical_ranks(
+    db: AsyncSession,
+    *,
+    kb_ids: list[uuid.UUID],
+    query: str,
+    limit: int,
+) -> tuple[dict[uuid.UUID, int], dict[uuid.UUID, float]]:
+    normalized = query.strip()
+    if not kb_ids or not normalized or limit <= 0:
+        return {}, {}
+
+    tsvector_expr = func.to_tsvector("english", KnowledgeChunk.content_text)
+    tsquery_expr = func.websearch_to_tsquery("english", normalized)
+    rank_expr = func.ts_rank_cd(tsvector_expr, tsquery_expr)
+
+    statement = (
+        select(KnowledgeChunk.id, rank_expr.label("lexical_rank"))
+        .where(KnowledgeChunk.knowledge_base_id.in_(kb_ids))
+        .where(tsvector_expr.op("@@")(tsquery_expr))
+        .order_by(rank_expr.desc(), KnowledgeChunk.id.asc())
+        .limit(limit)
+    )
+
+    try:
+        rows = (await db.execute(statement)).all()
+    except Exception:
+        # Fail open for environments where FTS is unavailable/misconfigured.
+        return {}, {}
+
+    rank_map: dict[uuid.UUID, int] = {}
+    score_map: dict[uuid.UUID, float] = {}
+    for index, row in enumerate(rows, start=1):
+        chunk_id = row[0]
+        raw_rank = row[1]
+        if isinstance(chunk_id, uuid.UUID):
+            rank_map[chunk_id] = index
+            score_map[chunk_id] = float(raw_rank or 0.0)
+    return rank_map, score_map
 
 
 async def search_chunks(
@@ -68,8 +115,6 @@ async def search_chunks(
     if not chunks:
         return []
 
-    query_tokens = _tokens(query)
-
     query_embedding_cache: dict[tuple[str | None, str | None, str | None, str | None], list[float]] = {}
 
     async def query_embedding_for_kb(kb: KnowledgeBase) -> list[float]:
@@ -89,24 +134,63 @@ async def search_chunks(
         return vector
 
     scored: list[_ScoredChunk] = []
-    max_lexical = 1.0
     for chunk in chunks:
         kb = kb_by_id.get(chunk.knowledge_base_id)
         if kb is None:
             continue
         query_embedding = await query_embedding_for_kb(kb)
-        lexical = _lexical_score(query_tokens, chunk.content_text)
-        max_lexical = max(max_lexical, lexical)
         semantic = cosine_similarity(query_embedding, chunk.embedding or [])
-        scored.append(_ScoredChunk(chunk=chunk, score=0.0, semantic_score=semantic, lexical_score=lexical))
+        scored.append(_ScoredChunk(chunk=chunk, score=0.0, semantic_score=semantic, lexical_score=0.0))
 
-    for item in scored:
-        lexical_norm = item.lexical_score / max_lexical
-        # Hybrid blend with semantic bias.
-        item.score = (item.semantic_score * 0.7) + (lexical_norm * 0.3)
+    if not scored:
+        return []
 
-    scored.sort(key=lambda item: item.score, reverse=True)
-    top = scored[:limit]
+    semantic_sorted = sorted(scored, key=lambda item: item.semantic_score, reverse=True)
+    semantic_rank_by_chunk_id = {
+        item.chunk.id: index
+        for index, item in enumerate(semantic_sorted, start=1)
+    }
+    semantic_pool_size = max(_MIN_CANDIDATE_POOL, limit * _SEMANTIC_CANDIDATE_MULTIPLIER)
+    semantic_candidate_ids = [item.chunk.id for item in semantic_sorted[:semantic_pool_size]]
+
+    lexical_pool_size = max(_MIN_CANDIDATE_POOL, limit * _LEXICAL_CANDIDATE_MULTIPLIER)
+    lexical_rank_by_chunk_id, lexical_score_by_chunk_id = await _load_postgres_lexical_ranks(
+        db,
+        kb_ids=valid_kb_ids,
+        query=query,
+        limit=lexical_pool_size,
+    )
+
+    chunk_by_id = {item.chunk.id: item for item in scored}
+    candidate_ids: set[uuid.UUID] = set(semantic_candidate_ids)
+    candidate_ids.update(lexical_rank_by_chunk_id.keys())
+
+    fused: list[_ScoredChunk] = []
+    for chunk_id in candidate_ids:
+        item = chunk_by_id.get(chunk_id)
+        if item is None:
+            continue
+        semantic_rank = semantic_rank_by_chunk_id.get(chunk_id)
+        lexical_rank = lexical_rank_by_chunk_id.get(chunk_id)
+        item.lexical_score = lexical_score_by_chunk_id.get(chunk_id, 0.0)
+        item.score = _weighted_rrf_score(
+            semantic_rank=semantic_rank,
+            lexical_rank=lexical_rank,
+        )
+        fused.append(item)
+
+    if not fused:
+        return []
+
+    fused.sort(
+        key=lambda item: (
+            item.score,
+            item.semantic_score,
+            item.lexical_score,
+        ),
+        reverse=True,
+    )
+    top = fused[:limit]
     document_ids = list({item.chunk.document_id for item in top})
     docs_result = await db.execute(select(KnowledgeDocument).where(KnowledgeDocument.id.in_(document_ids)))
     docs = {doc.id: doc for doc in docs_result.scalars().all()}

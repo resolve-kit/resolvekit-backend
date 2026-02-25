@@ -558,6 +558,31 @@
         "title": "AuditEventsPage",
         "type": "object"
       },
+      "Body_kb_sources_add_upload_file_v1_knowledge_bases__kb_id__sources_upload_file_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_kb_sources_add_upload_file_v1_knowledge_bases__kb_id__sources_upload_file_post",
+        "type": "object"
+      },
       "ChatMessageBody": {
         "properties": {
           "text": {
@@ -5119,6 +5144,62 @@
           }
         ],
         "summary": "Kb Sources Add Upload",
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/{kb_id}/sources/upload-file": {
+      "post": {
+        "operationId": "kb_sources_add_upload_file_v1_knowledge_bases__kb_id__sources_upload_file_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_kb_sources_add_upload_file_v1_knowledge_bases__kb_id__sources_upload_file_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Kb Sources Add Upload File",
         "tags": [
           "knowledge-bases"
         ]

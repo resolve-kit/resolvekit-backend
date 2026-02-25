@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +28,7 @@ from ios_app_agent.services.authorization_service import ORG_ADMIN_ROLES, requir
 from ios_app_agent.services.encryption import decrypt
 from ios_app_agent.services.kb_service_client import (
     KBServiceError,
+    add_upload_file_source,
     add_upload_source,
     add_url_source,
     create_embedding_profile,
@@ -312,6 +313,36 @@ async def kb_sources_add_upload(
             kb_id=kb_id,
             title=body.title,
             content=body.content,
+        )
+    except KBServiceError as exc:
+        _raise_kb_error(exc)
+
+
+@router.post("/v1/knowledge-bases/{kb_id}/sources/upload-file", status_code=status.HTTP_201_CREATED)
+async def kb_sources_add_upload_file(
+    kb_id: uuid.UUID,
+    file: UploadFile = File(...),
+    title: str | None = Form(default=None),
+    developer: DeveloperAccount = Depends(get_current_developer),
+):
+    org_id = _require_org_membership(developer)
+    require_org_role(developer, ORG_ADMIN_ROLES)
+
+    filename = (file.filename or "").strip()
+    if not filename:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Uploaded file must have a name")
+
+    content = await file.read()
+    try:
+        return await add_upload_file_source(
+            org_id=org_id,
+            actor_id=str(developer.id),
+            actor_role=developer.role,
+            kb_id=kb_id,
+            filename=filename,
+            content=content,
+            content_type=file.content_type,
+            title=title,
         )
     except KBServiceError as exc:
         _raise_kb_error(exc)

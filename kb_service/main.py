@@ -2,6 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from kb_service.config import settings
 from kb_service.database import engine
@@ -10,10 +11,23 @@ from kb_service.router import router
 from kb_service.services.worker import worker_loop
 
 
+async def _ensure_kb_search_indexes(conn) -> None:  # noqa: ANN001
+    await conn.execute(
+        text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_knowledge_chunks_content_tsv_english
+            ON knowledge_chunks
+            USING GIN (to_tsvector('english', content_text));
+            """
+        )
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await _ensure_kb_search_indexes(conn)
 
     task = None
     if settings.worker_enabled:
@@ -41,4 +55,3 @@ app.include_router(router)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-

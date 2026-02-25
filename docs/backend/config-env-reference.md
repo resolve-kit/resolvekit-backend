@@ -69,6 +69,12 @@ Settings are loaded via pydantic settings models:
 - `KBS_CRAWL4AI_VERBOSE`
 - `KBS_CRAWL4AI_BASE_DIRECTORY`
 
+## Upload conversion behavior
+
+- `KBS_UPLOAD_MAX_FILE_BYTES`
+- `KBS_UPLOAD_ALLOWED_EXTENSIONS`
+- `KBS_UPLOAD_OCR_ENABLED`
+
 ## Defaults and examples
 
 - See `.env.example` and `docker-compose.yml` for local defaults and service wiring.
@@ -81,4 +87,3 @@ Settings are loaded via pydantic settings models:
   - `KBS_SERVICE_JWT_SIGNING_KEY`
   - `KBS_ENCRYPTION_KEY`
 - `ios_app_agent` startup validates critical secrets when debug mode is off.
-

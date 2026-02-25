@@ -708,11 +708,9 @@ async def run_agent_loop(
                 if not info["is_kb_internal"]:
                     continue
                 kb_arguments = dict(info["arguments"]) if isinstance(info["arguments"], dict) else {}
-                kb_arguments["query"] = _augment_query_with_session_context(
-                    str(kb_arguments.get("query", "")),
-                    platform_context=platform_context,
-                    custom_context=custom_context_query,
-                )
+                # Preserve explicit kb_search queries from the LLM as-is.
+                # Appending platform/custom context here can drown entity-focused lookups.
+                kb_arguments["query"] = str(kb_arguments.get("query", "")).strip()
                 kb_payload = await execute_internal_kb_tool_call(
                     session_id=session.id,
                     app_org_id=app_org_id,
