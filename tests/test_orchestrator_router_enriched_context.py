@@ -79,7 +79,7 @@ async def test_run_agent_loop_strict_scope_rejects_and_persists_message(monkeypa
         AsyncMock(
             return_value=orchestrator.RouterResult(
                 in_scope=False,
-                rejection_reason="I can only help with questions about this app.",
+                rejection_reason="I can only help with iOS app capabilities.",
                 needs_kb=False,
                 kb_query=None,
                 intent="General trivia question",
@@ -102,7 +102,7 @@ async def test_run_agent_loop_strict_scope_rejects_and_persists_message(monkeypa
         sender=sender,
     )
 
-    assert sender.turn_complete_text == "I can only help with questions about this app."
+    assert sender.turn_complete_text == "I can only help with questions related to the app you are using."
     assert sender.errors == []
     llm_mock.assert_not_awaited()
     prefetch_mock.assert_not_awaited()
@@ -110,7 +110,7 @@ async def test_run_agent_loop_strict_scope_rejects_and_persists_message(monkeypa
 
     assistant_messages = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "assistant"]
     assert len(assistant_messages) == 1
-    assert assistant_messages[0].content == "I can only help with questions about this app."
+    assert assistant_messages[0].content == "I can only help with questions related to the app you are using."
 
 
 @pytest.mark.asyncio
@@ -290,6 +290,8 @@ def test_assemble_system_prompt_scope_section_only_for_strict() -> None:
     )
 
     assert strict_prompt.startswith(orchestrator.BASE_PROMPT)
+    assert "Use available tools when an action, verification, or real-time check is required." in strict_prompt
+    assert "Prefer grounded answers from available documentation and playbooks over guessing." in strict_prompt
     assert "## About This Product\nThis app helps users configure thermostats." in strict_prompt
     assert "## Client Platform Context\nPlatform: ios" in strict_prompt
     assert "## Session Custom Context" in strict_prompt

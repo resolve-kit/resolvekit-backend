@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 KB_SEARCH_TOOL_NAME = "kb_search"
 KB_PREFETCH_MAX_ITEMS = 5
 KB_PREFETCH_MAX_CHARS = 1200
+STRICT_SCOPE_REJECTION_TEXT = "I can only help with questions related to the app you are using."
 
 BASE_PROMPT = """\
 You are an assistant for a software product. Your role is to help users, answer questions about the product,
@@ -41,8 +42,10 @@ and guide them through features using the tools and documentation available to y
 
 Guidelines:
 - Be helpful, concise, and clear. Avoid unnecessary technical jargon unless the user is clearly technical.
+- Use available tools when an action, verification, or real-time check is required.
 - If client platform context is provided (for example iOS, Android, web, tvOS), tailor instructions to that
   platform. Do not list steps for other platforms unless the user asks.
+- Prefer grounded answers from available documentation and playbooks over guessing.
 - If pre-loaded documentation appears under "## Relevant Documentation", treat it as your primary source for
   product-specific questions before drawing on general knowledge.
 - If support workflows appear under "## Available Playbooks", follow the relevant workflow step-by-step when the
@@ -528,9 +531,9 @@ async def run_agent_loop(
         _load_kb_assignment_context(db, session.app_id),
     )
 
-    scope_mode = str(getattr(config, "scope_mode", "open") or "open")
+    scope_mode = str(getattr(config, "scope_mode", "strict") or "strict")
     if not router_result.in_scope and scope_mode == "strict":
-        rejection_text = router_result.rejection_reason or "I can only help with questions related to this product."
+        rejection_text = STRICT_SCOPE_REJECTION_TEXT
         seq = await get_next_sequence(db, session.id)
         rejection_msg = Message(
             session_id=session.id,

@@ -75,7 +75,7 @@ export default function AppConfig() {
 
   useEffect(() => {
     api<Config>(`/v1/apps/${appId}/config`).then((data) =>
-      setConfig({ ...data, scope_mode: data.scope_mode ?? "open" })
+      setConfig({ ...data, scope_mode: data.scope_mode ?? "strict" })
     );
     api<ProviderInfo[]>(`/v1/apps/${appId}/config/providers`).then(
       setProviders
@@ -131,7 +131,7 @@ export default function AppConfig() {
         method: "PUT",
         body: JSON.stringify(body),
       });
-      setConfig({ ...updated, scope_mode: updated.scope_mode ?? "open" });
+      setConfig({ ...updated, scope_mode: updated.scope_mode ?? "strict" });
       setLlmApiKey("");
       toast("Configuration saved", "success");
     } catch (err: unknown) {
