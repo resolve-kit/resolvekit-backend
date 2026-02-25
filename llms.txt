@@ -1,0 +1,31 @@
+Playbook Backend: API/orchestrator + knowledge-base services for embedded app assistants.
+
+Start here:
+- README.md
+- docs/INDEX.md
+
+Canonical architecture and capability docs:
+- docs/backend/services-overview.md
+- docs/backend/ios-app-agent-capabilities.md
+- docs/backend/kb-service-capabilities.md
+- docs/backend/orchestrator-flow.md
+- docs/backend/router-map.md
+- docs/backend/data-model-map.md
+- docs/backend/integration-map-sdk-to-backend.md
+- docs/backend/config-env-reference.md
+- docs/backend/error-contracts.md
+
+Protocol and integration contracts:
+- SDK_INTEGRATION.md
+
+Generated API contracts (source of truth for endpoint signatures):
+- docs/generated/openapi/ios_app_agent.openapi.json
+- docs/generated/openapi/kb_service.openapi.json
+
+Operational runbooks:
+- docs/backend/runbooks/local-dev-and-docker.md
+
+Notes:
+- Prefer generated OpenAPI files for exact request/response contracts.
+- Prefer curated docs for behavior, boundaries, lifecycle, and implementation guidance.
+
