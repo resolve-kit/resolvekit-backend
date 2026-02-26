@@ -1,8 +1,12 @@
 import Link from "next/link";
 
+import { HeroChatPreview } from "@/components/hero-chat-preview";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { dashboardLoginUrl } from "@/lib/urls";
+import { dashboardLoginUrl, feedbackIssuesUrl } from "@/lib/urls";
+
+const FREE_FOR_NOW_LABEL = "Free (for now)";
+const FEEDBACK_LABEL = "Pay us in feedback";
 
 const VALUE_POINTS = [
   {
@@ -77,25 +81,36 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="mt-16 max-w-3xl animate-fade-up">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Configurable Assistant Platform
-        </p>
-        <h1 className="text-5xl font-semibold leading-[1.04]">
-          Configure the Assistant Your App Actually Needs
-        </h1>
-        <p className="mt-5 text-lg text-muted-foreground">
-          Playbook gives teams full control over how their assistant behaves: what it can answer, which tools it can use,
-          what context it sees, and how it adapts by platform and user session.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <a href={dashboardLoginUrl}>
-            <Button>Configure Your Assistant</Button>
-          </a>
-          <Link href="/pricing">
-            <Button variant="outline">View Pricing</Button>
-          </Link>
+      <section className="mt-16 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+        <div className="max-w-3xl animate-fade-up">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Configurable Assistant Platform
+          </p>
+          <h1 className="text-5xl font-semibold leading-[1.04]">
+            Configure the Assistant Your App Actually Needs
+          </h1>
+          <p className="mt-5 text-lg text-muted-foreground">
+            Playbook gives teams full control over how their assistant behaves: what it can answer, which tools it can
+            use, what context it sees, and how it adapts by platform and user session.
+          </p>
+          <p className="mt-4 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+            <span className="font-semibold">{FREE_FOR_NOW_LABEL}</span>
+            <span className="mx-2 text-muted-foreground">-</span>
+            <span>{FEEDBACK_LABEL}. Roast us kindly by opening GitHub issues.</span>
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a href={dashboardLoginUrl}>
+              <Button>Use It Free</Button>
+            </a>
+            <Link href="/pricing">
+              <Button variant="outline">See Free Plan</Button>
+            </Link>
+            <a href={feedbackIssuesUrl} target="_blank" rel="noreferrer">
+              <Button variant="ghost">Leave Feedback</Button>
+            </a>
+          </div>
         </div>
+        <HeroChatPreview />
       </section>
 
       <section className="mt-12 grid gap-4 md:grid-cols-3">

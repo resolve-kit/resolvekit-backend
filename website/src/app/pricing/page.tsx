@@ -2,42 +2,27 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { dashboardLoginUrl } from "@/lib/urls";
+import { dashboardLoginUrl, feedbackIssuesUrl } from "@/lib/urls";
+
+const FREE_FOR_NOW_LABEL = "Free (for now)";
+const FEEDBACK_LABEL = "Pay us in feedback";
 
 const PLANS = [
   {
-    name: "Monthly",
-    price: "EUR 20",
-    period: "/month + VAT",
-    description: "Flexible billing for app teams launching AI support quickly.",
+    name: FREE_FOR_NOW_LABEL,
+    price: "EUR 0",
+    period: "/for now",
+    description: "Use the full assistant platform while we polish the rough edges with your feedback.",
     features: [
       "1 organization",
       "Up to 20 team members",
       "Unlimited apps and support assistants",
       "Docs/FAQ-guided responses via prompts and playbooks",
       "Tool approvals, session logs, and audit visibility",
+      "Direct product influence through feedback issues",
     ],
-    cta: "Choose Monthly",
-    highlighted: false,
-    originalPrice: null,
-    savingsLabel: null,
-  },
-  {
-    name: "Yearly",
-    price: "EUR 200",
-    period: "/year + VAT",
-    description: "Best value for long-term, production support operations.",
-    features: [
-      "Up to 20 team members",
-      "Unlimited apps and support assistants",
-      "Docs/FAQ-guided responses via prompts and playbooks",
-      "Tool approvals, session logs, and audit visibility",
-      "Annual billing at discounted effective monthly rate",
-    ],
-    cta: "Choose Yearly",
+    cta: "Start Free",
     highlighted: true,
-    originalPrice: "EUR 240",
-    savingsLabel: "Save EUR 40/year (17%)",
   },
 ];
 
@@ -62,30 +47,19 @@ export default function PricingPage() {
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pricing</p>
         <h1 className="text-4xl font-semibold">Pricing for LLM App Support</h1>
         <p className="mt-3 text-muted-foreground">
-          Build in-app technical support with the same core feature set on monthly or annual billing.
-          VAT is added on top of listed prices.
+          <span className="font-medium text-foreground">{FREE_FOR_NOW_LABEL}</span> and {FEEDBACK_LABEL}. You get the
+          platform, we get blunt GitHub issues, and everybody wins.
         </p>
       </section>
 
-      <section className="mt-10 grid gap-4 md:grid-cols-2">
-        {PLANS.map((plan, idx) => (
+      <section className="mt-10 grid gap-4 md:grid-cols-1">
+        {PLANS.map((plan) => (
           <Card
             key={plan.name}
-            className={`p-6 ${plan.highlighted ? "border-primary/50 bg-primary/5" : ""} ${idx === 1 ? "animate-fade-up [animation-delay:120ms]" : "animate-fade-up"}`}
+            className={`p-6 ${plan.highlighted ? "border-primary/50 bg-primary/5" : ""} animate-fade-up`}
           >
             <h2 className="text-xl font-semibold">{plan.name}</h2>
             <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
-            {plan.originalPrice && plan.savingsLabel ? (
-              <div className="mt-4 flex items-center gap-3">
-                <span className="text-sm text-muted-foreground line-through">
-                  {plan.originalPrice}
-                  <span className="ml-1">/year + VAT</span>
-                </span>
-                <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700">
-                  {plan.savingsLabel}
-                </span>
-              </div>
-            ) : null}
             <div className="mt-4 flex items-end gap-1">
               <span className="text-3xl font-semibold">{plan.price}</span>
               <span className="text-sm text-muted-foreground pb-1">{plan.period}</span>
@@ -95,11 +69,12 @@ export default function PricingPage() {
                 <li key={feature}>• {feature}</li>
               ))}
             </ul>
-            <div className="mt-6">
-              <a href={dashboardLoginUrl} className="block">
-                <Button variant={plan.highlighted ? "primary" : "outline"} className="w-full">
-                  {plan.cta}
-                </Button>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a href={dashboardLoginUrl}>
+                <Button variant="primary">{plan.cta}</Button>
+              </a>
+              <a href={feedbackIssuesUrl} target="_blank" rel="noreferrer">
+                <Button variant="outline">Give Feedback</Button>
               </a>
             </div>
           </Card>
@@ -108,17 +83,14 @@ export default function PricingPage() {
 
       <section className="mt-12">
         <Card className="p-6 md:p-8">
-          <h3 className="text-xl font-semibold">What Every Plan Includes</h3>
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-border bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-              iOS SDK integration with PlaybookRuntime and embedded support chat
-            </div>
-            <div className="rounded-xl border border-border bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-              Function registration, tool-call orchestration, and approval workflow
-            </div>
-            <div className="rounded-xl border border-border bg-background/70 px-4 py-3 text-sm text-muted-foreground">
-              Dashboard controls for prompts, playbooks, limits, and organization teams
-            </div>
+          <h3 className="text-xl font-semibold">How To Pay Us Back</h3>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Found a bug? Missing something? Weird edge case? Open a GitHub issue and we will treat it like rent.
+          </p>
+          <div className="mt-4">
+            <a href={feedbackIssuesUrl} target="_blank" rel="noreferrer">
+              <Button variant="outline">Open a GitHub Issue</Button>
+            </a>
           </div>
         </Card>
       </section>
