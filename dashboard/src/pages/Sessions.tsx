@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
@@ -23,6 +23,26 @@ interface Message {
   tool_call_id: string | null;
   created_at: string;
 }
+
+type ToolCallRecord = {
+  id?: unknown;
+  function?: {
+    name?: unknown;
+    arguments?: unknown;
+  };
+};
+
+type KbSearchCall = {
+  callId: string | null;
+  query: string | null;
+  topK: number | null;
+};
+
+type KbSearchResult = {
+  query: string | null;
+  resultsCount: number | null;
+  error: string | null;
+};
 
 function statusVariant(status: string): "active" | "expired" | "closed" | "default" {
   if (status === "active") return "active";
@@ -61,6 +81,115 @@ function ToolCallCard({ calls }: { calls: unknown }) {
                 {typeof args === "string" ? args : JSON.stringify(args, null, 2)}
               </pre>
             )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function parseToolArguments(args: unknown): Record<string, unknown> | null {
+  if (!args) return null;
+  if (typeof args === "string") {
+    try {
+      const parsed = JSON.parse(args);
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  }
+  return typeof args === "object" ? (args as Record<string, unknown>) : null;
+}
+
+function extractKbSearchCalls(calls: unknown): KbSearchCall[] {
+  if (!calls) return [];
+  const arr = Array.isArray(calls) ? calls : [calls];
+  const kbCalls: KbSearchCall[] = [];
+
+  for (const rawCall of arr) {
+    const record = (rawCall ?? {}) as ToolCallRecord;
+    const fn = record.function ?? {};
+    if (fn.name !== "kb_search") continue;
+
+    const args = parseToolArguments(fn.arguments);
+    const queryRaw = args?.query;
+    const topKRaw = args?.top_k;
+
+    const query = typeof queryRaw === "string" && queryRaw.trim() ? queryRaw.trim() : null;
+    const topK =
+      typeof topKRaw === "number"
+        ? topKRaw
+        : typeof topKRaw === "string" && topKRaw.trim() && !Number.isNaN(Number(topKRaw))
+        ? Number(topKRaw)
+        : null;
+
+    kbCalls.push({
+      callId: typeof record.id === "string" ? record.id : null,
+      query,
+      topK,
+    });
+  }
+
+  return kbCalls;
+}
+
+function parseKbSearchResult(content: string | null): KbSearchResult | null {
+  if (!content) return null;
+  try {
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const query = typeof parsed.query === "string" && parsed.query.trim() ? parsed.query.trim() : null;
+    const items = parsed.items;
+    const resultsCount = Array.isArray(items) ? items.length : null;
+    const error = typeof parsed.error === "string" && parsed.error.trim() ? parsed.error.trim() : null;
+    return { query, resultsCount, error };
+  } catch {
+    return null;
+  }
+}
+
+function KnowledgeBaseQueryCard({
+  calls,
+  resultByCallId,
+}: {
+  calls: KbSearchCall[];
+  resultByCallId: Map<string, Message>;
+}) {
+  if (!calls.length) return null;
+
+  return (
+    <div className="mb-2 space-y-2">
+      {calls.map((call, index) => {
+        const resultMessage = call.callId ? resultByCallId.get(call.callId) ?? null : null;
+        const parsedResult = parseKbSearchResult(resultMessage?.content ?? null);
+
+        return (
+          <div key={call.callId ?? `kb-call-${index}`} className="border border-warning/30 bg-warning/5 rounded-lg p-2.5">
+            <p className="text-[10px] uppercase tracking-widest text-warning mb-1.5">Knowledge Base Query</p>
+            <div className="text-xs space-y-1">
+              <p className="text-body break-words">
+                <span className="text-subtle">query:</span> {call.query ?? parsedResult?.query ?? "(missing)"}
+              </p>
+              {call.topK !== null && (
+                <p className="text-muted">
+                  <span className="text-subtle">top_k:</span> {call.topK}
+                </p>
+              )}
+              {call.callId && (
+                <p className="text-muted font-mono">
+                  <span className="text-subtle">call_id:</span> {call.callId}
+                </p>
+              )}
+              {parsedResult && parsedResult.resultsCount !== null && (
+                <p className="text-muted">
+                  <span className="text-subtle">results:</span> {parsedResult.resultsCount}
+                </p>
+              )}
+              {parsedResult?.error && (
+                <p className="text-danger">
+                  <span className="text-subtle">error:</span> {parsedResult.error}
+                </p>
+              )}
+            </div>
           </div>
         );
       })}
@@ -202,6 +331,15 @@ export default function Sessions() {
   }, []);
 
   const selectedSession = sessions.find((session) => session.id === selectedId);
+  const toolResultByCallId = useMemo(() => {
+    const map = new Map<string, Message>();
+    for (const message of messages) {
+      if (message.role === "tool_result" && message.tool_call_id) {
+        map.set(message.tool_call_id, message);
+      }
+    }
+    return map;
+  }, [messages]);
 
   const filteredSessions = sessions.filter((session) => {
     const matchesStatus = statusFilter === "all" || session.status === statusFilter;
@@ -316,6 +454,7 @@ export default function Sessions() {
                   messages.map((message) => {
                     const isUser = message.role === "user";
                     const isTool = message.role === "tool";
+                    const kbSearchCalls = extractKbSearchCalls(message.tool_calls);
 
                     return (
                       <div key={message.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -335,6 +474,9 @@ export default function Sessions() {
                           >
                             {message.role}
                           </p>
+                          {kbSearchCalls.length > 0 && (
+                            <KnowledgeBaseQueryCard calls={kbSearchCalls} resultByCallId={toolResultByCallId} />
+                          )}
                           {message.content && <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>}
                           {message.tool_calls && <ToolCallCard calls={message.tool_calls} />}
                           {message.tool_call_id && (

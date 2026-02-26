@@ -35,6 +35,51 @@ KB_SEARCH_TOOL_NAME = "kb_search"
 KB_PREFETCH_MAX_ITEMS = 5
 KB_PREFETCH_MAX_CHARS = 1200
 STRICT_SCOPE_REJECTION_TEXT = "I can only help with questions related to the app you are using."
+INTENT_ACTION_TOKENS = {
+    "add",
+    "create",
+    "deactivate",
+    "delete",
+    "disable",
+    "enable",
+    "get",
+    "list",
+    "monitor",
+    "remove",
+    "show",
+    "track",
+    "untrack",
+    "update",
+}
+INTENT_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "can",
+    "for",
+    "from",
+    "how",
+    "i",
+    "in",
+    "is",
+    "it",
+    "me",
+    "my",
+    "of",
+    "on",
+    "please",
+    "the",
+    "to",
+    "that",
+    "them",
+    "these",
+    "this",
+    "those",
+    "one",
+    "what",
+    "you",
+}
 
 BASE_PROMPT = """\
 You are an assistant for a software product. Your role is to help users, answer questions about the product,
@@ -222,6 +267,66 @@ def _strip_json_fence(raw: str) -> str:
     if fenced.lower().startswith("json"):
         fenced = fenced[4:].strip()
     return fenced
+
+
+def _tokenize_intent_text(text: str) -> set[str]:
+    normalized = text.lower().replace("_", " ")
+    tokens = {tok for tok in re.findall(r"[a-z0-9]+", normalized) if len(tok) >= 3}
+    return {tok for tok in tokens if tok not in INTENT_STOPWORDS}
+
+
+def _function_intent_tokens(fn: RegisteredFunction) -> set[str]:
+    description = (fn.description_override or fn.description or "").strip()
+    return _tokenize_intent_text(f"{fn.name} {description}")
+
+
+def _context_intent_tokens(messages: list[Message]) -> set[str]:
+    tokens: set[str] = set()
+    for msg in messages:
+        if msg.role not in {"assistant", "tool_result"}:
+            continue
+        content = (msg.content or "").strip()
+        if not content:
+            continue
+        tokens.update(_tokenize_intent_text(content))
+    return tokens
+
+
+def _should_override_scope_rejection(
+    user_text: str,
+    functions: list[RegisteredFunction],
+    recent_messages: list[Message],
+) -> bool:
+    active_functions = [fn for fn in functions if fn.is_active]
+    if not active_functions:
+        return False
+
+    user_tokens = _tokenize_intent_text(user_text)
+    if not user_tokens:
+        return False
+
+    action_tokens = user_tokens & INTENT_ACTION_TOKENS
+    if not action_tokens:
+        return False
+
+    recent_context_tokens = _context_intent_tokens(recent_messages)
+    user_entity_tokens = user_tokens - INTENT_ACTION_TOKENS
+
+    for fn in active_functions:
+        fn_tokens = _function_intent_tokens(fn)
+        if not fn_tokens:
+            continue
+        overlap = user_tokens & fn_tokens
+        if len(overlap) >= 2:
+            return True
+        if len(overlap) == 1 and overlap.issubset(INTENT_ACTION_TOKENS):
+            if user_entity_tokens and recent_context_tokens and (user_entity_tokens & recent_context_tokens):
+                return True
+            # Follow-up references like "delete one of them" should remain in scope
+            # if recent assistant/tool context is clearly in this function's domain.
+            if not user_entity_tokens and recent_context_tokens and (fn_tokens & recent_context_tokens):
+                return True
+    return False
 
 
 async def _run_router(
@@ -526,25 +631,33 @@ async def run_agent_loop(
     raw_custom_context = _session_llm_context(session)
     custom_context_prompt = _format_custom_context_for_prompt(raw_custom_context)
     custom_context_query = _format_custom_context_for_query(raw_custom_context)
-    router_result, (app_org_id, assigned_kb_ids) = await asyncio.gather(
+    router_result, (app_org_id, assigned_kb_ids), preloaded_context_msgs = await asyncio.gather(
         _run_router(config, user_text, session.id, platform_context, custom_context_prompt),
         _load_kb_assignment_context(db, session.app_id),
+        load_context_messages(db, session.id, config.max_context_messages),
     )
 
     scope_mode = str(getattr(config, "scope_mode", "strict") or "strict")
     if not router_result.in_scope and scope_mode == "strict":
-        rejection_text = STRICT_SCOPE_REJECTION_TEXT
-        seq = await get_next_sequence(db, session.id)
-        rejection_msg = Message(
-            session_id=session.id,
-            sequence_number=seq,
-            role="assistant",
-            content=rejection_text,
-        )
-        db.add(rejection_msg)
-        await db.commit()
-        await sender.send_turn_complete(rejection_text, None)
-        return
+        if _should_override_scope_rejection(user_text, functions, preloaded_context_msgs):
+            logger.info(
+                "router_scope_override_by_function_intent session_id=%s app_id=%s",
+                session.id,
+                session.app_id,
+            )
+        else:
+            rejection_text = STRICT_SCOPE_REJECTION_TEXT
+            seq = await get_next_sequence(db, session.id)
+            rejection_msg = Message(
+                session_id=session.id,
+                sequence_number=seq,
+                role="assistant",
+                content=rejection_text,
+            )
+            db.add(rejection_msg)
+            await db.commit()
+            await sender.send_turn_complete(rejection_text, None)
+            return
 
     should_prefetch = bool(
         router_result.needs_kb
@@ -573,7 +686,11 @@ async def run_agent_loop(
     tool_round = 0
 
     while tool_round < config.max_tool_rounds:
-        context_msgs = await load_context_messages(db, session.id, config.max_context_messages)
+        if preloaded_context_msgs is not None:
+            context_msgs = preloaded_context_msgs
+            preloaded_context_msgs = None
+        else:
+            context_msgs = await load_context_messages(db, session.id, config.max_context_messages)
         system_prompt = _assemble_system_prompt(
             dev_prompt=config.system_prompt,
             scope_mode=scope_mode,

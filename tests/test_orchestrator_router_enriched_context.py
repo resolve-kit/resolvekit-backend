@@ -114,6 +114,171 @@ async def test_run_agent_loop_strict_scope_rejects_and_persists_message(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_run_agent_loop_strict_scope_router_false_negative_direct_url_intent_continues(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _DummyDB()
+    sender = _DummySender()
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    config = SimpleNamespace(
+        system_prompt="Scout4Me helps users monitor product URLs and manage tracked links.",
+        scope_mode="strict",
+        max_tool_rounds=3,
+        max_context_messages=20,
+    )
+    functions = [
+        SimpleNamespace(
+            name="delete_monitoring_url",
+            description="Delete monitored ScoutForMe URLs by URL, domain, or description.",
+            description_override=None,
+            is_active=True,
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string"},
+                },
+            },
+        )
+    ]
+
+    sequence_counter = {"value": 0}
+
+    async def fake_next_sequence(_db, _session_id):  # noqa: ANN001
+        sequence_counter["value"] += 1
+        return sequence_counter["value"]
+
+    monkeypatch.setattr(orchestrator, "get_next_sequence", fake_next_sequence)
+    monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
+    monkeypatch.setattr(orchestrator, "load_context_messages", AsyncMock(return_value=[]))
+    monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [])))
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=False,
+                rejection_reason="I can only help with app-related issues.",
+                needs_kb=False,
+                kb_query=None,
+                intent="Delete monitored URL entry",
+            )
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "build_playbook_prompt", AsyncMock(return_value=""))
+    monkeypatch.setattr(orchestrator, "_prefetch_kb_context", AsyncMock(return_value=""))
+    llm_mock = AsyncMock(return_value=_response_with_final_text("Deleted the requested URL from monitoring."))
+    monkeypatch.setattr(orchestrator, "call_llm", llm_mock)
+
+    await orchestrator.run_agent_loop(
+        db=db,
+        session=session,
+        config=config,
+        functions=functions,
+        user_text="can you delete navy cap url",
+        sender=sender,
+    )
+
+    llm_mock.assert_awaited_once()
+    assert sender.turn_complete_text == "Deleted the requested URL from monitoring."
+    assert sender.errors == []
+    assistant_messages = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "assistant"]
+    assert len(assistant_messages) == 1
+    assert assistant_messages[0].content == "Deleted the requested URL from monitoring."
+
+
+@pytest.mark.asyncio
+async def test_run_agent_loop_strict_scope_router_false_negative_pronoun_followup_continues(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _DummyDB()
+    sender = _DummySender()
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    config = SimpleNamespace(
+        system_prompt="Scout4Me helps users monitor product URLs and manage tracked links.",
+        scope_mode="strict",
+        max_tool_rounds=3,
+        max_context_messages=20,
+    )
+    functions = [
+        SimpleNamespace(
+            name="delete_monitoring_url",
+            description="Delete monitored ScoutForMe URLs by URL, domain, or description.",
+            description_override=None,
+            is_active=True,
+            parameters_schema={"type": "object", "properties": {"url": {"type": "string"}}},
+        )
+    ]
+
+    sequence_counter = {"value": 0}
+
+    async def fake_next_sequence(_db, _session_id):  # noqa: ANN001
+        sequence_counter["value"] += 1
+        return sequence_counter["value"]
+
+    monkeypatch.setattr(orchestrator, "get_next_sequence", fake_next_sequence)
+    monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
+    monkeypatch.setattr(
+        orchestrator,
+        "load_context_messages",
+        AsyncMock(
+            return_value=[
+                SimpleNamespace(
+                    role="tool_result",
+                    content='{"success": true, "count": 4, "urls": [{"description": "Classic Navy Cap", "url": "https://scout4.me/products/1"}]}',
+                    tool_calls=None,
+                    tool_call_id="call_1",
+                ),
+                SimpleNamespace(
+                    role="assistant",
+                    content=(
+                        "Currently, the following URLs are being monitored:\n"
+                        "1. Classic Navy Cap\n"
+                        "2. Oda Bracelet\n"
+                        "Let me know if you need any changes made to these URLs."
+                    ),
+                    tool_calls=None,
+                    tool_call_id=None,
+                ),
+            ]
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [])))
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=False,
+                rejection_reason="I can only help with app-related issues.",
+                needs_kb=False,
+                kb_query=None,
+                intent="Delete monitored URL entry",
+            )
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "build_playbook_prompt", AsyncMock(return_value=""))
+    monkeypatch.setattr(orchestrator, "_prefetch_kb_context", AsyncMock(return_value=""))
+    llm_mock = AsyncMock(return_value=_response_with_final_text("Sure. Which URL should I delete?"))
+    monkeypatch.setattr(orchestrator, "call_llm", llm_mock)
+
+    await orchestrator.run_agent_loop(
+        db=db,
+        session=session,
+        config=config,
+        functions=functions,
+        user_text="can you delete one of them?",
+        sender=sender,
+    )
+
+    llm_mock.assert_awaited_once()
+    assert sender.turn_complete_text == "Sure. Which URL should I delete?"
+    assert sender.errors == []
+    assistant_messages = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "assistant"]
+    assert len(assistant_messages) == 1
+    assert assistant_messages[0].content == "Sure. Which URL should I delete?"
+
+
+@pytest.mark.asyncio
 async def test_run_agent_loop_open_mode_continues_and_assembles_enriched_prompt(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
