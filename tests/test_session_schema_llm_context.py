@@ -41,3 +41,9 @@ def test_session_create_rejects_llm_context_payload_too_large() -> None:
 
     with pytest.raises(ValidationError, match="must not exceed 8192 bytes"):
         SessionCreate(llm_context=oversized)
+
+
+def test_session_create_reuses_active_session_by_default() -> None:
+    payload = SessionCreate()
+
+    assert payload.reuse_active_session is True

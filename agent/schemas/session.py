@@ -27,6 +27,7 @@ class SessionCreate(BaseModel):
     llm_context: dict[str, Any] = Field(default_factory=dict)
     entitlements: list[str] = Field(default_factory=list, max_length=64)
     capabilities: list[str] = Field(default_factory=list, max_length=64)
+    reuse_active_session: bool = True
 
     @field_validator("llm_context")
     @classmethod
@@ -66,6 +67,7 @@ class SessionOut(BaseModel):
     created_at: datetime
     ws_url: str | None = None
     chat_capability_token: str | None = None
+    reused_active_session: bool = False
 
     model_config = {"from_attributes": True}
 

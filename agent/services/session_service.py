@@ -4,8 +4,11 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agent.models.agent_config import AgentConfig
 from agent.models.message import Message
 from agent.models.session import ChatSession
+
+DEFAULT_SESSION_TTL_MINUTES = 60
 
 
 async def get_next_sequence(db: AsyncSession, session_id: uuid.UUID) -> int:
@@ -41,6 +44,39 @@ async def is_session_expired(db: AsyncSession, session: ChatSession, ttl_minutes
         return True
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=ttl_minutes)
     return session.last_activity_at.replace(tzinfo=timezone.utc) < cutoff
+
+
+async def resolve_session_ttl_minutes(db: AsyncSession, app_id: uuid.UUID) -> int:
+    result = await db.execute(select(AgentConfig.session_ttl_minutes).where(AgentConfig.app_id == app_id))
+    ttl_minutes = result.scalar_one_or_none()
+    if isinstance(ttl_minutes, int) and ttl_minutes > 0:
+        return ttl_minutes
+    return DEFAULT_SESSION_TTL_MINUTES
+
+
+async def get_reusable_session(
+    db: AsyncSession,
+    *,
+    app_id: uuid.UUID,
+    device_id: str | None,
+    ttl_minutes: int,
+) -> ChatSession | None:
+    if not device_id:
+        return None
+
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=ttl_minutes)
+    result = await db.execute(
+        select(ChatSession)
+        .where(
+            ChatSession.app_id == app_id,
+            ChatSession.device_id == device_id,
+            ChatSession.status == "active",
+            ChatSession.last_activity_at >= cutoff,
+        )
+        .order_by(ChatSession.last_activity_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
 
 
 async def expire_stale_sessions(db: AsyncSession, ttl_minutes: int) -> int:
