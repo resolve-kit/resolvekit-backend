@@ -8,8 +8,15 @@ from agent.database import get_db
 from agent.middleware.auth import get_current_developer, require_app_ownership
 from agent.models.app import App
 from agent.models.developer import DeveloperAccount
-from agent.schemas.app import AppCreate, AppOut, AppUpdate
+from agent.schemas.app import (
+    AppCreate,
+    AppOut,
+    AppUpdate,
+    ChatLocalizationsOut,
+    ChatLocalizationsUpdate,
+)
 from agent.schemas.chat_theme import ChatThemeOut, ChatThemeUpdate
+from agent.services.chat_localization_service import build_catalog_response, sanitize_overrides_for_storage
 from agent.services.chat_theme_service import default_chat_theme, normalize_chat_theme
 from agent.services.organization_service import ensure_developer_organization
 
@@ -88,6 +95,36 @@ async def update_app(
     await db.commit()
     await db.refresh(app)
     return app
+
+
+@router.get("/{app_id}/chat-localizations", response_model=ChatLocalizationsOut)
+async def get_chat_localizations(
+    app_id: uuid.UUID,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    app = await db.get(App, app_id)
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")
+    require_app_ownership(developer, app_id, app)
+    return ChatLocalizationsOut(locales=build_catalog_response(app))
+
+
+@router.put("/{app_id}/chat-localizations", response_model=ChatLocalizationsOut)
+async def update_chat_localizations(
+    app_id: uuid.UUID,
+    body: ChatLocalizationsUpdate,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    app = await db.get(App, app_id)
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")
+    require_app_ownership(developer, app_id, app)
+    app.chat_localization_overrides = sanitize_overrides_for_storage(body.overrides)
+    await db.commit()
+    await db.refresh(app)
+    return ChatLocalizationsOut(locales=build_catalog_response(app))
 
 
 @router.delete("/{app_id}", status_code=status.HTTP_204_NO_CONTENT)

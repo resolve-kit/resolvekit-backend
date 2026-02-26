@@ -163,6 +163,14 @@ def _build_platform_context(session: ChatSession) -> str:
     return "\n".join(lines)
 
 
+def _build_language_context(session: ChatSession) -> str:
+    locale = getattr(session, "locale", "en") or "en"
+    return (
+        f"Locale: {locale}\n"
+        "Always answer in this locale unless the user explicitly asks for a different language."
+    )
+
+
 def _sanitize_doc_content(text: str) -> str:
     # Replace markdown links with link text, then drop bare URLs.
     content = re.sub(r"\[([^\]]+)\]\(https?://[^)]+\)", r"\1", text)
@@ -431,6 +439,7 @@ def _assemble_system_prompt(
     dev_prompt: str,
     scope_mode: str,
     platform_context: str,
+    language_context: str,
     custom_context: str,
     kb_context: str,
     playbook_prompt: str,
@@ -441,6 +450,8 @@ def _assemble_system_prompt(
         sections.append(f"\n\n## About This Product\n{dev_prompt.strip()}")
     if platform_context:
         sections.append(f"\n\n## Client Platform Context\n{platform_context}")
+    if language_context:
+        sections.append(f"\n\n## Language\n{language_context}")
     if custom_context:
         sections.append(f"\n\n## Session Custom Context\n{custom_context}")
     if scope_mode == "strict":
@@ -628,6 +639,7 @@ async def run_agent_loop(
     # 2. Build context
     sdk_tools = build_tools(functions) if functions else []
     platform_context = _build_platform_context(session)
+    language_context = _build_language_context(session)
     raw_custom_context = _session_llm_context(session)
     custom_context_prompt = _format_custom_context_for_prompt(raw_custom_context)
     custom_context_query = _format_custom_context_for_query(raw_custom_context)
@@ -695,6 +707,7 @@ async def run_agent_loop(
             dev_prompt=config.system_prompt,
             scope_mode=scope_mode,
             platform_context=platform_context,
+            language_context=language_context,
             custom_context=custom_context_prompt,
             kb_context=kb_context,
             playbook_prompt=playbook_prompt,

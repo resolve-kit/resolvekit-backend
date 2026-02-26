@@ -8,6 +8,7 @@ import AgentPrompt from "./pages/AgentPrompt";
 import AuditLog from "./pages/AuditLog";
 import Apps from "./pages/Apps";
 import ApiKeys from "./pages/ApiKeys";
+import Languages from "./pages/Languages";
 import Functions from "./pages/Functions";
 import KnowledgeBases from "./pages/KnowledgeBases";
 import LimitsConfig from "./pages/LimitsConfig";
@@ -42,6 +43,7 @@ function App() {
           <Route path="/apps/:appId/functions" element={<Functions />} />
           <Route path="/apps/:appId/sessions" element={<Sessions />} />
           <Route path="/apps/:appId/api-keys" element={<ApiKeys />} />
+          <Route path="/apps/:appId/languages" element={<Languages />} />
           <Route path="/apps/:appId/playbooks" element={<Playbooks />} />
           <Route path="/apps/:appId/audit" element={<AuditLog />} />
         </Route>

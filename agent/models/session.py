@@ -27,6 +27,7 @@ class ChatSession(Base, UUIDMixin, TimestampMixin):
     llm_context: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     entitlements: Mapped[list[str]] = mapped_column(JSONB, default=list)
     capabilities: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    locale: Mapped[str] = mapped_column(String(16), default="en")
 
     app: Mapped["App"] = relationship(back_populates="sessions")
     messages: Mapped[list["Message"]] = relationship(back_populates="session", cascade="all, delete-orphan", order_by="Message.sequence_number")

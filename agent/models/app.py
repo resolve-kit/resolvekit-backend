@@ -31,6 +31,7 @@ class App(Base, UUIDMixin, TimestampMixin):
     integration_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     integration_version: Mapped[int] = mapped_column(Integer, default=1)
     chat_theme: Mapped[dict[str, Any]] = mapped_column(JSONB, default=default_chat_theme)
+    chat_localization_overrides: Mapped[dict[str, dict[str, str]]] = mapped_column(JSONB, default=dict)
 
     developer: Mapped["DeveloperAccount"] = relationship(back_populates="apps")
     organization: Mapped["Organization"] = relationship(back_populates="apps")

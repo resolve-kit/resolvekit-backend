@@ -14,6 +14,7 @@ class WSEnvelope(BaseModel):
 # Client -> Server
 class ChatMessagePayload(BaseModel):
     text: str
+    locale: str | None = None
 
 
 class ToolResultPayload(BaseModel):

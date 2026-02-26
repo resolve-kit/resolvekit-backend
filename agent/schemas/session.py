@@ -27,6 +27,8 @@ class SessionCreate(BaseModel):
     llm_context: dict[str, Any] = Field(default_factory=dict)
     entitlements: list[str] = Field(default_factory=list, max_length=64)
     capabilities: list[str] = Field(default_factory=list, max_length=64)
+    locale: str | None = Field(default=None, max_length=32)
+    preferred_locales: list[str] = Field(default_factory=list, max_length=20)
     reuse_active_session: bool = True
 
     @field_validator("llm_context")
@@ -62,6 +64,10 @@ class SessionOut(BaseModel):
     device_id: str | None
     client_context: dict[str, Any] | None = None
     llm_context: dict[str, Any] | None = None
+    locale: str = "en"
+    chat_title: str = "Chat"
+    message_placeholder: str = "Message"
+    initial_message: str = "Hello! How can I help you today?"
     status: str
     last_activity_at: datetime
     created_at: datetime
