@@ -13,6 +13,9 @@ Backend calls:
 - `GET /v1/sdk/compat`
   - Router: [`agent/routers/sdk.py`](../../agent/routers/sdk.py)
   - Purpose: minimum/supported SDK versions and required client context fields.
+- `GET /v1/sdk/chat-theme`
+  - Router: [`agent/routers/sdk.py`](../../agent/routers/sdk.py)
+  - Purpose: returns per-app light/dark chat palette used by SDK UI.
 
 ## Function Registration
 
@@ -128,4 +131,3 @@ SDK:
 - `Sources/PlaybookNetworking/PlaybookAPIClient.swift`
 - `Sources/PlaybookNetworking/PlaybookWebSocketClient.swift`
 - `Sources/PlaybookNetworking/PlaybookSSEClient.swift`
-

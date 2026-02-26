@@ -10,6 +10,7 @@ interface AppNavProps {
 const TABS = [
   { label: "Config", slug: "config" },
   { label: "Functions", slug: "functions" },
+  { label: "Chat Theme", slug: "chat-theme" },
   { label: "Sessions", slug: "sessions" },
   { label: "API Keys", slug: "api-keys" },
   { label: "Playbooks", slug: "playbooks" },

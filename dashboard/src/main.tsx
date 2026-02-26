@@ -16,6 +16,7 @@ import AppKnowledgeBases from "./pages/AppKnowledgeBases";
 import OrganizationAdmin from "./pages/OrganizationAdmin";
 import Playbooks from "./pages/Playbooks";
 import Sessions from "./pages/Sessions";
+import ChatTheme from "./pages/ChatTheme";
 import { ToastProvider, ToastContainer } from "./components/ui";
 
 function RootRedirect() {
@@ -36,6 +37,7 @@ function App() {
           <Route path="/apps/:appId/agent" element={<AgentPrompt />} />
           <Route path="/apps/:appId/knowledge-bases" element={<AppKnowledgeBases />} />
           <Route path="/apps/:appId/llm" element={<LlmConfig />} />
+          <Route path="/apps/:appId/chat-theme" element={<ChatTheme />} />
           <Route path="/apps/:appId/limits" element={<LimitsConfig />} />
           <Route path="/apps/:appId/functions" element={<Functions />} />
           <Route path="/apps/:appId/sessions" element={<Sessions />} />

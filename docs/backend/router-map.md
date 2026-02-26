@@ -39,6 +39,8 @@ This map groups endpoints by router and responsibility. For exact request/respon
 - `GET /v1/apps/{app_id}`
 - `PATCH /v1/apps/{app_id}`
 - `DELETE /v1/apps/{app_id}`
+- `GET /v1/apps/{app_id}/chat-theme`
+- `PUT /v1/apps/{app_id}/chat-theme`
 
 ## API keys (`agent/routers/api_keys.py`)
 
@@ -106,6 +108,7 @@ Dashboard-facing:
 ## SDK compatibility (`agent/routers/sdk.py`)
 
 - `GET /v1/sdk/compat`
+- `GET /v1/sdk/chat-theme`
 
 ## Knowledge bases (`agent/routers/knowledge_bases.py`)
 
