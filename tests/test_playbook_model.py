@@ -1,4 +1,4 @@
-from ios_app_agent.models.playbook import Playbook
+from agent.models.playbook import Playbook
 
 
 def test_playbook_updated_at_is_timezone_aware() -> None:

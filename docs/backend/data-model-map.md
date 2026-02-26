@@ -2,7 +2,7 @@
 
 This map covers the primary entities used across runtime, governance, and KB integration.
 
-## `ios_app_agent` domain
+## `agent` domain
 
 ## Identity and tenancy
 
@@ -56,16 +56,16 @@ This map covers the primary entities used across runtime, governance, and KB int
 - `AuditEvent`
   - Structured audit log entries for config/management actions.
 
-## KB bridge references (local to `ios_app_agent`)
+## KB bridge references (local to `agent`)
 
 - `KnowledgeBaseRef`
   - Local record mapping org-scoped external KB ID.
 - `AppKnowledgeBase`
   - App-to-KB assignment join table.
 
-`ios_app_agent` does not store KB documents/chunks directly.
+`agent` does not store KB documents/chunks directly.
 
-## `kb_service` domain
+## `knowledge_bases` domain
 
 - `OrganizationEmbeddingProfile`
   - Embedding model/provider credential profile.
@@ -82,12 +82,12 @@ This map covers the primary entities used across runtime, governance, and KB int
 
 ## Cross-Service Relationships
 
-- App config in `ios_app_agent` selects LLM profile in `ios_app_agent` DB.
-- KB data lives in `kb_service` DB; app-level assignments live in `ios_app_agent`.
-- `ios_app_agent` calls `kb_service` APIs and syncs local reference tables.
+- App config in `agent` selects LLM profile in `agent` DB.
+- KB data lives in `knowledge_bases` DB; app-level assignments live in `agent`.
+- `agent` calls `knowledge_bases` APIs and syncs local reference tables.
 
 ## Source Files
 
-- `ios_app_agent` models: [`ios_app_agent/models`](../../ios_app_agent/models)
-- `kb_service` models: [`kb_service/models.py`](../../kb_service/models.py)
+- `agent` models: [`agent/models`](../../agent/models)
+- `knowledge_bases` models: [`knowledge_bases/models.py`](../../knowledge_bases/models.py)
 

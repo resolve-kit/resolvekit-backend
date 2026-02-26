@@ -2,8 +2,8 @@
 
 Settings are loaded via pydantic settings models:
 
-- `ios_app_agent`: [`ios_app_agent/config.py`](../../ios_app_agent/config.py), prefix `IAA_`
-- `kb_service`: [`kb_service/config.py`](../../kb_service/config.py), prefix `KBS_`
+- `agent`: [`agent/config.py`](../../agent/config.py), prefix `IAA_`
+- `knowledge_bases`: [`knowledge_bases/config.py`](../../knowledge_bases/config.py), prefix `KBS_`
 
 ## `IAA_*` variables
 
@@ -35,12 +35,17 @@ Settings are loaded via pydantic settings models:
 
 ## KB bridge
 
-- `IAA_KB_SERVICE_BASE_URL`
-- `IAA_KB_SERVICE_AUDIENCE`
-- `IAA_KB_SERVICE_SIGNING_KEY`
-- `IAA_KB_SERVICE_JWT_ALGORITHM`
-- `IAA_KB_SERVICE_TIMEOUT_SECONDS`
-- `IAA_KB_SERVICE_CONNECT_TIMEOUT_SECONDS`
+- `IAA_KNOWLEDGE_BASES_BASE_URL`
+- `IAA_KNOWLEDGE_BASES_AUDIENCE`
+- `IAA_KNOWLEDGE_BASES_SIGNING_KEY`
+- `IAA_KNOWLEDGE_BASES_JWT_ALGORITHM`
+- `IAA_KNOWLEDGE_BASES_TIMEOUT_SECONDS`
+- `IAA_KNOWLEDGE_BASES_CONNECT_TIMEOUT_SECONDS`
+
+## Frontend integration
+
+- `VITE_API_BASE_URL`
+  - Dashboard API origin used from `dash` UI (for example: `https://api.<domain>`).
 
 ## `KBS_*` variables
 
@@ -86,4 +91,4 @@ Settings are loaded via pydantic settings models:
   - `IAA_ENCRYPTION_KEY`
   - `KBS_SERVICE_JWT_SIGNING_KEY`
   - `KBS_ENCRYPTION_KEY`
-- `ios_app_agent` startup validates critical secrets when debug mode is off.
+- `agent` startup validates critical secrets when debug mode is off.

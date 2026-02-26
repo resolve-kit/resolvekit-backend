@@ -12,8 +12,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.export_openapi import _render_openapi  # noqa: E402
-from ios_app_agent.main import app as ios_app_agent_app  # noqa: E402
-from kb_service.main import app as kb_service_app  # noqa: E402
+from agent.main import app as agent_app  # noqa: E402
+from knowledge_bases.main import app as knowledge_bases_app  # noqa: E402
 
 
 def _diff(expected: str, actual: str, name: str) -> str:
@@ -32,8 +32,8 @@ def _diff(expected: str, actual: str, name: str) -> str:
 def check_openapi_sync() -> int:
     out_dir = ROOT / "docs" / "generated" / "openapi"
     targets = {
-        "ios_app_agent.openapi.json": _render_openapi(ios_app_agent_app),
-        "kb_service.openapi.json": _render_openapi(kb_service_app),
+        "agent.openapi.json": _render_openapi(agent_app),
+        "knowledge_bases.openapi.json": _render_openapi(knowledge_bases_app),
     }
 
     drift_found = False

@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import HTTPException
 
-from ios_app_agent.models.developer import DeveloperAccount
-from ios_app_agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
-from ios_app_agent.routers.organizations import (
+from agent.models.developer import DeveloperAccount
+from agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
+from agent.routers.organizations import (
     get_embedding_models_for_llm_profile,
     get_llm_models_for_profile,
 )
-from ios_app_agent.schemas.agent_config import ModelInfo
+from agent.schemas.agent_config import ModelInfo
 
 
 def _developer(org_id: uuid.UUID) -> DeveloperAccount:
@@ -40,9 +40,9 @@ async def test_get_embedding_models_for_profile_uses_org_profile_runtime():
     db.get = AsyncMock(return_value=profile)
 
     with (
-        patch("ios_app_agent.routers.organizations.decrypt", return_value="sk-live"),
+        patch("agent.routers.organizations.decrypt", return_value="sk-live"),
         patch(
-            "ios_app_agent.routers.organizations.list_embedding_models_for_provider",
+            "agent.routers.organizations.list_embedding_models_for_provider",
             new_callable=AsyncMock,
         ) as list_mock,
     ):
@@ -107,9 +107,9 @@ async def test_get_llm_models_for_profile_uses_org_profile_runtime():
     db.get = AsyncMock(return_value=profile)
 
     with (
-        patch("ios_app_agent.routers.organizations.decrypt", return_value="sk-live"),
+        patch("agent.routers.organizations.decrypt", return_value="sk-live"),
         patch(
-            "ios_app_agent.routers.organizations.list_models_for_provider",
+            "agent.routers.organizations.list_models_for_provider",
             new_callable=AsyncMock,
         ) as list_mock,
     ):

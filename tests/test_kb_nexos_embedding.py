@@ -1,6 +1,6 @@
 import pytest
 
-from kb_service.services.embedding import EmbeddingRuntimeConfig, embed_texts
+from knowledge_bases.services.embedding import EmbeddingRuntimeConfig, embed_texts
 
 
 class _DummyResponse:
@@ -34,7 +34,7 @@ async def test_nexos_embedding_calls_gateway_embeddings_endpoint(monkeypatch: py
             captured["headers"] = headers
             return _DummyResponse({"data": [{"embedding": [1.0, 0.0]}]})
 
-    monkeypatch.setattr("kb_service.services.embedding.httpx.AsyncClient", _DummyClient)
+    monkeypatch.setattr("knowledge_bases.services.embedding.httpx.AsyncClient", _DummyClient)
 
     vectors = await embed_texts(
         texts=["hello"],

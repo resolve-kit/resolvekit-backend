@@ -3,9 +3,9 @@ import uuid
 import pytest
 from fastapi import HTTPException
 
-from ios_app_agent.middleware.auth import require_app_ownership
-from ios_app_agent.models.app import App
-from ios_app_agent.models.developer import DeveloperAccount
+from agent.middleware.auth import require_app_ownership
+from agent.models.app import App
+from agent.models.developer import DeveloperAccount
 
 
 def _developer(email: str, organization_id: uuid.UUID) -> DeveloperAccount:

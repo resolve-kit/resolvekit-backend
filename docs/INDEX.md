@@ -27,8 +27,8 @@ This index is optimized for both engineers and LLM-based coding agents.
 
 ## Generated API Contracts
 
-- [ios_app_agent OpenAPI JSON](generated/openapi/ios_app_agent.openapi.json)
-- [kb_service OpenAPI JSON](generated/openapi/kb_service.openapi.json)
+- [agent OpenAPI JSON](generated/openapi/agent.openapi.json)
+- [knowledge_bases OpenAPI JSON](generated/openapi/knowledge_bases.openapi.json)
 
 Regenerate snapshots:
 

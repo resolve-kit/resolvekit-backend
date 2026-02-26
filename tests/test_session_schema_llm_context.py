@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ios_app_agent.schemas.session import SessionCreate
+from agent.schemas.session import SessionCreate
 
 
 def test_session_create_accepts_llm_context_full_json() -> None:

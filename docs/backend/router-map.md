@@ -2,19 +2,19 @@
 
 This map groups endpoints by router and responsibility. For exact request/response schemas, use:
 
-- [`ios_app_agent.openapi.json`](../generated/openapi/ios_app_agent.openapi.json)
-- [`kb_service.openapi.json`](../generated/openapi/kb_service.openapi.json)
+- [`agent.openapi.json`](../generated/openapi/agent.openapi.json)
+- [`knowledge_bases.openapi.json`](../generated/openapi/knowledge_bases.openapi.json)
 
-## `ios_app_agent` routers
+## `agent` routers
 
-## Auth (`ios_app_agent/routers/auth.py`)
+## Auth (`agent/routers/auth.py`)
 
 - `POST /v1/auth/signup`
 - `POST /v1/auth/login`
 - `GET /v1/auth/me`
 - `GET /v1/auth/password-guidance`
 
-## Organizations (`ios_app_agent/routers/organizations.py`)
+## Organizations (`agent/routers/organizations.py`)
 
 - `GET /v1/organizations/me`
 - `GET /v1/organizations/llm/providers`
@@ -32,7 +32,7 @@ This map groups endpoints by router and responsibility. For exact request/respon
 - `GET /v1/organizations/members`
 - `PATCH /v1/organizations/members/{member_id}/role`
 
-## Apps (`ios_app_agent/routers/apps.py`)
+## Apps (`agent/routers/apps.py`)
 
 - `POST /v1/apps`
 - `GET /v1/apps`
@@ -40,13 +40,13 @@ This map groups endpoints by router and responsibility. For exact request/respon
 - `PATCH /v1/apps/{app_id}`
 - `DELETE /v1/apps/{app_id}`
 
-## API keys (`ios_app_agent/routers/api_keys.py`)
+## API keys (`agent/routers/api_keys.py`)
 
 - `POST /v1/apps/{app_id}/api-keys`
 - `GET /v1/apps/{app_id}/api-keys`
 - `DELETE /v1/apps/{app_id}/api-keys/{key_id}`
 
-## Config (`ios_app_agent/routers/config.py`)
+## Config (`agent/routers/config.py`)
 
 - `GET /v1/apps/{app_id}/config`
 - `PUT /v1/apps/{app_id}/config`
@@ -55,11 +55,11 @@ This map groups endpoints by router and responsibility. For exact request/respon
 - `POST /v1/apps/{app_id}/config/models`
 - `POST /v1/apps/{app_id}/config/test`
 
-## Audit (`ios_app_agent/routers/audit.py`)
+## Audit (`agent/routers/audit.py`)
 
 - `GET /v1/apps/{app_id}/audit-events`
 
-## Functions (`ios_app_agent/routers/functions.py`)
+## Functions (`agent/routers/functions.py`)
 
 SDK-facing:
 
@@ -73,7 +73,7 @@ Dashboard-facing:
 - `PATCH /v1/apps/{app_id}/functions/{function_id}`
 - `DELETE /v1/apps/{app_id}/functions/{function_id}`
 
-## Playbooks (`ios_app_agent/routers/playbooks.py`)
+## Playbooks (`agent/routers/playbooks.py`)
 
 - `POST /v1/apps/{app_id}/playbooks`
 - `GET /v1/apps/{app_id}/playbooks`
@@ -82,7 +82,7 @@ Dashboard-facing:
 - `DELETE /v1/apps/{app_id}/playbooks/{playbook_id}`
 - `PUT /v1/apps/{app_id}/playbooks/{playbook_id}/functions`
 
-## Sessions (`ios_app_agent/routers/sessions.py`)
+## Sessions (`agent/routers/sessions.py`)
 
 SDK-facing:
 
@@ -94,20 +94,20 @@ Dashboard-facing:
 - `GET /v1/apps/{app_id}/sessions`
 - `GET /v1/apps/{app_id}/sessions/{session_id}/messages`
 
-## Chat WS (`ios_app_agent/routers/chat_ws.py`)
+## Chat WS (`agent/routers/chat_ws.py`)
 
 - `WS /v1/sessions/{session_id}/ws`
 
-## Chat HTTP/SSE (`ios_app_agent/routers/chat_http.py`)
+## Chat HTTP/SSE (`agent/routers/chat_http.py`)
 
 - `POST /v1/sessions/{session_id}/messages` (SSE stream)
 - `POST /v1/sessions/{session_id}/tool-results`
 
-## SDK compatibility (`ios_app_agent/routers/sdk.py`)
+## SDK compatibility (`agent/routers/sdk.py`)
 
 - `GET /v1/sdk/compat`
 
-## Knowledge bases (`ios_app_agent/routers/knowledge_bases.py`)
+## Knowledge bases (`agent/routers/knowledge_bases.py`)
 
 Knowledge base lifecycle:
 
@@ -144,7 +144,7 @@ Embedding profile management:
 - `POST /v1/organizations/embedding-profiles/{profile_id}/change-impact`
 - `DELETE /v1/organizations/embedding-profiles/{profile_id}`
 
-## `kb_service` router (`kb_service/router.py`)
+## `knowledge_bases` router (`knowledge_bases/router.py`)
 
 All endpoints are under `/internal/*`.
 

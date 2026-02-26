@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from kb_service.services.crawling import _extract_markdown_from_result
+from knowledge_bases.services.crawling import _extract_markdown_from_result
 
 
 def test_extract_markdown_prefers_fit_markdown_over_raw() -> None:

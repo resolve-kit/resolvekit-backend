@@ -15,7 +15,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 # Copy application code
 COPY README.md alembic.ini main.py ./
 COPY alembic/ ./alembic/
-COPY ios_app_agent/ ./ios_app_agent/
+COPY agent/ ./agent/
 
 # Install the project itself
 RUN uv sync --frozen --no-dev
@@ -26,4 +26,4 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["uv", "run", "uvicorn", "ios_app_agent.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "agent.main:app", "--host", "0.0.0.0", "--port", "8000"]

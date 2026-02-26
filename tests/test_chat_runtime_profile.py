@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from ios_app_agent.services.chat_access_service import apply_runtime_llm_profile
+from agent.services.chat_access_service import apply_runtime_llm_profile
 
 
 def test_apply_runtime_llm_profile_preserves_selected_model() -> None:

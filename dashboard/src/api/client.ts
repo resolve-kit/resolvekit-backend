@@ -1,4 +1,5 @@
-const BASE = "";
+const RAW_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").trim();
+const BASE = RAW_BASE.replace(/\/$/, "");
 
 function getToken(): string | null {
   return localStorage.getItem("token");

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from ios_app_agent.services.chat_access_service import (
+from agent.services.chat_access_service import (
     CHAT_UNAVAILABLE_CODE,
     CHAT_UNAVAILABLE_MESSAGE,
     chat_unavailable_http_exception,

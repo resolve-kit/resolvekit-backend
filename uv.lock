@@ -7,6 +7,72 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "agent"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "alembic" },
+    { name = "asyncpg" },
+    { name = "bcrypt" },
+    { name = "chardet" },
+    { name = "crawl4ai" },
+    { name = "cryptography" },
+    { name = "email-validator" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "litellm" },
+    { name = "markitdown" },
+    { name = "packaging" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pypdf" },
+    { name = "python-docx" },
+    { name = "python-jose", extra = ["cryptography"] },
+    { name = "python-multipart" },
+    { name = "python-pptx" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "striprtf" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.14" },
+    { name = "asyncpg", specifier = ">=0.30" },
+    { name = "bcrypt", specifier = ">=4.0" },
+    { name = "chardet", specifier = ">=5.2,<6" },
+    { name = "crawl4ai", specifier = ">=0.7.6" },
+    { name = "cryptography", specifier = ">=44.0" },
+    { name = "email-validator", specifier = ">=2.3.0" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28" },
+    { name = "litellm", specifier = ">=1.50" },
+    { name = "markitdown", specifier = ">=0.1.3" },
+    { name = "packaging", specifier = ">=24.2" },
+    { name = "pydantic", specifier = ">=2.10" },
+    { name = "pydantic-settings", specifier = ">=2.6" },
+    { name = "pypdf", specifier = ">=5.2" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
+    { name = "python-docx", specifier = ">=1.1" },
+    { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3" },
+    { name = "python-multipart", specifier = ">=0.0.18" },
+    { name = "python-pptx", specifier = ">=1.0" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
+    { name = "striprtf", specifier = ">=0.0.29" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "aiofiles"
 version = "25.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -823,72 +889,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
 ]
-
-[[package]]
-name = "ios-app-agent"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "asyncpg" },
-    { name = "bcrypt" },
-    { name = "chardet" },
-    { name = "crawl4ai" },
-    { name = "cryptography" },
-    { name = "email-validator" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "litellm" },
-    { name = "markitdown" },
-    { name = "packaging" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "pypdf" },
-    { name = "python-docx" },
-    { name = "python-jose", extra = ["cryptography"] },
-    { name = "python-multipart" },
-    { name = "python-pptx" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "striprtf" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = ">=1.14" },
-    { name = "asyncpg", specifier = ">=0.30" },
-    { name = "bcrypt", specifier = ">=4.0" },
-    { name = "chardet", specifier = ">=5.2,<6" },
-    { name = "crawl4ai", specifier = ">=0.7.6" },
-    { name = "cryptography", specifier = ">=44.0" },
-    { name = "email-validator", specifier = ">=2.3.0" },
-    { name = "fastapi", specifier = ">=0.115" },
-    { name = "httpx", specifier = ">=0.28" },
-    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28" },
-    { name = "litellm", specifier = ">=1.50" },
-    { name = "markitdown", specifier = ">=0.1.3" },
-    { name = "packaging", specifier = ">=24.2" },
-    { name = "pydantic", specifier = ">=2.10" },
-    { name = "pydantic-settings", specifier = ">=2.6" },
-    { name = "pypdf", specifier = ">=5.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
-    { name = "python-docx", specifier = ">=1.1" },
-    { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3" },
-    { name = "python-multipart", specifier = ">=0.0.18" },
-    { name = "python-pptx", specifier = ">=1.0" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
-    { name = "striprtf", specifier = ">=0.0.29" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "jinja2"

@@ -2,9 +2,10 @@
 
 Playbook Backend provides the server-side runtime for embedded app assistants. It includes:
 
-- `ios_app_agent`: primary API and orchestrator for sessions, chat, tool execution, config, and governance.
-- `kb_service`: internal knowledge-base ingestion and semantic search service.
+- `agent`: primary API and orchestrator for sessions, chat, tool execution, config, and governance.
+- `knowledge_bases`: internal knowledge-base ingestion and semantic search service.
 - `dashboard`: web UI for developers to configure assistant behavior.
+- `website`: Next.js marketing site (Tailwind + shadcn-style components).
 
 ## Start Here
 
@@ -35,8 +36,8 @@ Playbook Backend provides the server-side runtime for embedded app assistants. I
 
 Generated snapshots (committed for LLM and developer reference):
 
-- [`ios_app_agent` OpenAPI](docs/generated/openapi/ios_app_agent.openapi.json)
-- [`kb_service` OpenAPI](docs/generated/openapi/kb_service.openapi.json)
+- [`agent` OpenAPI](docs/generated/openapi/agent.openapi.json)
+- [`knowledge_bases` OpenAPI](docs/generated/openapi/knowledge_bases.openapi.json)
 
 Regenerate and verify:
 

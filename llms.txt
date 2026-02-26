@@ -19,8 +19,8 @@ Protocol and integration contracts:
 - SDK_INTEGRATION.md
 
 Generated API contracts (source of truth for endpoint signatures):
-- docs/generated/openapi/ios_app_agent.openapi.json
-- docs/generated/openapi/kb_service.openapi.json
+- docs/generated/openapi/agent.openapi.json
+- docs/generated/openapi/knowledge_bases.openapi.json
 
 Operational runbooks:
 - docs/backend/runbooks/local-dev-and-docker.md

@@ -1,6 +1,6 @@
 import pytest
 
-from kb_service.services.document_conversion import (  # noqa: E402
+from knowledge_bases.services.document_conversion import (  # noqa: E402
     DocumentConversionError,
     convert_uploaded_file_bytes,
 )
@@ -52,7 +52,7 @@ def test_convert_uploaded_file_bytes_falls_back_when_markitdown_errors(monkeypat
         def convert(self, *args, **kwargs):
             raise RuntimeError("boom")
 
-    monkeypatch.setattr("kb_service.services.document_conversion.MarkItDown", _BrokenMarkItDown)
+    monkeypatch.setattr("knowledge_bases.services.document_conversion.MarkItDown", _BrokenMarkItDown)
 
     result = convert_uploaded_file_bytes(
         filename="notes.txt",
@@ -75,7 +75,7 @@ def test_convert_uploaded_file_bytes_rejects_empty_extraction(monkeypatch: pytes
 
             return _Result()
 
-    monkeypatch.setattr("kb_service.services.document_conversion.MarkItDown", _EmptyMarkItDown)
+    monkeypatch.setattr("knowledge_bases.services.document_conversion.MarkItDown", _EmptyMarkItDown)
 
     with pytest.raises(DocumentConversionError) as exc_info:
         convert_uploaded_file_bytes(

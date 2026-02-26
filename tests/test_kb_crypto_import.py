@@ -21,7 +21,7 @@ def _run_python(code: str, env_overrides: dict[str, str]) -> subprocess.Complete
 
 def test_crypto_module_import_does_not_fail_with_invalid_key() -> None:
     result = _run_python(
-        "import kb_service.services.crypto; print('ok')",
+        "import knowledge_bases.services.crypto; print('ok')",
         {"KBS_ENCRYPTION_KEY": "invalid"},
     )
 
@@ -31,7 +31,7 @@ def test_crypto_module_import_does_not_fail_with_invalid_key() -> None:
 
 def test_crypto_usage_with_invalid_key_raises_clear_error() -> None:
     result = _run_python(
-        "from kb_service.services.crypto import encrypt_secret; encrypt_secret('abc')",
+        "from knowledge_bases.services.crypto import encrypt_secret; encrypt_secret('abc')",
         {"KBS_ENCRYPTION_KEY": "invalid"},
     )
 

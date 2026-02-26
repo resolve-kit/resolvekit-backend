@@ -3,7 +3,7 @@ import uuid
 import pytest
 from pydantic import ValidationError
 
-from ios_app_agent.schemas.knowledge_base import (
+from agent.schemas.knowledge_base import (
     OrganizationEmbeddingProfileChangeImpactRequest,
     OrganizationEmbeddingProfileCreate,
 )

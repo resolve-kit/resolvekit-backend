@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ios_app_agent.schemas.developer import (
+from agent.schemas.developer import (
     MIN_PASSWORD_LENGTH,
     PASSWORD_REQUIREMENT_GUIDANCE,
     DeveloperSignup,

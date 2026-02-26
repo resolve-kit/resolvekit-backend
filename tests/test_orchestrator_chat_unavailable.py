@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from ios_app_agent.services import orchestrator
+from agent.services import orchestrator
 
 
 class _DummyDB:

@@ -50,7 +50,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ## Project Structure
 
 ```
-ios_app_agent/          # Python package (FastAPI backend)
+agent/          # Python package (FastAPI backend)
   main.py               # App factory, router mounting, lifespan
   config.py             # pydantic-settings (IAA_ env prefix)
   database.py           # Async SQLAlchemy engine + session factory
@@ -73,7 +73,7 @@ tests/                  # Test directory
 ```bash
 uv sync
 # Start PostgreSQL locally, then:
-export IAA_DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/ios_app_agent
+export IAA_DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/agent
 export IAA_JWT_SECRET=$(openssl rand -hex 32)
 export IAA_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 uv run alembic upgrade head
@@ -116,9 +116,9 @@ All backend settings use the `IAA_` prefix (set in `.env` or shell):
 | `IAA_MINIMUM_SDK_VERSION` | No | Minimum SDK version allowed by `/v1/sdk/compat` (default: `1.0.0`) |
 | `IAA_SUPPORTED_SDK_MAJOR_VERSIONS` | No | JSON array of supported SDK major versions (default: `[1]`) |
 | `IAA_ALLOW_LEGACY_WS_API_KEY` | No | Allow deprecated `?api_key=` WS auth during migration (default: `true`) |
-| `POSTGRES_USER` | Docker | PostgreSQL user (default: ios_app_agent) |
+| `POSTGRES_USER` | Docker | PostgreSQL user (default: agent) |
 | `POSTGRES_PASSWORD` | Docker | PostgreSQL password (default: postgres) |
-| `POSTGRES_DB` | Docker | PostgreSQL database name (default: ios_app_agent) |
+| `POSTGRES_DB` | Docker | PostgreSQL database name (default: agent) |
 
 ## API Overview
 

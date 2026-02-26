@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy import text
 
-from kb_service import main as kb_main
+from knowledge_bases import main as kb_main
 
 
 @pytest.mark.asyncio

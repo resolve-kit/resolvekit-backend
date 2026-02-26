@@ -1,9 +1,9 @@
 import pytest
 import httpx
 
-from ios_app_agent.schemas.agent_config import ModelInfo
-from ios_app_agent.services import provider_service
-from ios_app_agent.services.provider_service import (
+from agent.schemas.agent_config import ModelInfo
+from agent.services import provider_service
+from agent.services.provider_service import (
     list_embedding_models_for_provider,
     list_providers,
     test_provider_connection,

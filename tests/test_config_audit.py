@@ -3,7 +3,7 @@ import uuid
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from ios_app_agent.routers.config import _compute_config_audit_events, config_to_out
+from agent.routers.config import _compute_config_audit_events, config_to_out
 
 
 def make_cfg(**kwargs):

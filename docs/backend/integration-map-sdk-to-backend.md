@@ -11,7 +11,7 @@ SDK action:
 Backend calls:
 
 - `GET /v1/sdk/compat`
-  - Router: [`ios_app_agent/routers/sdk.py`](../../ios_app_agent/routers/sdk.py)
+  - Router: [`agent/routers/sdk.py`](../../agent/routers/sdk.py)
   - Purpose: minimum/supported SDK versions and required client context fields.
 
 ## Function Registration
@@ -23,7 +23,7 @@ SDK action:
 Backend calls:
 
 - `PUT /v1/functions/bulk`
-  - Router: [`ios_app_agent/routers/functions.py`](../../ios_app_agent/routers/functions.py)
+  - Router: [`agent/routers/functions.py`](../../agent/routers/functions.py)
   - Persists function schema/metadata in `RegisteredFunction`.
 
 ## Session Creation and Context Ingestion
@@ -35,7 +35,7 @@ SDK action:
 Backend call:
 
 - `POST /v1/sessions`
-  - Router: [`ios_app_agent/routers/sessions.py`](../../ios_app_agent/routers/sessions.py)
+  - Router: [`agent/routers/sessions.py`](../../agent/routers/sessions.py)
   - Writes `ChatSession` with:
     - `device_id`
     - `metadata`
@@ -56,7 +56,7 @@ Backend calls:
 - `POST /v1/sessions/{session_id}/ws-ticket`
 - `WS /v1/sessions/{session_id}/ws`
 
-WS runtime is implemented in [`ios_app_agent/routers/chat_ws.py`](../../ios_app_agent/routers/chat_ws.py).
+WS runtime is implemented in [`agent/routers/chat_ws.py`](../../agent/routers/chat_ws.py).
 
 ## Chat Message and Tool Execution (WS)
 
@@ -88,7 +88,7 @@ SDK fallback calls:
 
 Backend path:
 
-- [`ios_app_agent/routers/chat_http.py`](../../ios_app_agent/routers/chat_http.py)
+- [`agent/routers/chat_http.py`](../../agent/routers/chat_http.py)
 
 ## KB-Driven Answers
 
@@ -97,7 +97,7 @@ SDK itself does not call KB APIs directly.
 Backend orchestrator internally:
 
 1. Loads app-assigned KB references.
-2. Executes prefetch KB search via `kb_service`.
+2. Executes prefetch KB search via `knowledge_bases`.
 3. Injects relevant documentation into prompt.
 4. Uses `kb_search` fallback tool for additional retrieval if needed.
 
@@ -117,10 +117,10 @@ Backend uses:
 
 Backend:
 
-- `ios_app_agent/routers/sessions.py`
-- `ios_app_agent/routers/chat_ws.py`
-- `ios_app_agent/routers/chat_http.py`
-- `ios_app_agent/services/orchestrator.py`
+- `agent/routers/sessions.py`
+- `agent/routers/chat_ws.py`
+- `agent/routers/chat_http.py`
+- `agent/services/orchestrator.py`
 
 SDK:
 

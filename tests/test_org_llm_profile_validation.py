@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import HTTPException
 
-from ios_app_agent.models.developer import DeveloperAccount
-from ios_app_agent.routers.organizations import create_llm_profile
-from ios_app_agent.schemas.provider_profiles import OrganizationLLMProfileCreate
+from agent.models.developer import DeveloperAccount
+from agent.routers.organizations import create_llm_profile
+from agent.schemas.provider_profiles import OrganizationLLMProfileCreate
 
 
 def _owner(org_id: uuid.UUID) -> DeveloperAccount:
@@ -40,7 +40,7 @@ async def test_create_llm_profile_rejects_invalid_provider_key():
     db = AsyncMock()
 
     with patch(
-        "ios_app_agent.routers.organizations.test_provider_connection",
+        "agent.routers.organizations.test_provider_connection",
         new_callable=AsyncMock,
     ) as test_mock:
         test_mock.return_value = {"ok": False, "latency_ms": None, "error": "invalid api key"}
@@ -66,10 +66,10 @@ async def test_create_llm_profile_accepts_valid_provider_key():
     db = _DummyDB()
 
     with patch(
-        "ios_app_agent.routers.organizations.test_provider_connection",
+        "agent.routers.organizations.test_provider_connection",
         new_callable=AsyncMock,
     ) as test_mock, patch(
-        "ios_app_agent.routers.organizations.encrypt",
+        "agent.routers.organizations.encrypt",
         return_value="encrypted-key",
     ):
         test_mock.return_value = {"ok": True, "latency_ms": 123, "error": None}
@@ -95,10 +95,10 @@ async def test_create_llm_profile_trims_api_key_before_validation():
     db = _DummyDB()
 
     with patch(
-        "ios_app_agent.routers.organizations.test_provider_connection",
+        "agent.routers.organizations.test_provider_connection",
         new_callable=AsyncMock,
     ) as test_mock, patch(
-        "ios_app_agent.routers.organizations.encrypt",
+        "agent.routers.organizations.encrypt",
         return_value="encrypted-key",
     ):
         test_mock.return_value = {"ok": True, "latency_ms": 123, "error": None}

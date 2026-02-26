@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
-from ios_app_agent.models.developer import DeveloperAccount
-from ios_app_agent.models.organization import Organization
-from ios_app_agent.models.organization_invitation import OrganizationInvitation
-from ios_app_agent.routers.organizations import (
+from agent.models.developer import DeveloperAccount
+from agent.models.organization import Organization
+from agent.models.organization_invitation import OrganizationInvitation
+from agent.routers.organizations import (
     accept_invitation,
     cancel_invitation,
     get_my_organization,
@@ -16,7 +16,7 @@ from ios_app_agent.routers.organizations import (
     list_sent_invitations,
     update_member_role,
 )
-from ios_app_agent.schemas.organization import OrganizationInvitationCreate, OrganizationMemberRoleUpdate
+from agent.schemas.organization import OrganizationInvitationCreate, OrganizationMemberRoleUpdate
 
 
 class DummyScalars:

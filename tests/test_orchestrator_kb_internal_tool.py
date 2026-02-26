@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from ios_app_agent.services.kb_service_client import KBServiceError
-from ios_app_agent.services.orchestrator import execute_internal_kb_tool_call
+from agent.services.knowledge_bases_client import KBServiceError
+from agent.services.orchestrator import execute_internal_kb_tool_call
 
 
 @pytest.mark.asyncio
@@ -34,7 +34,7 @@ async def test_execute_internal_kb_tool_call_requires_assigned_kbs() -> None:
 @pytest.mark.asyncio
 async def test_execute_internal_kb_tool_call_searches_assigned_kbs(monkeypatch: pytest.MonkeyPatch) -> None:
     search_mock = AsyncMock(return_value={"items": [{"title": "Reset Password", "snippet": "Open settings"}]})
-    monkeypatch.setattr("ios_app_agent.services.orchestrator.search_multiple_knowledge_bases", search_mock)
+    monkeypatch.setattr("agent.services.orchestrator.search_multiple_knowledge_bases", search_mock)
 
     session_id = uuid.uuid4()
     org_id = uuid.uuid4()
@@ -63,7 +63,7 @@ async def test_execute_internal_kb_tool_call_searches_assigned_kbs(monkeypatch: 
 @pytest.mark.asyncio
 async def test_execute_internal_kb_tool_call_surfaces_search_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     search_mock = AsyncMock(side_effect=KBServiceError(status_code=503, detail="KB service unavailable"))
-    monkeypatch.setattr("ios_app_agent.services.orchestrator.search_multiple_knowledge_bases", search_mock)
+    monkeypatch.setattr("agent.services.orchestrator.search_multiple_knowledge_bases", search_mock)
 
     payload = await execute_internal_kb_tool_call(
         session_id=uuid.uuid4(),
@@ -91,7 +91,7 @@ async def test_execute_internal_kb_tool_call_sanitizes_url_fields(monkeypatch: p
             ]
         }
     )
-    monkeypatch.setattr("ios_app_agent.services.orchestrator.search_multiple_knowledge_bases", search_mock)
+    monkeypatch.setattr("agent.services.orchestrator.search_multiple_knowledge_bases", search_mock)
 
     payload = await execute_internal_kb_tool_call(
         session_id=uuid.uuid4(),

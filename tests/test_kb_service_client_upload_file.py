@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from ios_app_agent.services import kb_service_client
+from agent.services import knowledge_bases_client
 
 
 @pytest.mark.asyncio
@@ -12,9 +12,9 @@ async def test_add_upload_file_source_uses_multipart_call(monkeypatch: pytest.Mo
     kb_id = uuid.uuid4()
 
     call_mock = AsyncMock(return_value={"source": {"id": "source-id"}, "job": {"id": "job-id"}})
-    monkeypatch.setattr(kb_service_client, "_call_internal_multipart", call_mock)
+    monkeypatch.setattr(knowledge_bases_client, "_call_internal_multipart", call_mock)
 
-    payload = await kb_service_client.add_upload_file_source(
+    payload = await knowledge_bases_client.add_upload_file_source(
         org_id=org_id,
         actor_id="dev-1",
         actor_role="owner",

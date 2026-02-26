@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from kb_service.services import search as search_service
+from knowledge_bases.services import search as search_service
 
 
 class _DummyScalarResult:

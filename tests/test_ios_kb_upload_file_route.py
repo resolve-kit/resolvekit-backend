@@ -4,12 +4,12 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import UploadFile
 
-from ios_app_agent.models.developer import DeveloperAccount
-from ios_app_agent.routers.knowledge_bases import kb_sources_add_upload_file
+from agent.models.developer import DeveloperAccount
+from agent.routers.knowledge_bases import kb_sources_add_upload_file
 
 
 @pytest.mark.asyncio
-async def test_kb_sources_add_upload_file_forwards_to_kb_service(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_kb_sources_add_upload_file_forwards_to_knowledge_bases(monkeypatch: pytest.MonkeyPatch) -> None:
     org_id = uuid.uuid4()
     developer = DeveloperAccount(
         email="owner@example.com",
@@ -22,7 +22,7 @@ async def test_kb_sources_add_upload_file_forwards_to_kb_service(monkeypatch: py
     kb_id = uuid.uuid4()
 
     add_mock = AsyncMock(return_value={"source": {"id": "source-id"}, "job": {"id": "job-id"}})
-    monkeypatch.setattr("ios_app_agent.routers.knowledge_bases.add_upload_file_source", add_mock)
+    monkeypatch.setattr("agent.routers.knowledge_bases.add_upload_file_source", add_mock)
 
     upload = UploadFile(filename="faq.txt", file=AsyncMock())
     upload.read = AsyncMock(return_value=b"hello")

@@ -2,7 +2,7 @@
 
 This document summarizes error semantics used by API and chat transports.
 
-## HTTP API errors (`ios_app_agent`)
+## HTTP API errors (`agent`)
 
 - Uses standard FastAPI HTTP exceptions with structured detail payloads.
 - Common status patterns:
@@ -14,8 +14,8 @@ This document summarizes error semantics used by API and chat transports.
 
 Reference:
 
-- [`ios_app_agent/routers`](../../ios_app_agent/routers)
-- [OpenAPI](../generated/openapi/ios_app_agent.openapi.json)
+- [`agent/routers`](../../agent/routers)
+- [OpenAPI](../generated/openapi/agent.openapi.json)
 
 ## WebSocket error events
 
@@ -48,7 +48,7 @@ Close code patterns:
 - `4003`: capability/session unavailable.
 - `4004`: session ownership/not found.
 
-Reference: [`ios_app_agent/routers/chat_ws.py`](../../ios_app_agent/routers/chat_ws.py)
+Reference: [`agent/routers/chat_ws.py`](../../agent/routers/chat_ws.py)
 
 ## SSE error events
 
@@ -62,7 +62,7 @@ Errors are surfaced either as HTTP status (pre-stream) or as streamed `error` ev
 
 Tool-result submit endpoint returns `404` when no matching pending tool call exists.
 
-Reference: [`ios_app_agent/routers/chat_http.py`](../../ios_app_agent/routers/chat_http.py)
+Reference: [`agent/routers/chat_http.py`](../../agent/routers/chat_http.py)
 
 ## `chat_unavailable` contract
 
@@ -71,11 +71,11 @@ When chat availability checks fail (disabled integration, invalid capability tok
 - code: `chat_unavailable`
 - message: standardized unavailable message from chat access service.
 
-Reference: [`ios_app_agent/services/chat_access_service.py`](../../ios_app_agent/services/chat_access_service.py)
+Reference: [`agent/services/chat_access_service.py`](../../agent/services/chat_access_service.py)
 
 ## KB service error mapping
 
-`ios_app_agent` wraps `KBServiceError` from KB client calls and forwards:
+`agent` wraps `KBServiceError` from KB client calls and forwards:
 
 - status code
 - optional upstream error `code`
@@ -83,6 +83,6 @@ Reference: [`ios_app_agent/services/chat_access_service.py`](../../ios_app_agent
 
 Reference:
 
-- [`ios_app_agent/services/kb_service_client.py`](../../ios_app_agent/services/kb_service_client.py)
-- [`ios_app_agent/routers/knowledge_bases.py`](../../ios_app_agent/routers/knowledge_bases.py)
+- [`agent/services/knowledge_bases_client.py`](../../agent/services/knowledge_bases_client.py)
+- [`agent/routers/knowledge_bases.py`](../../agent/routers/knowledge_bases.py)
 

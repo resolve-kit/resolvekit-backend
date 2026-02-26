@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export OpenAPI snapshots for ios_app_agent and kb_service."""
+"""Export OpenAPI snapshots for agent and knowledge_bases."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from ios_app_agent.main import app as ios_app_agent_app  # noqa: E402
-from kb_service.main import app as kb_service_app  # noqa: E402
+from agent.main import app as agent_app  # noqa: E402
+from knowledge_bases.main import app as knowledge_bases_app  # noqa: E402
 
 
 def _render_openapi(app) -> str:
@@ -25,8 +25,8 @@ def export_openapi() -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     targets = {
-        out_dir / "ios_app_agent.openapi.json": ios_app_agent_app,
-        out_dir / "kb_service.openapi.json": kb_service_app,
+        out_dir / "agent.openapi.json": agent_app,
+        out_dir / "knowledge_bases.openapi.json": knowledge_bases_app,
     }
 
     written: list[Path] = []

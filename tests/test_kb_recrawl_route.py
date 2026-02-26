@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
-from kb_service.models import KnowledgeSource
-from kb_service.router import recrawl
-from kb_service.schemas import SourceMutateRequest
+from knowledge_bases.models import KnowledgeSource
+from knowledge_bases.router import recrawl
+from knowledge_bases.schemas import SourceMutateRequest
 
 
 @pytest.mark.asyncio
@@ -29,7 +29,7 @@ async def test_recrawl_rejects_upload_sources(monkeypatch: pytest.MonkeyPatch) -
     async def _fake_get_kb_or_404(db, organization_id, kb_id):  # noqa: ANN001
         return None
 
-    monkeypatch.setattr("kb_service.router._get_kb_or_404", _fake_get_kb_or_404)
+    monkeypatch.setattr("knowledge_bases.router._get_kb_or_404", _fake_get_kb_or_404)
 
     db = AsyncMock()
     db.get = AsyncMock(return_value=source)

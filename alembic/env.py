@@ -6,7 +6,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from ios_app_agent.models import Base
+from agent.models import Base
 
 config = context.config
 

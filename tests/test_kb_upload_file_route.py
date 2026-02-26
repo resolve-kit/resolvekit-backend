@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException, UploadFile
 
-from kb_service.models import KnowledgeBase
-from kb_service.router import add_upload_file
+from knowledge_bases.models import KnowledgeBase
+from knowledge_bases.router import add_upload_file
 
 
 @pytest.mark.asyncio
@@ -68,11 +68,11 @@ async def test_add_upload_file_creates_source_and_job(monkeypatch: pytest.Monkey
     def _fake_convert(**kwargs):  # noqa: ANN001
         return type("Converted", (), {"title": "FAQ", "markdown": "hello world"})()
 
-    monkeypatch.setattr("kb_service.router._get_kb_or_404", _fake_get_kb_or_404)
-    monkeypatch.setattr("kb_service.router.enqueue_ingestion_job", _fake_enqueue)
-    monkeypatch.setattr("kb_service.router.serialize_job", _fake_serialize)
-    monkeypatch.setattr("kb_service.router._serialize_source", _fake_serialize_source)
-    monkeypatch.setattr("kb_service.router.convert_uploaded_file_bytes", _fake_convert)
+    monkeypatch.setattr("knowledge_bases.router._get_kb_or_404", _fake_get_kb_or_404)
+    monkeypatch.setattr("knowledge_bases.router.enqueue_ingestion_job", _fake_enqueue)
+    monkeypatch.setattr("knowledge_bases.router.serialize_job", _fake_serialize)
+    monkeypatch.setattr("knowledge_bases.router._serialize_source", _fake_serialize_source)
+    monkeypatch.setattr("knowledge_bases.router.convert_uploaded_file_bytes", _fake_convert)
 
     upload = UploadFile(filename="faq.txt", file=AsyncMock())
     upload.read = AsyncMock(return_value=b"hello world")

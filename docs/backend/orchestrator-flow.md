@@ -1,6 +1,6 @@
 # Orchestrator Flow
 
-The runtime orchestrator lives in [`ios_app_agent/services/orchestrator.py`](../../ios_app_agent/services/orchestrator.py).
+The runtime orchestrator lives in [`agent/services/orchestrator.py`](../../agent/services/orchestrator.py).
 
 ## Core Entry
 
@@ -74,8 +74,8 @@ Inputs:
 
 Transport implementations:
 
-- WS sender: [`ios_app_agent/routers/chat_ws.py`](../../ios_app_agent/routers/chat_ws.py)
-- SSE sender: [`ios_app_agent/routers/chat_http.py`](../../ios_app_agent/routers/chat_http.py)
+- WS sender: [`agent/routers/chat_ws.py`](../../agent/routers/chat_ws.py)
+- SSE sender: [`agent/routers/chat_http.py`](../../agent/routers/chat_http.py)
 
 ## Failure and Fallback Behavior
 

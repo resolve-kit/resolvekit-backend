@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from ios_app_agent.routers.config import _resolve_models_lookup
+from agent.routers.config import _resolve_models_lookup
 
 
 def make_cfg(**kwargs):
@@ -15,7 +15,7 @@ def make_cfg(**kwargs):
 
 def test_transient_key_is_used_without_decrypt():
     cfg = make_cfg()
-    with patch("ios_app_agent.routers.config.decrypt") as decrypt_mock:
+    with patch("agent.routers.config.decrypt") as decrypt_mock:
         provider, api_key, api_base = _resolve_models_lookup(
             cfg=cfg,
             provider="anthropic",
@@ -30,7 +30,7 @@ def test_transient_key_is_used_without_decrypt():
 
 def test_saved_key_is_used_when_transient_missing():
     cfg = make_cfg()
-    with patch("ios_app_agent.routers.config.decrypt", return_value="saved-key"):
+    with patch("agent.routers.config.decrypt", return_value="saved-key"):
         provider, api_key, api_base = _resolve_models_lookup(
             cfg=cfg,
             provider=None,
@@ -44,7 +44,7 @@ def test_saved_key_is_used_when_transient_missing():
 
 def test_api_base_can_be_overridden_while_using_saved_key():
     cfg = make_cfg()
-    with patch("ios_app_agent.routers.config.decrypt", return_value="saved-key"):
+    with patch("agent.routers.config.decrypt", return_value="saved-key"):
         provider, api_key, api_base = _resolve_models_lookup(
             cfg=cfg,
             provider=None,

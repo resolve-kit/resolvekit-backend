@@ -1,22 +1,22 @@
 # KB Service Capabilities
 
-This document describes the internal knowledge-base service (`kb_service`) used by `ios_app_agent`.
+This document describes the internal knowledge-base service (`knowledge_bases`) used by `agent`.
 
 ## Entry Point
 
-- App bootstrap: [`kb_service/main.py`](../../kb_service/main.py)
-- Router: [`kb_service/router.py`](../../kb_service/router.py)
+- App bootstrap: [`knowledge_bases/main.py`](../../knowledge_bases/main.py)
+- Router: [`knowledge_bases/router.py`](../../knowledge_bases/router.py)
 - Base prefix: `/internal`
 - Health endpoint: `GET /internal/health`
 
 ## Security Model
 
-- Service-to-service JWT verification in [`kb_service/auth.py`](../../kb_service/auth.py)
+- Service-to-service JWT verification in [`knowledge_bases/auth.py`](../../knowledge_bases/auth.py)
 - Expected claims include:
   - org context (`org_id`)
   - actor identity (`actor_id`)
   - actor role (`actor_role`)
-- Signing and audience settings from [`kb_service/config.py`](../../kb_service/config.py)
+- Signing and audience settings from [`knowledge_bases/config.py`](../../knowledge_bases/config.py)
 
 ## Capability Areas
 
@@ -26,7 +26,7 @@ This document describes the internal knowledge-base service (`kb_service`) used 
 - Tracks active and pending embedding runtimes.
 - Supports embedding regeneration workflows.
 
-Key model: `KnowledgeBase` in [`kb_service/models.py`](../../kb_service/models.py)
+Key model: `KnowledgeBase` in [`knowledge_bases/models.py`](../../knowledge_bases/models.py)
 
 ## Source Management
 
@@ -68,9 +68,9 @@ Key models:
 - `KnowledgeIngestionJob`
 
 Key services:
-- [`kb_service/services/crawling.py`](../../kb_service/services/crawling.py)
-- [`kb_service/services/ingestion.py`](../../kb_service/services/ingestion.py)
-- [`kb_service/services/embedding.py`](../../kb_service/services/embedding.py)
+- [`knowledge_bases/services/crawling.py`](../../knowledge_bases/services/crawling.py)
+- [`knowledge_bases/services/ingestion.py`](../../knowledge_bases/services/ingestion.py)
+- [`knowledge_bases/services/embedding.py`](../../knowledge_bases/services/embedding.py)
 
 ## Search
 
@@ -80,9 +80,9 @@ Key services:
   - Lexical retrieval via Postgres Full-Text Search (`to_tsvector` + `websearch_to_tsquery` + `ts_rank_cd`)
   - Vector retrieval via chunk embeddings + cosine similarity
   - Weighted Reciprocal Rank Fusion (RRF) to combine lexical and semantic ranks
-- Returns title/content/metadata payload used by `ios_app_agent` prompt enrichment.
+- Returns title/content/metadata payload used by `agent` prompt enrichment.
 
-Key service: [`kb_service/services/search.py`](../../kb_service/services/search.py)
+Key service: [`knowledge_bases/services/search.py`](../../knowledge_bases/services/search.py)
 
 ## Embedding Profile Management
 
@@ -97,15 +97,15 @@ Key model: `OrganizationEmbeddingProfile`.
 - Background worker polls pending jobs and executes ingestion/regeneration.
 - Controlled by `KBS_WORKER_ENABLED`.
 
-Key module: [`kb_service/services/worker.py`](../../kb_service/services/worker.py)
+Key module: [`knowledge_bases/services/worker.py`](../../knowledge_bases/services/worker.py)
 
-## Integration with `ios_app_agent`
+## Integration with `agent`
 
-`ios_app_agent` never directly reads KB DB tables. It communicates only through `kb_service` HTTP APIs via:
+`agent` never directly reads KB DB tables. It communicates only through `knowledge_bases` HTTP APIs via:
 
-- [`ios_app_agent/services/kb_service_client.py`](../../ios_app_agent/services/kb_service_client.py)
+- [`agent/services/knowledge_bases_client.py`](../../agent/services/knowledge_bases_client.py)
 
-`ios_app_agent` stores only reference/assignment metadata locally:
+`agent` stores only reference/assignment metadata locally:
 
 - `KnowledgeBaseRef`
 - `AppKnowledgeBase`
@@ -114,4 +114,4 @@ Key module: [`kb_service/services/worker.py`](../../kb_service/services/worker.p
 
 - [Router Map](router-map.md)
 - [Environment Reference](config-env-reference.md)
-- [OpenAPI Contract](../generated/openapi/kb_service.openapi.json)
+- [OpenAPI Contract](../generated/openapi/knowledge_bases.openapi.json)

@@ -3,15 +3,15 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-ios_app_agent}
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-ios_app_agent}
+      POSTGRES_DB: ${POSTGRES_DB:-agent}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ios_app_agent}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -20,15 +20,15 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-ios_app_agent}
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${KBS_POSTGRES_DB:-kb_service}
+      POSTGRES_DB: ${KBS_POSTGRES_DB:-knowledge_bases}
     volumes:
       - ./data/kb-postgres:/var/lib/postgresql/data
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ios_app_agent}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -36,14 +36,14 @@ services:
   kb-service:
     build:
       context: .
-      dockerfile: kb_service/Dockerfile
+      dockerfile: knowledge_bases/Dockerfile
     restart: unless-stopped
     depends_on:
       kb-db:
         condition: service_healthy
     env_file: .env
     environment:
-      KBS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ios_app_agent}:${POSTGRES_PASSWORD:-postgres}@kb-db:5432/${KBS_POSTGRES_DB:-kb_service}
+      KBS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@kb-db:5432/${KBS_POSTGRES_DB:-knowledge_bases}
       KBS_SERVICE_JWT_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       KBS_SERVICE_JWT_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       KBS_ENCRYPTION_KEY: ${KBS_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
@@ -60,17 +60,26 @@ services:
         condition: service_started
     env_file: .env
     environment:
-      IAA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ios_app_agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-ios_app_agent}
-      IAA_KB_SERVICE_BASE_URL: http://kb-service:8100
-      IAA_KB_SERVICE_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
-      IAA_KB_SERVICE_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      IAA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+      IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
     ports:
       - "8000:8000"
 
   dashboard:
-    build: ./dashboard
+    build:
+      context: ./dashboard
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
     restart: unless-stopped
     depends_on:
       - backend
     ports:
       - "3000:80"
+
+  website:
+    build: ./website
+    restart: unless-stopped
+    ports:
+      - "3001:3000"

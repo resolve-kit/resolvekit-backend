@@ -1,4 +1,4 @@
-from kb_service.services.crawling import _is_same_scope
+from knowledge_bases.services.crawling import _is_same_scope
 
 
 def test_scope_allows_peer_articles_for_article_root() -> None:

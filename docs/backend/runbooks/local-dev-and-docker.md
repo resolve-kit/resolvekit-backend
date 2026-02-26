@@ -4,7 +4,7 @@
 
 - Docker Desktop
 - `uv` for Python local commands
-- Node/npm for dashboard local commands
+- Node/npm for dashboard and website local commands
 
 ## Docker-first setup
 
@@ -19,6 +19,7 @@
    - `docker compose logs -f backend`
    - `docker compose logs -f kb-service`
    - `docker compose logs -f dashboard`
+   - `docker compose logs -f website`
 
 ## Python local backend setup
 
@@ -38,6 +39,15 @@
 3. Production build check:
    - `npm --prefix dashboard run build`
 
+## Website local setup
+
+1. Install:
+   - `npm --prefix website install`
+2. Run dev server:
+   - `npm --prefix website run dev`
+3. Production build check:
+   - `npm --prefix website run build`
+
 ## Validation commands
 
 - Backend tests:
@@ -54,6 +64,8 @@
 - `invalid_llm_profile` or `no_llm_profile`:
   - Confirm app config references an org profile that exists.
 - KB request failures:
-  - Verify `IAA_KB_SERVICE_*` and `KBS_SERVICE_JWT_*` values match.
+  - Verify `IAA_KNOWLEDGE_BASES_*` and `KBS_SERVICE_JWT_*` values match.
+- Dashboard cannot reach API:
+  - Verify `VITE_API_BASE_URL` points to the API origin (for local, `http://localhost:8000`).
 - WS auth failures:
   - Ensure ws-ticket flow is used and token not expired.

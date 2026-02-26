@@ -2,4 +2,4 @@
 import uvicorn
 
 if __name__ == "__main__":
-    uvicorn.run("ios_app_agent.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("agent.main:app", host="0.0.0.0", port=8000, reload=True)

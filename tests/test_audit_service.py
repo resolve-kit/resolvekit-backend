@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ios_app_agent.models.audit_event import AuditEvent
-from ios_app_agent.services.audit_service import AuditService
+from agent.models.audit_event import AuditEvent
+from agent.services.audit_service import AuditService
 
 
 @pytest.mark.asyncio

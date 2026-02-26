@@ -9,23 +9,25 @@ import AuditLog from "./pages/AuditLog";
 import Apps from "./pages/Apps";
 import ApiKeys from "./pages/ApiKeys";
 import Functions from "./pages/Functions";
-import Home from "./pages/Home";
 import KnowledgeBases from "./pages/KnowledgeBases";
 import LimitsConfig from "./pages/LimitsConfig";
 import LlmConfig from "./pages/LlmConfig";
 import AppKnowledgeBases from "./pages/AppKnowledgeBases";
 import OrganizationAdmin from "./pages/OrganizationAdmin";
 import Playbooks from "./pages/Playbooks";
-import Pricing from "./pages/Pricing";
 import Sessions from "./pages/Sessions";
 import { ToastProvider, ToastContainer } from "./components/ui";
+
+function RootRedirect() {
+  const token = localStorage.getItem("token");
+  return <Navigate to={token ? "/apps" : "/login"} replace />;
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
           <Route path="/apps" element={<Apps />} />

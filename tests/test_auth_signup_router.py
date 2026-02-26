@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
-from ios_app_agent.routers.auth import signup
-from ios_app_agent.schemas.developer import DeveloperSignup
+from agent.routers.auth import signup
+from agent.schemas.developer import DeveloperSignup
 
 
 class DummyResult:

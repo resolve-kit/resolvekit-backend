@@ -5,8 +5,8 @@ from cryptography.fernet import Fernet
 
 os.environ.setdefault("KBS_ENCRYPTION_KEY", Fernet.generate_key().decode())
 
-from kb_service.services.crawling import CrawledPage
-from kb_service.services.ingestion import deduplicate_pages_by_hash
+from knowledge_bases.services.crawling import CrawledPage
+from knowledge_bases.services.ingestion import deduplicate_pages_by_hash
 
 
 def _content_hash(content: str) -> str:

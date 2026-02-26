@@ -1,4 +1,4 @@
-from ios_app_agent.models.agent_config import AgentConfig
+from agent.models.agent_config import AgentConfig
 
 
 def test_scope_mode_column_default_is_strict() -> None:
