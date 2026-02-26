@@ -47,3 +47,9 @@ def test_session_create_reuses_active_session_by_default() -> None:
     payload = SessionCreate()
 
     assert payload.reuse_active_session is True
+
+
+def test_session_create_accepts_locale_preferences() -> None:
+    payload = SessionCreate(locale="fr", preferred_locales=["fr-FR", "en-US"])
+    assert payload.locale == "fr"
+    assert payload.preferred_locales == ["fr-FR", "en-US"]

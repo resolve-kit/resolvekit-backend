@@ -7,6 +7,7 @@ import { useDirtyState } from "../context/DirtyStateContext";
 const NAV_ITEMS = [
   { label: "LLM", slug: "llm" },
   { label: "API Keys", slug: "api-keys" },
+  { label: "Languages", slug: "languages" },
   { label: "Functions", slug: "functions" },
   { label: "Chat Theme", slug: "chat-theme" },
   { label: "Agent", slug: "agent" },

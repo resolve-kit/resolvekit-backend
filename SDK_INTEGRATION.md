@@ -172,6 +172,8 @@ Create a new chat session.
   },
   "entitlements": ["pro"],
   "capabilities": ["camera", "location"],
+  "locale": "fr",
+  "preferred_locales": ["fr-FR", "en-US"],
   "metadata": {
     "os_version": "18.2",
     "app_version": "1.0.3"
@@ -186,6 +188,8 @@ Create a new chat session.
 | `llm_context` | object | no | `{}` | Custom JSON context injected into LLM routing, prompt context, and KB query shaping. |
 | `entitlements` | string[] | no | `[]` | User/app entitlements (for paywall-aware tool access). |
 | `capabilities` | string[] | no | `[]` | Device/runtime capabilities. |
+| `locale` | string | no | `null` | Explicit locale override (for example `fr`, `pt-br`). |
+| `preferred_locales` | string[] | no | `[]` | Ordered preferred locales; server picks first supported locale. |
 | `metadata` | object | no | `{}` | Arbitrary key-value pairs stored with the session. |
 
 `llm_context` validation limits:
@@ -221,6 +225,10 @@ Use `metadata` for operational/session diagnostics.
     "network_type": "wifi",
     "is_traveling": false
   },
+  "locale": "fr",
+  "chat_title": "Support Chat",
+  "message_placeholder": "Message",
+  "initial_message": "Hello! How can I help you today?",
   "status": "active",
   "last_activity_at": "2026-02-19T10:00:00Z",
   "created_at": "2026-02-19T10:00:00Z",

@@ -46,6 +46,8 @@ Backend call:
     - `llm_context`
     - `entitlements`
     - `capabilities`
+    - `locale`
+    - `preferred_locales`
 
 ## WS Ticket and Connection
 

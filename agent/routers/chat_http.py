@@ -21,6 +21,7 @@ from agent.services.chat_access_service import (
     apply_runtime_llm_profile,
     validate_chat_capability_token,
 )
+from agent.services.chat_localization_service import resolve_locale
 from agent.services.function_service import get_eligible_functions
 from agent.services.orchestrator import MessageSender, run_agent_loop
 from agent.services.session_service import is_session_expired
@@ -37,6 +38,7 @@ def _pending_key(session_id: uuid.UUID, app_id: uuid.UUID, call_id: str) -> tupl
 
 class ChatMessageBody(BaseModel):
     text: str
+    locale: str | None = None
 
 
 class SSESender(MessageSender):
@@ -120,6 +122,11 @@ async def send_message_sse(
 
     if await is_session_expired(db, session, agent_config.session_ttl_minutes):
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="Session expired")
+
+    if body.locale:
+        session.locale = resolve_locale(body.locale, [session.locale])
+        await db.commit()
+        await db.refresh(session)
 
     functions = await get_eligible_functions(db, app.id, session)
     sender = SSESender(session.id, app.id)

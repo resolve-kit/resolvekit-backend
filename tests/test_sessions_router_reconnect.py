@@ -74,6 +74,10 @@ async def test_create_session_reuses_latest_active_session() -> None:
     assert response.id == existing.id
     assert response.chat_capability_token == "cap-token"
     assert response.reused_active_session is True
+    assert response.locale == "en"
+    assert response.chat_title == "Support Chat"
+    assert response.message_placeholder == "Message"
+    assert response.initial_message == "Hello! How can I help you today?"
     assert existing.metadata_ == {"fresh": "value"}
     assert existing.client_context == {"platform": "ios"}
     assert existing.llm_context == {"location": "vilnius"}
@@ -100,6 +104,7 @@ async def test_create_session_creates_new_when_reuse_is_disabled() -> None:
         llm_context={"location": "vilnius"},
         entitlements=["pro"],
         capabilities=["camera"],
+        preferred_locales=["fr-FR"],
         reuse_active_session=False,
     )
 
@@ -114,5 +119,7 @@ async def test_create_session_creates_new_when_reuse_is_disabled() -> None:
     assert response.device_id == "device-1"
     assert response.chat_capability_token == "cap-token"
     assert response.reused_active_session is False
-    assert len(db.added) == 1
-    assert db.commit_count == 1
+    assert response.locale == "fr"
+    assert response.initial_message == "Hello! How can I help you today?"
+    assert len(db.added) == 2
+    assert db.commit_count == 2

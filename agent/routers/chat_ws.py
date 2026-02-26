@@ -24,6 +24,7 @@ from agent.services.chat_access_service import (
     ensure_chat_available_for_app,
     validate_chat_capability_token,
 )
+from agent.services.chat_localization_service import resolve_locale
 from agent.services.function_service import get_eligible_functions
 from agent.services.orchestrator import MessageSender, run_agent_loop
 from agent.services.session_service import is_session_expired
@@ -217,6 +218,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                         agent_task = None
 
                     text = envelope.get("payload", {}).get("text", "").strip()
+                    locale = envelope.get("payload", {}).get("locale")
                     if not text:
                         await sender.send_error("empty_message", "Message text is required")
                         continue
@@ -226,6 +228,11 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                     if await is_session_expired(db, session, agent_config.session_ttl_minutes):
                         await sender.send_error("session_expired", "Session expired", recoverable=False)
                         break
+
+                    if isinstance(locale, str) and locale.strip():
+                        session.locale = resolve_locale(locale, [session.locale])
+                        await db.commit()
+                        await db.refresh(session)
 
                     functions = await get_eligible_functions(db, app.id, session)
 
