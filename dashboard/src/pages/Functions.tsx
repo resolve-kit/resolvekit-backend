@@ -8,6 +8,7 @@ import {
   Textarea,
   useToast,
 } from "../components/ui";
+import { useOnboarding } from "../context/OnboardingContext";
 
 interface Fn {
   id: string;
@@ -22,6 +23,7 @@ interface Fn {
 export default function Functions() {
   const { appId } = useParams();
   const { toast } = useToast();
+  const { refresh } = useOnboarding();
   const [functions, setFunctions] = useState<Fn[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export default function Functions() {
         `${fn.name} ${updated.is_active ? "activated" : "deactivated"}`,
         "success"
       );
+      await refresh();
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to update function", "error");
     }

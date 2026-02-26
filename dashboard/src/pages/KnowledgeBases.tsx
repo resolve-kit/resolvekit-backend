@@ -9,6 +9,7 @@ import {
   Select,
   useToast,
 } from "../components/ui";
+import OnboardingTipCard from "../components/OnboardingTipCard";
 
 interface KnowledgeBaseItem {
   id: string;
@@ -737,6 +738,7 @@ export default function KnowledgeBases() {
           </p>
         </div>
       </div>
+      <OnboardingTipCard tipId="knowledge_bases_tip" fallbackRoute="/knowledge-bases" />
 
       <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up space-y-4">
         <h2 className="text-sm font-semibold text-strong">Embedding Profiles</h2>

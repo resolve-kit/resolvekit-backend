@@ -583,8 +583,175 @@
         "title": "Body_kb_sources_add_upload_file_v1_knowledge_bases__kb_id__sources_upload_file_post",
         "type": "object"
       },
+      "ChatLocalizationCatalogItem": {
+        "properties": {
+          "defaults": {
+            "$ref": "#/components/schemas/ChatLocalizationTexts"
+          },
+          "effective": {
+            "$ref": "#/components/schemas/ChatLocalizationTexts"
+          },
+          "locale": {
+            "$ref": "#/components/schemas/ChatLocalizationLocaleInfo"
+          },
+          "overrides": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChatLocalizationOverrideTexts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "locale",
+          "defaults",
+          "effective"
+        ],
+        "title": "ChatLocalizationCatalogItem",
+        "type": "object"
+      },
+      "ChatLocalizationLocaleInfo": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "local_name": {
+            "title": "Local Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "language",
+          "local_name"
+        ],
+        "title": "ChatLocalizationLocaleInfo",
+        "type": "object"
+      },
+      "ChatLocalizationOverrideTexts": {
+        "properties": {
+          "chat_title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chat Title"
+          },
+          "initial_message": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Message"
+          },
+          "message_placeholder": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Placeholder"
+          }
+        },
+        "title": "ChatLocalizationOverrideTexts",
+        "type": "object"
+      },
+      "ChatLocalizationTexts": {
+        "properties": {
+          "chat_title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Chat Title",
+            "type": "string"
+          },
+          "initial_message": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Initial Message",
+            "type": "string"
+          },
+          "message_placeholder": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Message Placeholder",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_title",
+          "message_placeholder",
+          "initial_message"
+        ],
+        "title": "ChatLocalizationTexts",
+        "type": "object"
+      },
+      "ChatLocalizationsOut": {
+        "properties": {
+          "locales": {
+            "items": {
+              "$ref": "#/components/schemas/ChatLocalizationCatalogItem"
+            },
+            "title": "Locales",
+            "type": "array"
+          }
+        },
+        "required": [
+          "locales"
+        ],
+        "title": "ChatLocalizationsOut",
+        "type": "object"
+      },
+      "ChatLocalizationsUpdate": {
+        "properties": {
+          "overrides": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ChatLocalizationTexts"
+            },
+            "title": "Overrides",
+            "type": "object"
+          }
+        },
+        "title": "ChatLocalizationsUpdate",
+        "type": "object"
+      },
       "ChatMessageBody": {
         "properties": {
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -594,6 +761,131 @@
           "text"
         ],
         "title": "ChatMessageBody",
+        "type": "object"
+      },
+      "ChatThemeOut": {
+        "properties": {
+          "dark": {
+            "$ref": "#/components/schemas/ChatThemePalette"
+          },
+          "light": {
+            "$ref": "#/components/schemas/ChatThemePalette"
+          }
+        },
+        "required": [
+          "light",
+          "dark"
+        ],
+        "title": "ChatThemeOut",
+        "type": "object"
+      },
+      "ChatThemePalette": {
+        "properties": {
+          "assistantBubbleBackground": {
+            "title": "Assistantbubblebackground",
+            "type": "string"
+          },
+          "assistantBubbleText": {
+            "title": "Assistantbubbletext",
+            "type": "string"
+          },
+          "composerBackground": {
+            "title": "Composerbackground",
+            "type": "string"
+          },
+          "composerPlaceholder": {
+            "title": "Composerplaceholder",
+            "type": "string"
+          },
+          "composerText": {
+            "title": "Composertext",
+            "type": "string"
+          },
+          "loaderBubbleBackground": {
+            "title": "Loaderbubblebackground",
+            "type": "string"
+          },
+          "loaderDotActive": {
+            "title": "Loaderdotactive",
+            "type": "string"
+          },
+          "loaderDotInactive": {
+            "title": "Loaderdotinactive",
+            "type": "string"
+          },
+          "screenBackground": {
+            "title": "Screenbackground",
+            "type": "string"
+          },
+          "statusText": {
+            "title": "Statustext",
+            "type": "string"
+          },
+          "titleText": {
+            "title": "Titletext",
+            "type": "string"
+          },
+          "toolCardBackground": {
+            "title": "Toolcardbackground",
+            "type": "string"
+          },
+          "toolCardBody": {
+            "title": "Toolcardbody",
+            "type": "string"
+          },
+          "toolCardBorder": {
+            "title": "Toolcardborder",
+            "type": "string"
+          },
+          "toolCardTitle": {
+            "title": "Toolcardtitle",
+            "type": "string"
+          },
+          "userBubbleBackground": {
+            "title": "Userbubblebackground",
+            "type": "string"
+          },
+          "userBubbleText": {
+            "title": "Userbubbletext",
+            "type": "string"
+          }
+        },
+        "required": [
+          "screenBackground",
+          "titleText",
+          "statusText",
+          "composerBackground",
+          "composerText",
+          "composerPlaceholder",
+          "userBubbleBackground",
+          "userBubbleText",
+          "assistantBubbleBackground",
+          "assistantBubbleText",
+          "loaderBubbleBackground",
+          "loaderDotActive",
+          "loaderDotInactive",
+          "toolCardBackground",
+          "toolCardBorder",
+          "toolCardTitle",
+          "toolCardBody"
+        ],
+        "title": "ChatThemePalette",
+        "type": "object"
+      },
+      "ChatThemeUpdate": {
+        "properties": {
+          "dark": {
+            "$ref": "#/components/schemas/ChatThemePalette"
+          },
+          "light": {
+            "$ref": "#/components/schemas/ChatThemePalette"
+          }
+        },
+        "required": [
+          "light",
+          "dark"
+        ],
+        "title": "ChatThemeUpdate",
         "type": "object"
       },
       "ConnectionTestRequest": {
@@ -1972,6 +2264,153 @@
         "title": "OrganizationMemberRoleUpdate",
         "type": "object"
       },
+      "OrganizationOnboardingOut": {
+        "properties": {
+          "can_reset": {
+            "default": false,
+            "title": "Can Reset",
+            "type": "boolean"
+          },
+          "is_complete": {
+            "title": "Is Complete",
+            "type": "boolean"
+          },
+          "optional_tips": {
+            "items": {
+              "$ref": "#/components/schemas/OrganizationOnboardingTipOut"
+            },
+            "title": "Optional Tips",
+            "type": "array"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "required_steps": {
+            "items": {
+              "$ref": "#/components/schemas/OrganizationOnboardingStepOut"
+            },
+            "title": "Required Steps",
+            "type": "array"
+          },
+          "should_show": {
+            "title": "Should Show",
+            "type": "boolean"
+          },
+          "target_app_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target App Id"
+          },
+          "target_app_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target App Name"
+          }
+        },
+        "required": [
+          "organization_id",
+          "is_complete",
+          "should_show",
+          "target_app_id",
+          "target_app_name",
+          "required_steps",
+          "optional_tips"
+        ],
+        "title": "OrganizationOnboardingOut",
+        "type": "object"
+      },
+      "OrganizationOnboardingStepOut": {
+        "properties": {
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_blocked": {
+            "default": false,
+            "title": "Is Blocked",
+            "type": "boolean"
+          },
+          "is_complete": {
+            "title": "Is Complete",
+            "type": "boolean"
+          },
+          "route": {
+            "title": "Route",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "route",
+          "is_complete"
+        ],
+        "title": "OrganizationOnboardingStepOut",
+        "type": "object"
+      },
+      "OrganizationOnboardingTipOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "route": {
+            "title": "Route",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "route"
+        ],
+        "title": "OrganizationOnboardingTipOut",
+        "type": "object"
+      },
       "OrganizationOut": {
         "properties": {
           "created_at": {
@@ -2464,10 +2903,30 @@
             "title": "Llm Context",
             "type": "object"
           },
+          "locale": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
           "metadata": {
             "additionalProperties": true,
             "title": "Metadata",
             "type": "object"
+          },
+          "preferred_locales": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Preferred Locales",
+            "type": "array"
           },
           "reuse_active_session": {
             "default": true,
@@ -2495,6 +2954,11 @@
               }
             ],
             "title": "Chat Capability Token"
+          },
+          "chat_title": {
+            "default": "Chat",
+            "title": "Chat Title",
+            "type": "string"
           },
           "client_context": {
             "anyOf": [
@@ -2529,6 +2993,11 @@
             "title": "Id",
             "type": "string"
           },
+          "initial_message": {
+            "default": "Hello! How can I help you today?",
+            "title": "Initial Message",
+            "type": "string"
+          },
           "last_activity_at": {
             "format": "date-time",
             "title": "Last Activity At",
@@ -2545,6 +3014,16 @@
               }
             ],
             "title": "Llm Context"
+          },
+          "locale": {
+            "default": "en",
+            "title": "Locale",
+            "type": "string"
+          },
+          "message_placeholder": {
+            "default": "Message",
+            "title": "Message Placeholder",
+            "type": "string"
           },
           "reused_active_session": {
             "default": false,
@@ -3194,6 +3673,214 @@
         "summary": "List Audit Events",
         "tags": [
           "audit"
+        ]
+      }
+    },
+    "/v1/apps/{app_id}/chat-localizations": {
+      "get": {
+        "operationId": "get_chat_localizations_v1_apps__app_id__chat_localizations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatLocalizationsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Chat Localizations",
+        "tags": [
+          "apps"
+        ]
+      },
+      "put": {
+        "operationId": "update_chat_localizations_v1_apps__app_id__chat_localizations_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatLocalizationsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatLocalizationsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Chat Localizations",
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/{app_id}/chat-theme": {
+      "get": {
+        "operationId": "get_chat_theme_v1_apps__app_id__chat_theme_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatThemeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Chat Theme",
+        "tags": [
+          "apps"
+        ]
+      },
+      "put": {
+        "operationId": "update_chat_theme_v1_apps__app_id__chat_theme_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "app_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "App Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatThemeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatThemeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Chat Theme",
+        "tags": [
+          "apps"
         ]
       }
     },
@@ -6195,6 +6882,79 @@
         ]
       }
     },
+    "/v1/organizations/onboarding": {
+      "get": {
+        "operationId": "get_onboarding_state_v1_organizations_onboarding_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationOnboardingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Onboarding State",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/onboarding/reset": {
+      "post": {
+        "operationId": "reset_onboarding_state_v1_organizations_onboarding_reset_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationOnboardingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reset Onboarding State",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/sdk/chat-theme": {
+      "get": {
+        "operationId": "get_chat_theme_v1_sdk_chat_theme_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatThemeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Chat Theme",
+        "tags": [
+          "sdk"
+        ]
+      }
+    },
     "/v1/sdk/compat": {
       "get": {
         "operationId": "get_sdk_compatibility_v1_sdk_compat_get",
@@ -6252,6 +7012,63 @@
           }
         },
         "summary": "Create Session",
+        "tags": [
+          "sessions-sdk"
+        ]
+      }
+    },
+    "/v1/sessions/{session_id}/localization": {
+      "get": {
+        "operationId": "get_session_localization_v1_sessions__session_id__localization_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Locale"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Localization",
         "tags": [
           "sessions-sdk"
         ]

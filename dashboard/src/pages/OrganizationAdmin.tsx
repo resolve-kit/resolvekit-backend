@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 
 import { ApiError, api } from "../api/client";
 import { Badge, Button, Input, Select, useToast } from "../components/ui";
+import { useOnboarding } from "../context/OnboardingContext";
 
 interface OrganizationMember {
   id: string;
@@ -78,6 +79,7 @@ export default function OrganizationAdmin() {
   const [creatingLlmProfile, setCreatingLlmProfile] = useState(false);
   const [deletingLlmProfileId, setDeletingLlmProfileId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { refresh } = useOnboarding();
 
   async function loadData() {
     setLoading(true);
@@ -199,6 +201,7 @@ export default function OrganizationAdmin() {
       setLlmApiBase("");
       toast("LLM profile created", "success");
       await loadData();
+      await refresh();
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to create LLM profile", "error");
     } finally {
@@ -214,6 +217,7 @@ export default function OrganizationAdmin() {
       });
       toast("LLM profile removed", "info");
       await loadData();
+      await refresh();
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to delete LLM profile", "error");
     } finally {

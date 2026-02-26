@@ -9,6 +9,7 @@ import {
   PageSpinner,
   useToast,
 } from "../components/ui";
+import { useOnboarding } from "../context/OnboardingContext";
 
 interface ApiKeyInfo {
   id: string;
@@ -31,6 +32,7 @@ export default function ApiKeys() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
+  const { refresh } = useOnboarding();
 
   useEffect(() => {
     setIsLoading(true);
@@ -50,6 +52,7 @@ export default function ApiKeys() {
       setKeys([res, ...keys]);
       setNewLabel("");
       toast("API key generated", "success");
+      await refresh();
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to generate key", "error");
     } finally {
@@ -61,6 +64,7 @@ export default function ApiKeys() {
     await api(`/v1/apps/${appId}/api-keys/${id}`, { method: "DELETE" });
     setKeys(keys.map((k) => (k.id === id ? { ...k, is_active: false } : k)));
     toast("API key revoked", "info");
+    await refresh();
   }
 
   async function copyKey() {

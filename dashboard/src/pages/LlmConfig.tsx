@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { Badge, Button, Input, PageSpinner, Select, useToast } from "../components/ui";
 import { useDirtyState } from "../context/DirtyStateContext";
+import { useOnboarding } from "../context/OnboardingContext";
 
 interface Config {
   llm_profile_id: string | null;
@@ -40,6 +41,7 @@ export default function LlmConfig() {
   const { appId } = useParams<{ appId: string }>();
   const { toast } = useToast();
   const { markDirty, markClean } = useDirtyState();
+  const { refresh } = useOnboarding();
 
   const [saved, setSaved] = useState<Config | null>(null);
   const [draftProfileId, setDraftProfileId] = useState<string | null>(null);
@@ -122,6 +124,7 @@ export default function LlmConfig() {
       setDraftProfileId(updated.llm_profile_id);
       setDraftModel(updated.llm_model);
       toast("LLM configuration saved", "success");
+      await refresh();
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to save", "error");
     } finally {

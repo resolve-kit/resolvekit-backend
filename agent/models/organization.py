@@ -1,6 +1,9 @@
+import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
+from sqlalchemy import DateTime, Integer, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from agent.models.base import Base, TimestampMixin, UUIDMixin
@@ -17,6 +20,13 @@ class Organization(Base, UUIDMixin, TimestampMixin):
 
     name: Mapped[str] = mapped_column(String(255))
     public_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    onboarding_target_app_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    onboarding_reset_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     developers: Mapped[list["DeveloperAccount"]] = relationship(back_populates="organization")
     apps: Mapped[list["App"]] = relationship(back_populates="organization")

@@ -11,6 +11,7 @@ import {
   Textarea,
   useToast,
 } from "../components/ui";
+import OnboardingTipCard from "../components/OnboardingTipCard";
 
 interface PlaybookFn {
   function_id: string;
@@ -249,6 +250,7 @@ export default function Playbooks() {
           New Playbook
         </Button>
       </div>
+      <OnboardingTipCard tipId="playbooks_tip" fallbackRoute={`/apps/${appId}/playbooks`} />
 
       {/* Create form */}
       {showCreate && (

@@ -7,6 +7,7 @@ import {
   ConfirmDialog,
   useToast,
 } from "../components/ui";
+import { useOnboarding } from "../context/OnboardingContext";
 
 interface App {
   id: string;
@@ -70,8 +71,8 @@ export default function Apps() {
   const [isCreating, setIsCreating] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmToggleAppId, setConfirmToggleAppId] = useState<string | null>(null);
-  const [newAppChecklistId, setNewAppChecklistId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { refresh } = useOnboarding();
 
   useEffect(() => {
     api<App[]>("/v1/apps").then((loadedApps) => {
@@ -127,11 +128,11 @@ export default function Apps() {
         ...prev,
         [app.id]: ["LLM", "API Keys", "Functions"],
       }));
-      setNewAppChecklistId(app.id);
       setNewName("");
       setNewBundleId("");
       setShowCreate(false);
       toast("App created successfully", "success");
+      void refresh();
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to create app", "error");
     } finally {
@@ -148,6 +149,7 @@ export default function Apps() {
       return next;
     });
     toast("App deleted", "info");
+    void refresh();
   }
 
   async function toggleIntegration(id: string, enable: boolean) {
@@ -165,7 +167,6 @@ export default function Apps() {
 
   const appToDelete = apps.find((a) => a.id === confirmDeleteId);
   const appToToggle = apps.find((a) => a.id === confirmToggleAppId) ?? null;
-  const checklistApp = apps.find((a) => a.id === newAppChecklistId) ?? null;
 
   return (
     <div>
@@ -228,51 +229,6 @@ export default function Apps() {
             >
               Cancel
             </Button>
-          </div>
-        </div>
-      )}
-
-      {checklistApp && (
-        <div className="bg-accent-subtle border border-accent-dim rounded-xl p-4 mb-6 animate-fade-in-up">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-strong mb-1">
-                Setup needed for {checklistApp.name}
-              </p>
-              <p className="text-xs text-subtle mb-3">
-                To make this app work end-to-end, configure these sections:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  to={`/apps/${checklistApp.id}/llm`}
-                  className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
-                >
-                  1. Select LLM Profile
-                </Link>
-                <Link
-                  to={`/apps/${checklistApp.id}/api-keys`}
-                  className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
-                >
-                  2. Generate API Key
-                </Link>
-                <Link
-                  to={`/apps/${checklistApp.id}/functions`}
-                  className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
-                >
-                  3. Register Functions (SDK)
-                </Link>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setNewAppChecklistId(null)}
-              className="text-subtle hover:text-body transition-colors p-1"
-              aria-label="Dismiss setup checklist"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
         </div>
       )}

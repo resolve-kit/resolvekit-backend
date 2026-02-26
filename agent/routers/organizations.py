@@ -16,6 +16,7 @@ from agent.models.organization_llm_provider_profile import OrganizationLLMProvid
 from agent.schemas.organization import (
     OrganizationInvitationCreate,
     OrganizationInvitationOut,
+    OrganizationOnboardingOut,
     OrganizationMemberOut,
     OrganizationMemberRoleUpdate,
     OrganizationOut,
@@ -36,6 +37,7 @@ from agent.services.authorization_service import (
 )
 from agent.services.encryption import decrypt, encrypt
 from agent.services.organization_service import normalize_email
+from agent.services.organization_onboarding_service import resolve_onboarding_state
 from agent.services.provider_service import (
     list_embedding_models_for_provider,
     list_models_for_provider,
@@ -93,6 +95,40 @@ async def get_my_organization(
     if not organization:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
     return organization
+
+
+@router.get("/onboarding", response_model=OrganizationOnboardingOut)
+async def get_onboarding_state(
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_org_membership(developer)
+    try:
+        payload = await resolve_onboarding_state(db=db, developer=developer)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return OrganizationOnboardingOut(**payload)
+
+
+@router.post("/onboarding/reset", response_model=OrganizationOnboardingOut)
+async def reset_onboarding_state(
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_org_membership(developer)
+    _require_org_admin(developer)
+
+    organization = await db.get(Organization, developer.organization_id)
+    if organization is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
+
+    organization.onboarding_completed_at = None
+    organization.onboarding_target_app_id = None
+    organization.onboarding_reset_count = (organization.onboarding_reset_count or 0) + 1
+    await db.commit()
+
+    payload = await resolve_onboarding_state(db=db, developer=developer)
+    return OrganizationOnboardingOut(**payload)
 
 
 @router.get("/llm/providers")

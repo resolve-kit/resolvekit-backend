@@ -49,3 +49,31 @@ class OrganizationOut(BaseModel):
 
 class OrganizationMemberRoleUpdate(BaseModel):
     role: Literal["owner", "admin", "member"]
+
+
+class OrganizationOnboardingStepOut(BaseModel):
+    id: str
+    title: str
+    description: str
+    route: str
+    is_complete: bool
+    is_blocked: bool = False
+    blocked_reason: str | None = None
+
+
+class OrganizationOnboardingTipOut(BaseModel):
+    id: str
+    title: str
+    description: str
+    route: str
+
+
+class OrganizationOnboardingOut(BaseModel):
+    organization_id: uuid.UUID
+    is_complete: bool
+    should_show: bool
+    can_reset: bool = False
+    target_app_id: uuid.UUID | None
+    target_app_name: str | None
+    required_steps: list[OrganizationOnboardingStepOut]
+    optional_tips: list[OrganizationOnboardingTipOut]

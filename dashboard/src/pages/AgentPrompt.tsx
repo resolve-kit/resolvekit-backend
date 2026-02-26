@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { Button, PageSpinner, Textarea, useToast } from "../components/ui";
 import { useDirtyState } from "../context/DirtyStateContext";
+import OnboardingTipCard from "../components/OnboardingTipCard";
 
 type ScopeMode = "open" | "strict";
 
@@ -88,6 +89,7 @@ export default function AgentPrompt() {
           turn.
         </p>
       </div>
+      <OnboardingTipCard tipId="agent_prompt_tip" fallbackRoute={`/apps/${appId}/agent`} />
 
       {isDirty && (
         <div className="mb-4 flex items-center gap-2 text-sm text-warning">

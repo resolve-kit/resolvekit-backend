@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
 import { Button, useToast } from "../components/ui";
+import OnboardingTipCard from "../components/OnboardingTipCard";
 
 interface KnowledgeBaseItem {
   id: string;
@@ -87,6 +88,7 @@ export default function AppKnowledgeBases() {
           {appName ? `${appName}: select which knowledge bases the session agent can query.` : "Loading app..."}
         </p>
       </div>
+      <OnboardingTipCard tipId="knowledge_bases_tip" fallbackRoute={`/apps/${appId}/knowledge-bases`} />
 
       <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">
         <h2 className="text-sm font-semibold text-strong mb-3">Assigned Knowledge Bases</h2>
