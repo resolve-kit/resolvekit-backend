@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { label: "LLM", slug: "llm" },
   { label: "API Keys", slug: "api-keys" },
   { label: "Functions", slug: "functions" },
+  { label: "Chat Theme", slug: "chat-theme" },
   { label: "Agent", slug: "agent" },
   { label: "Knowledge Bases", slug: "knowledge-bases" },
   { label: "Limits", slug: "limits" },

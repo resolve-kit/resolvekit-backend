@@ -1,10 +1,13 @@
 import uuid
+from typing import Any
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from agent.models.base import Base, TimestampMixin, UUIDMixin
+from agent.services.chat_theme_service import default_chat_theme
 
 if TYPE_CHECKING:
     from agent.models.app_knowledge_base import AppKnowledgeBase
@@ -27,6 +30,7 @@ class App(Base, UUIDMixin, TimestampMixin):
     bundle_id: Mapped[str | None] = mapped_column(String(255))
     integration_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     integration_version: Mapped[int] = mapped_column(Integer, default=1)
+    chat_theme: Mapped[dict[str, Any]] = mapped_column(JSONB, default=default_chat_theme)
 
     developer: Mapped["DeveloperAccount"] = relationship(back_populates="apps")
     organization: Mapped["Organization"] = relationship(back_populates="apps")

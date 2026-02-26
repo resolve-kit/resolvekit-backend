@@ -9,6 +9,8 @@ from agent.middleware.auth import get_current_developer, require_app_ownership
 from agent.models.app import App
 from agent.models.developer import DeveloperAccount
 from agent.schemas.app import AppCreate, AppOut, AppUpdate
+from agent.schemas.chat_theme import ChatThemeOut, ChatThemeUpdate
+from agent.services.chat_theme_service import default_chat_theme, normalize_chat_theme
 from agent.services.organization_service import ensure_developer_organization
 
 router = APIRouter(prefix="/v1/apps", tags=["apps"])
@@ -100,3 +102,40 @@ async def delete_app(
     require_app_ownership(developer, app_id, app)
     await db.delete(app)
     await db.commit()
+
+
+@router.get("/{app_id}/chat-theme", response_model=ChatThemeOut)
+async def get_chat_theme(
+    app_id: uuid.UUID,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    app = await db.get(App, app_id)
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")
+    require_app_ownership(developer, app_id, app)
+
+    raw_theme = app.chat_theme or default_chat_theme()
+    normalized = normalize_chat_theme(raw_theme)
+    if normalized != raw_theme:
+        app.chat_theme = normalized
+        await db.commit()
+    return ChatThemeOut(**normalized)
+
+
+@router.put("/{app_id}/chat-theme", response_model=ChatThemeOut)
+async def update_chat_theme(
+    app_id: uuid.UUID,
+    body: ChatThemeUpdate,
+    developer: DeveloperAccount = Depends(get_current_developer),
+    db: AsyncSession = Depends(get_db),
+):
+    app = await db.get(App, app_id)
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")
+    require_app_ownership(developer, app_id, app)
+
+    normalized = normalize_chat_theme(body.model_dump())
+    app.chat_theme = normalized
+    await db.commit()
+    return ChatThemeOut(**normalized)
