@@ -209,7 +209,7 @@ model Message {
   id            String   @id @db.Uuid
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   sessionId     String   @map("session_id") @db.Uuid
-  sequenceNumber Int
+  sequenceNumber Int     @map("sequence_number")
   role          String   @db.VarChar(20)
   content       String?
   toolCalls     Json?    @map("tool_calls")

@@ -12,8 +12,7 @@ Playbook is split into four service roles:
   - Dashboard control-plane API boundary.
   - Implements control-plane routes directly and sets cookie sessions.
 - `agent` (`main.py` -> `agent/main.py`, FastAPI)
-  - Runtime API for SDK/chat plus internal control-plane routes.
-  - Control-plane routes require `X-Internal-Dashboard-Token` when `IAA_DASHBOARD_INTERNAL_TOKEN` is set.
+  - Runtime API for SDK/chat only.
 - `knowledge_bases` (`knowledge_bases/main.py`, FastAPI)
   - Internal KB ingestion and semantic retrieval service.
 
@@ -35,12 +34,6 @@ Docker composition is defined in [`docker-compose.yml`](../../docker-compose.yml
   - `WS /v1/sessions/{session_id}/ws`
   - `POST /v1/sessions/{session_id}/messages`
   - `POST /v1/sessions/{session_id}/tool-results`
-- Internal control-plane ownership (called via `api`):
-  - `/v1/auth`
-  - `/v1/organizations`
-  - `/v1/apps/*` management
-  - `/v1/knowledge-bases/*`
-  - dashboard-specific routes (`functions.dashboard_router`, `sessions.dashboard_router`, `playbooks`, `audit`, `config`, `api-keys`)
 
 ## `api` ownership
 

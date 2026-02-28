@@ -111,6 +111,7 @@ async def test_create_session_creates_new_when_reuse_is_disabled() -> None:
     with (
         patch("agent.routers.sessions.resolve_session_ttl_minutes", new=AsyncMock(return_value=60)),
         patch("agent.routers.sessions.get_reusable_session", new=AsyncMock(side_effect=AssertionError("should not run"))),
+        patch("agent.routers.sessions.get_next_sequence", new=AsyncMock(return_value=1)),
         patch("agent.routers.sessions.issue_chat_capability_token", return_value="cap-token"),
     ):
         response = await create_session(body=body, app=app, db=db)
@@ -120,6 +121,6 @@ async def test_create_session_creates_new_when_reuse_is_disabled() -> None:
     assert response.chat_capability_token == "cap-token"
     assert response.reused_active_session is False
     assert response.locale == "fr"
-    assert response.initial_message == "Hello! How can I help you today?"
+    assert response.initial_message == "Bonjour ! Comment puis-je vous aider aujourd'hui ?"
     assert len(db.added) == 2
     assert db.commit_count == 2

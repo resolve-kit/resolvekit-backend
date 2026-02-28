@@ -9,7 +9,7 @@ function toBase64(value: string): string {
 }
 
 function fromBase64(value: string): string {
-  return value.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return value.replace(/\+/g, "-").replace(/\//g, "_");
 }
 
 function decodeFernetKey(): { signingKey: Buffer; encryptionKey: Buffer } {

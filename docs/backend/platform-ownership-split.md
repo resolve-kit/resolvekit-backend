@@ -36,14 +36,6 @@ Separate runtime-agent responsibilities from dashboard-control-plane responsibil
   - `/v1/sessions` (SDK routes)
   - `/v1/sdk/*`
   - chat transports (`/ws`, SSE endpoints)
-- Internal-only control-plane routes (when internal token configured):
-  - `/v1/auth/*`
-  - `/v1/organizations/*`
-  - `/v1/apps/*` management
-  - `/v1/knowledge-bases/*`
-  - `/v1/apps/{app_id}/functions` (dashboard)
-  - `/v1/apps/{app_id}/sessions` (dashboard)
-  - `/v1/apps/{app_id}/playbooks` and related config/audit/api-key routes
 
 ## `knowledge_bases` (FastAPI/Python)
 
@@ -66,8 +58,5 @@ Separate runtime-agent responsibilities from dashboard-control-plane responsibil
 
 ## Operational Notes
 
-- `IAA_DASHBOARD_INTERNAL_TOKEN` controls enforcement at `agent`.
-  - unset: compatibility mode (dashboard routes still reachable directly)
-  - set: dashboard routes require internal token header
-- Dashboard Next API no longer forwards control-plane routes through `agent`.
+- Dashboard Next API owns dashboard control-plane routes directly and no longer forwards through `agent`.
 - Catch-all forwarding route `src/app/v1/[...path]/route.ts` has been removed.

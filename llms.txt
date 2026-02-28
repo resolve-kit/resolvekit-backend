@@ -6,6 +6,7 @@ Start here:
 
 Canonical architecture and capability docs:
 - docs/backend/services-overview.md
+- docs/backend/platform-ownership-split.md
 - docs/backend/ios-app-agent-capabilities.md
 - docs/backend/kb-service-capabilities.md
 - docs/backend/orchestrator-flow.md
@@ -19,6 +20,7 @@ Protocol and integration contracts:
 - SDK_INTEGRATION.md
 
 Generated API contracts (source of truth for endpoint signatures):
+- docs/generated/openapi/dashboard.openapi.json
 - docs/generated/openapi/agent.openapi.json
 - docs/generated/openapi/knowledge_bases.openapi.json
 
@@ -28,4 +30,3 @@ Operational runbooks:
 Notes:
 - Prefer generated OpenAPI files for exact request/response contracts.
 - Prefer curated docs for behavior, boundaries, lifecycle, and implementation guidance.
-

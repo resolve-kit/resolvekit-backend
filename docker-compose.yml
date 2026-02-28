@@ -64,7 +64,6 @@ services:
       IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
-      IAA_DASHBOARD_INTERNAL_TOKEN: ${IAA_DASHBOARD_INTERNAL_TOKEN:-change-me-dashboard-internal-token}
     ports:
       - "8000:8000"
 

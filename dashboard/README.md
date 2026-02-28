@@ -17,6 +17,9 @@ This package now serves two roles:
   - Fernet-compatible key for provider profile secret encryption/decryption.
 - `IAA_KNOWLEDGE_BASES_BASE_URL`, `IAA_KNOWLEDGE_BASES_AUDIENCE`, `IAA_KNOWLEDGE_BASES_SIGNING_KEY`, `IAA_KNOWLEDGE_BASES_JWT_ALGORITHM`
   - KB internal service integration settings for dashboard API route handlers.
+- `IAA_CORS_ALLOWED_ORIGINS`
+  - Comma-separated list of allowed browser origins for cross-origin `/v1/*` requests to the `api` origin.
+  - Same-host origins are also allowed automatically (for example, `http://<host>:3000` -> `http://<host>:3002`).
 
 ## Commands
 

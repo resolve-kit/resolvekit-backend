@@ -1,6 +1,6 @@
 # iOS App Agent Capabilities
 
-This document maps functional capabilities to concrete implementation modules in `agent`.
+This document maps runtime capabilities to concrete implementation modules in `agent`.
 
 ## Entry Point
 
@@ -9,38 +9,7 @@ This document maps functional capabilities to concrete implementation modules in
 
 ## Capability Areas
 
-## Authentication and Identity
-
-- Routers:
-  - [`agent/routers/auth.py`](../../agent/routers/auth.py)
-  - [`agent/routers/organizations.py`](../../agent/routers/organizations.py)
-- Key features:
-  - Signup/login/token issuance.
-  - Current developer profile.
-  - Organization membership and invitations.
-  - Role-aware organization-level management.
-
-## App Lifecycle and Governance
-
-- Routers:
-  - [`agent/routers/apps.py`](../../agent/routers/apps.py)
-  - [`agent/routers/api_keys.py`](../../agent/routers/api_keys.py)
-  - [`agent/routers/audit.py`](../../agent/routers/audit.py)
-- Key features:
-  - CRUD for apps.
-  - Per-app API key issuance/revocation.
-  - Audit event retrieval for security/config history.
-
-## Agent Configuration
-
-- Router:
-  - [`agent/routers/config.py`](../../agent/routers/config.py)
-- Model:
-  - [`agent/models/agent_config.py`](../../agent/models/agent_config.py)
-- Key features:
-  - `system_prompt`, `scope_mode`, LLM profile selection, context/tool/session limits.
-  - Provider/model lookup and connection testing.
-  - Audit-tracked config changes.
+`agent` is runtime-only. Dashboard control-plane features (auth/apps/config/orgs/KB/admin) are owned by Next route handlers in `dashboard/src/app/v1/**`.
 
 ## Function Registry and Eligibility
 
@@ -52,18 +21,9 @@ This document maps functional capabilities to concrete implementation modules in
   - [`agent/services/compatibility_service.py`](../../agent/services/compatibility_service.py)
 - Key features:
   - Bulk function sync from SDK.
-  - Dashboard overrides (active state, description/eligibility metadata).
   - Runtime filtering by platform/version/entitlements/capabilities.
 
-## Playbooks (Structured Workflows)
-
-- Router:
-  - [`agent/routers/playbooks.py`](../../agent/routers/playbooks.py)
-- Model:
-  - [`agent/models/playbook.py`](../../agent/models/playbook.py)
-- Key features:
-  - CRUD playbooks and ordered function step association.
-  - Runtime inclusion as structured workflow context in orchestrator prompts.
+Playbook records are read by runtime for prompt enrichment, but CRUD ownership is in dashboard `api`.
 
 ## Session Management and Context Ingestion
 
@@ -98,7 +58,6 @@ This document maps functional capabilities to concrete implementation modules in
 - Supporting modules:
   - [`agent/services/llm_service.py`](../../agent/services/llm_service.py)
   - [`agent/services/chat_access_service.py`](../../agent/services/chat_access_service.py)
-  - [`agent/services/provider_service.py`](../../agent/services/provider_service.py)
 - Key features:
   - Router + enriched context architecture.
   - Scope mode enforcement (`open`/`strict`).
@@ -108,17 +67,15 @@ This document maps functional capabilities to concrete implementation modules in
 
 ## Knowledge Base Bridge
 
-- Router:
-  - [`agent/routers/knowledge_bases.py`](../../agent/routers/knowledge_bases.py)
 - Bridge client:
   - [`agent/services/knowledge_bases_client.py`](../../agent/services/knowledge_bases_client.py)
 - Local models:
   - [`agent/models/knowledge_base_ref.py`](../../agent/models/knowledge_base_ref.py)
   - [`agent/models/app_knowledge_base.py`](../../agent/models/app_knowledge_base.py)
 - Key features:
-  - KB CRUD and source management proxied to `knowledge_bases`.
-  - Per-app KB assignments.
-  - Organization embedding-profile management and impact checks.
+  - Runtime retrieval for app-assigned KBs during chat orchestration.
+  - Service-to-service JWT auth for KB calls.
+  - KB CRUD/admin flows are owned by dashboard `api`.
 
 ## SDK Compatibility and Guardrails
 
@@ -136,4 +93,3 @@ This document maps functional capabilities to concrete implementation modules in
 - [Orchestrator Flow](orchestrator-flow.md)
 - [SDK-to-Backend Integration Map](integration-map-sdk-to-backend.md)
 - [OpenAPI Contract](../generated/openapi/agent.openapi.json)
-

@@ -102,6 +102,70 @@ async def test_run_agent_loop_strict_scope_rejects_and_persists_message(monkeypa
         sender=sender,
     )
 
+    assert sender.turn_complete_text == "I can only help with iOS app capabilities."
+    assert sender.errors == []
+    llm_mock.assert_not_awaited()
+    prefetch_mock.assert_not_awaited()
+    playbook_mock.assert_not_awaited()
+
+    assistant_messages = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "assistant"]
+    assert len(assistant_messages) == 1
+    assert assistant_messages[0].content == "I can only help with iOS app capabilities."
+
+
+@pytest.mark.asyncio
+async def test_run_agent_loop_strict_scope_uses_generic_rejection_when_router_reason_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _DummyDB()
+    sender = _DummySender()
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    config = SimpleNamespace(
+        system_prompt="My app helps users manage account settings.",
+        scope_mode="strict",
+        max_tool_rounds=3,
+        max_context_messages=20,
+    )
+
+    sequence_counter = {"value": 0}
+
+    async def fake_next_sequence(_db, _session_id):  # noqa: ANN001
+        sequence_counter["value"] += 1
+        return sequence_counter["value"]
+
+    monkeypatch.setattr(orchestrator, "get_next_sequence", fake_next_sequence)
+    monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
+    monkeypatch.setattr(orchestrator, "load_context_messages", AsyncMock(return_value=[]))
+    monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [])))
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=False,
+                rejection_reason=None,
+                needs_kb=False,
+                kb_query=None,
+                intent="General trivia question",
+            )
+        ),
+    )
+    prefetch_mock = AsyncMock(return_value="")
+    monkeypatch.setattr(orchestrator, "_prefetch_kb_context", prefetch_mock)
+    playbook_mock = AsyncMock(return_value="")
+    monkeypatch.setattr(orchestrator, "build_playbook_prompt", playbook_mock)
+    llm_mock = AsyncMock(return_value=_response_with_final_text("Should not be returned"))
+    monkeypatch.setattr(orchestrator, "call_llm", llm_mock)
+
+    await orchestrator.run_agent_loop(
+        db=db,
+        session=session,
+        config=config,
+        functions=[],
+        user_text="What's the weather today?",
+        sender=sender,
+    )
+
     assert sender.turn_complete_text == "I can only help with questions related to the app you are using."
     assert sender.errors == []
     llm_mock.assert_not_awaited()
@@ -279,6 +343,164 @@ async def test_run_agent_loop_strict_scope_router_false_negative_pronoun_followu
 
 
 @pytest.mark.asyncio
+async def test_run_agent_loop_strict_scope_router_false_negative_url_only_followup_continues(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _DummyDB()
+    sender = _DummySender()
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    config = SimpleNamespace(
+        system_prompt="Scout4Me helps users monitor product URLs and manage tracked links.",
+        scope_mode="strict",
+        max_tool_rounds=3,
+        max_context_messages=20,
+    )
+    functions = [
+        SimpleNamespace(
+            name="add_monitoring_url",
+            description="Add a product URL to monitoring.",
+            description_override=None,
+            is_active=True,
+            parameters_schema={"type": "object", "properties": {"url": {"type": "string"}}},
+        )
+    ]
+
+    sequence_counter = {"value": 0}
+
+    async def fake_next_sequence(_db, _session_id):  # noqa: ANN001
+        sequence_counter["value"] += 1
+        return sequence_counter["value"]
+
+    monkeypatch.setattr(orchestrator, "get_next_sequence", fake_next_sequence)
+    monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
+    monkeypatch.setattr(
+        orchestrator,
+        "load_context_messages",
+        AsyncMock(
+            return_value=[
+                SimpleNamespace(
+                    role="assistant",
+                    content=(
+                        "I cannot browse or shop for products directly. "
+                        "Please share a specific product URL you want to track in the app."
+                    ),
+                    tool_calls=None,
+                    tool_call_id=None,
+                ),
+            ]
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [])))
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=False,
+                rejection_reason="I can only help with app-related issues.",
+                needs_kb=False,
+                kb_query=None,
+                intent="Share product URL",
+            )
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "build_playbook_prompt", AsyncMock(return_value=""))
+    monkeypatch.setattr(orchestrator, "_prefetch_kb_context", AsyncMock(return_value=""))
+    llm_mock = AsyncMock(return_value=_response_with_final_text("Done. I added that URL to monitoring."))
+    monkeypatch.setattr(orchestrator, "call_llm", llm_mock)
+
+    await orchestrator.run_agent_loop(
+        db=db,
+        session=session,
+        config=config,
+        functions=functions,
+        user_text=(
+            "https://eavalyne.lt/p/laisvalaikio-batai-nike-air-max-plus-drift-fd4290-010-juoda-0000304826184"
+        ),
+        sender=sender,
+    )
+
+    llm_mock.assert_awaited_once()
+    assert sender.turn_complete_text == "Done. I added that URL to monitoring."
+    assert sender.errors == []
+    assistant_messages = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "assistant"]
+    assert len(assistant_messages) == 1
+    assert assistant_messages[0].content == "Done. I added that URL to monitoring."
+
+
+@pytest.mark.asyncio
+async def test_run_agent_loop_strict_scope_router_false_negative_brief_contextual_followup_continues(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _DummyDB()
+    sender = _DummySender()
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    config = SimpleNamespace(
+        system_prompt="Scout4Me helps users monitor product URLs and manage tracked links.",
+        scope_mode="strict",
+        max_tool_rounds=3,
+        max_context_messages=20,
+    )
+
+    sequence_counter = {"value": 0}
+
+    async def fake_next_sequence(_db, _session_id):  # noqa: ANN001
+        sequence_counter["value"] += 1
+        return sequence_counter["value"]
+
+    monkeypatch.setattr(orchestrator, "get_next_sequence", fake_next_sequence)
+    monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
+    monkeypatch.setattr(
+        orchestrator,
+        "load_context_messages",
+        AsyncMock(
+            return_value=[
+                SimpleNamespace(
+                    role="assistant",
+                    content="I can add it for you. Should I track it every 10 minutes?",
+                    tool_calls=None,
+                    tool_call_id=None,
+                ),
+            ]
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [])))
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=False,
+                rejection_reason="I can only help with app-related issues.",
+                needs_kb=False,
+                kb_query=None,
+                intent="Confirm monitoring interval",
+            )
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "build_playbook_prompt", AsyncMock(return_value=""))
+    monkeypatch.setattr(orchestrator, "_prefetch_kb_context", AsyncMock(return_value=""))
+    llm_mock = AsyncMock(return_value=_response_with_final_text("Perfect, I will track it every 10 minutes."))
+    monkeypatch.setattr(orchestrator, "call_llm", llm_mock)
+
+    await orchestrator.run_agent_loop(
+        db=db,
+        session=session,
+        config=config,
+        functions=[],
+        user_text="yes, every 10 minutes",
+        sender=sender,
+    )
+
+    llm_mock.assert_awaited_once()
+    assert sender.turn_complete_text == "Perfect, I will track it every 10 minutes."
+    assert sender.errors == []
+    assistant_messages = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "assistant"]
+    assert len(assistant_messages) == 1
+    assert assistant_messages[0].content == "Perfect, I will track it every 10 minutes."
+
+
+@pytest.mark.asyncio
 async def test_run_agent_loop_open_mode_continues_and_assembles_enriched_prompt(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -367,6 +589,8 @@ async def test_run_agent_loop_open_mode_continues_and_assembles_enriched_prompt(
     )
     assert router_mock.await_args.args[3] == expected_platform_context
     assert "Vilnius" in router_mock.await_args.args[4]
+    assert router_mock.await_args.args[5] == []
+    assert router_mock.await_args.args[6] == []
     assert prefetch_mock.await_args.kwargs["platform_context"] == expected_platform_context
     assert "location" in prefetch_mock.await_args.kwargs["custom_context"]
 
@@ -386,6 +610,65 @@ async def test_run_agent_loop_open_mode_continues_and_assembles_enriched_prompt(
     assert "## Relevant Documentation" in system_prompt
     assert "## Available Playbooks" in system_prompt
     assert any(tool["function"]["name"] == orchestrator.KB_SEARCH_TOOL_NAME for tool in tools_payload)
+
+
+@pytest.mark.asyncio
+async def test_run_agent_loop_forces_kb_prefetch_for_support_contact_question_when_router_misses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _DummyDB()
+    sender = _DummySender()
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    config = SimpleNamespace(
+        system_prompt="Our app has subscription and account support features.",
+        scope_mode="strict",
+        max_tool_rounds=3,
+        max_context_messages=20,
+    )
+
+    sequence_counter = {"value": 0}
+
+    async def fake_next_sequence(_db, _session_id):  # noqa: ANN001
+        sequence_counter["value"] += 1
+        return sequence_counter["value"]
+
+    monkeypatch.setattr(orchestrator, "get_next_sequence", fake_next_sequence)
+    monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
+    monkeypatch.setattr(orchestrator, "load_context_messages", AsyncMock(return_value=[]))
+    monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [uuid.uuid4()])))
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=True,
+                rejection_reason=None,
+                needs_kb=False,
+                kb_query=None,
+                intent="Ask for support contact",
+            )
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "build_playbook_prompt", AsyncMock(return_value=""))
+    prefetch_mock = AsyncMock(return_value="\n\n## Relevant Documentation\n### Support\nEmail support@acme.app")
+    monkeypatch.setattr(orchestrator, "_prefetch_kb_context", prefetch_mock)
+    llm_mock = AsyncMock(return_value=_response_with_final_text("You can contact support at support@acme.app."))
+    monkeypatch.setattr(orchestrator, "call_llm", llm_mock)
+
+    await orchestrator.run_agent_loop(
+        db=db,
+        session=session,
+        config=config,
+        functions=[],
+        user_text="hi what is the support email?",
+        sender=sender,
+    )
+
+    prefetch_mock.assert_awaited_once()
+    assert prefetch_mock.await_args.kwargs["query"] == "hi what is the support email?"
+    llm_mock.assert_awaited_once()
+    assert sender.turn_complete_text == "You can contact support at support@acme.app."
+    assert sender.errors == []
 
 
 @pytest.mark.asyncio
@@ -449,6 +732,7 @@ def test_assemble_system_prompt_scope_section_only_for_strict() -> None:
         dev_prompt="This app helps users configure thermostats.",
         scope_mode="strict",
         platform_context="Platform: ios",
+        language_context="Locale: en",
         custom_context='{"location":{"city":"Vilnius"}}',
         kb_context="\n\n## Relevant Documentation\n### Thermostat Setup\nStep 1",
         playbook_prompt="\n\n## Available Playbooks\n### Setup",
@@ -468,6 +752,7 @@ def test_assemble_system_prompt_scope_section_only_for_strict() -> None:
         dev_prompt="This app helps users configure thermostats.",
         scope_mode="open",
         platform_context="",
+        language_context="Locale: en",
         custom_context="",
         kb_context="",
         playbook_prompt="",
@@ -492,3 +777,47 @@ async def test_run_router_fails_open_when_router_llm_call_fails(monkeypatch: pyt
     assert result.rejection_reason is None
     assert result.needs_kb is True
     assert result.kb_query == "How do I reset my password?"
+
+
+@pytest.mark.asyncio
+async def test_run_router_includes_recent_context_and_functions_in_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = SimpleNamespace(system_prompt="App context", app_id=uuid.uuid4())
+    captured: dict[str, str] = {}
+
+    async def fake_call_llm(_config, messages, tools=None):  # noqa: ANN001
+        captured["prompt"] = messages[1]["content"]
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='{"in_scope":true,"rejection_reason":null,"needs_kb":false,"kb_query":null,"intent":"follow-up"}'))]
+        )
+
+    monkeypatch.setattr(orchestrator, "call_llm", fake_call_llm)
+
+    recent_messages = [
+        SimpleNamespace(role="assistant", content="Please share the URL you want to track."),
+        SimpleNamespace(role="user", content="Can you add Adidas size 44?"),
+    ]
+    functions = [
+        SimpleNamespace(
+            name="add_monitoring_url",
+            description="Add URL to monitoring list.",
+            description_override=None,
+            is_active=True,
+        )
+    ]
+
+    result = await orchestrator._run_router(
+        config,
+        "https://example.com/product",
+        uuid.uuid4(),
+        "Platform: ios",
+        '{"location":{"city":"Vilnius"}}',
+        recent_messages,
+        functions,
+    )
+
+    assert result.in_scope is True
+    prompt = captured["prompt"]
+    assert "Recent conversation context:" in prompt
+    assert "assistant: Please share the URL you want to track." in prompt
+    assert "Available product actions:" in prompt
+    assert "- add_monitoring_url: Add URL to monitoring list." in prompt
