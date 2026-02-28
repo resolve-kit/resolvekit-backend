@@ -46,9 +46,12 @@ Docker composition is defined in [`docker-compose.yml`](../../docker-compose.yml
 
 - External control-plane API origin for dashboard clients.
 - Route handlers:
-  - attach cookie/session auth to outgoing requests
-  - apply internal boundary token (`DASHBOARD_INTERNAL_TOKEN`)
-  - proxy to `agent` for current control-plane behavior
+  - Next-owned direct implementations currently cover:
+    - `/v1/auth/*`
+    - `/v1/apps`
+    - `/v1/apps/{app_id}`
+    - `/v1/apps/{app_id}/api-keys/*`
+  - remaining control-plane endpoints are currently bridged through internal forwarding to `agent` with internal boundary token (`DASHBOARD_INTERNAL_TOKEN`)
 
 ## `knowledge_bases` ownership
 

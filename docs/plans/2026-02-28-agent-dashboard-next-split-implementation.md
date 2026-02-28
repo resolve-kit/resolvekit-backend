@@ -42,6 +42,10 @@ Separate control-plane traffic from runtime traffic:
 - Forward requests to `AGENT_API_BASE_URL`.
 - Inject `DASHBOARD_INTERNAL_TOKEN` as internal trust header.
 - Set HttpOnly cookie on successful login/signup responses.
+- Add direct Next-owned control-plane handlers for:
+  - `auth` (`login`, `signup`, `me`, `password-guidance`)
+  - `apps` (`list`, `create`, `get`, `patch`, `delete`)
+  - `api-keys` (`list`, `create`, `revoke`)
 
 ### Task 4: Enforce internal control-plane boundary in Python agent
 
@@ -70,10 +74,10 @@ Separate control-plane traffic from runtime traffic:
 
 ## Validation Checklist
 
-- [ ] `uv run python -m pytest tests/test_dashboard_internal_boundary.py -v`
-- [ ] `uv run python -m pytest tests/test_dashboard_api_base_url_contract.py tests/test_subdomain_env_contract.py -v`
-- [ ] `npm --prefix dashboard run build`
-- [ ] confirm `agent` runtime routes continue to load/start
+- [x] `uv run python -m pytest tests/test_dashboard_internal_boundary.py -v`
+- [x] `uv run python -m pytest tests/test_dashboard_api_base_url_contract.py tests/test_subdomain_env_contract.py -v`
+- [x] `npm --prefix dashboard run build`
+- [x] confirm `agent` runtime routes continue to load/start
 
 ## Follow-up Work (next iteration)
 

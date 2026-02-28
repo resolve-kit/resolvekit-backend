@@ -22,10 +22,11 @@ Separate runtime-agent responsibilities from dashboard-control-plane responsibil
 - Owns external control-plane API boundary for dashboard.
 - Exposes `/v1/*` routes to dashboard UI.
 - Responsibilities:
-  - request forwarding to internal `agent` endpoints
+  - direct control-plane implementation for auth/apps/api-keys
+  - request forwarding for remaining yet-to-be-ported endpoints
   - attaching `X-Internal-Dashboard-Token`
   - converting login/signup token response into HttpOnly cookie (`dashboard_token`)
-  - forwarding authenticated session context back to `agent`
+  - forwarding authenticated session context for bridged endpoints back to `agent`
 
 ## `agent` (runtime, FastAPI/Python)
 
