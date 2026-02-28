@@ -9,10 +9,14 @@ This package now serves two roles:
 
 - `NEXT_PUBLIC_API_BASE_URL`
   - Browser-facing API base URL used by dashboard client code.
-- `AGENT_API_BASE_URL`
-  - Internal upstream URL for forwarding `/v1/*` requests to Python `agent`.
-- `DASHBOARD_INTERNAL_TOKEN`
-  - Shared secret injected as `X-Internal-Dashboard-Token` when forwarding to `agent`.
+- `DATABASE_URL`
+  - Prisma connection string for control-plane DB operations.
+- `IAA_JWT_SECRET`, `IAA_JWT_ALGORITHM`, `IAA_JWT_EXPIRE_MINUTES`
+  - Dashboard session token settings.
+- `IAA_ENCRYPTION_KEY`
+  - Fernet-compatible key for provider profile secret encryption/decryption.
+- `IAA_KNOWLEDGE_BASES_BASE_URL`, `IAA_KNOWLEDGE_BASES_AUDIENCE`, `IAA_KNOWLEDGE_BASES_SIGNING_KEY`, `IAA_KNOWLEDGE_BASES_JWT_ALGORITHM`
+  - KB internal service integration settings for dashboard API route handlers.
 
 ## Commands
 
@@ -23,4 +27,4 @@ This package now serves two roles:
 ## Notes
 
 - Existing dashboard views are currently mounted as a client-side app within Next.
-- `/v1/*` route handlers preserve the existing dashboard API contract while isolating browser clients from direct `agent` access.
+- `/v1/*` route handlers preserve the existing dashboard API contract while owning control-plane behavior directly in Next.

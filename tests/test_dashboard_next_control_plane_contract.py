@@ -83,3 +83,21 @@ def test_dashboard_next_has_remaining_control_plane_routes() -> None:
 def test_dashboard_next_no_longer_uses_control_plane_catch_all() -> None:
     catch_all = Path("dashboard/src/app/v1/[...path]/route.ts")
     assert not catch_all.exists(), "Catch-all dashboard control-plane bridge should be removed"
+
+
+def test_dashboard_next_routes_do_not_use_agent_forwarding_helper() -> None:
+    route_files = sorted(Path("dashboard/src/app/v1").rglob("route.ts"))
+    assert route_files, "Expected dashboard Next route files under /v1"
+    still_forwarding = [
+        str(path)
+        for path in route_files
+        if "forwardToAgent(" in path.read_text(encoding="utf-8")
+    ]
+    assert not still_forwarding, f"Routes still forwarding to agent helper: {still_forwarding}"
+
+
+def test_openapi_export_includes_dashboard_api_artifact() -> None:
+    export_script = Path("scripts/export_openapi.py")
+    assert export_script.exists()
+    text = export_script.read_text(encoding="utf-8")
+    assert "dashboard.openapi.json" in text

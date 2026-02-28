@@ -20,7 +20,7 @@ Separate control-plane traffic from runtime traffic:
 
 1. Runtime SDK contracts remain unchanged on `agent`.
 2. Dashboard control-plane routes are internally gated in `agent` with `X-Internal-Dashboard-Token`.
-3. Next route handlers proxy control-plane calls to `agent` and own browser-facing auth/session boundary.
+3. Next route handlers own dashboard control-plane behavior directly and own browser-facing auth/session boundary.
 4. Dashboard and API remain one Next codebase, deployable behind separate origins.
 
 ## Implementation Tasks
@@ -38,14 +38,14 @@ Separate control-plane traffic from runtime traffic:
 
 ### Task 3: Add dashboard backend in Next route handlers
 
-- Add initial proxy route coverage for `/v1/*`.
-- Forward requests to `AGENT_API_BASE_URL`.
-- Inject `DASHBOARD_INTERNAL_TOKEN` as internal trust header.
+- Add `/v1/*` route coverage in Next route handlers.
 - Set HttpOnly cookie on successful login/signup responses.
 - Add direct Next-owned control-plane handlers for:
   - `auth` (`login`, `signup`, `me`, `password-guidance`)
   - `apps` (`list`, `create`, `get`, `patch`, `delete`)
-  - `api-keys` (`list`, `create`, `revoke`)
+  - `api-keys`, `functions`, `playbooks`, `sessions`, `audit`, `config`, `chat theme/localizations`
+  - `organizations` (`me`, onboarding, members, invitations, LLM and embedding profile endpoints)
+  - `knowledge-bases` and app knowledge-base assignment endpoints
 
 ### Task 4: Enforce internal control-plane boundary in Python agent
 
@@ -83,7 +83,7 @@ Separate control-plane traffic from runtime traffic:
 
 ### Phase B: Full `/v1` route map in Next (no catch-all)
 
-- [x] Add shared route-forwarding helper (`src/lib/server/agent-proxy.ts`).
+- [x] Add temporary shared route-forwarding helper (`src/lib/server/agent-proxy.ts`) during migration.
 - [x] Replace generic catch-all with explicit route handlers for all dashboard-used `/v1` endpoints:
   - apps/functions/playbooks/sessions/audit/chat-theme/chat-localizations/config
   - organizations/me/onboarding/members/invitations/llm/embedding endpoints
@@ -91,11 +91,28 @@ Separate control-plane traffic from runtime traffic:
 - [x] Remove `src/app/v1/[...path]/route.ts`.
 - [x] Add contract test coverage for explicit route presence and catch-all removal.
 
-### Phase C: Verification
+### Phase C: Native control-plane rewrite
+
+- [x] Replace route-forwarding handlers with native Next implementations across all dashboard `/v1` routes.
+- [x] Add native shared services for:
+  - provider catalog/model lookup and connection tests
+  - Fernet-compatible key encryption/decryption
+  - KB internal service JWT client integration
+  - onboarding state computation and localization/theme normalization
+- [x] Remove migration-only forwarding helper (`src/lib/server/agent-proxy.ts`).
+
+### Phase D: Dashboard OpenAPI artifact
+
+- [x] Add dashboard OpenAPI exporter (`scripts/export_dashboard_openapi.py`).
+- [x] Extend `scripts/export_openapi.py` and `scripts/check_openapi_sync.py` to include `dashboard.openapi.json`.
+- [x] Commit generated artifact at `docs/generated/openapi/dashboard.openapi.json`.
+
+### Phase E: Verification
 
 - [x] `uv run python -m pytest tests/test_dashboard_next_control_plane_contract.py -v`
 - [x] `uv run python -m pytest tests/test_dashboard_internal_boundary.py tests/test_dashboard_api_base_url_contract.py tests/test_subdomain_env_contract.py tests/test_dashboard_onboarding_contract.py -v`
 - [x] `npm --prefix dashboard run build`
+- [x] `python scripts/check_openapi_sync.py`
 
 ## Validation Checklist
 
@@ -106,6 +123,6 @@ Separate control-plane traffic from runtime traffic:
 
 ## Remaining Follow-up Work
 
-1. Replace remaining forwarded route handlers with native Next-owned implementations where practical (provider and KB flows).
-2. Add dedicated OpenAPI artifact for dashboard Next API.
-3. Keep service docs in sync with endpoint ownership as native coverage expands.
+1. Expand generated dashboard OpenAPI with detailed request/response schemas beyond path/method inventory.
+2. Add endpoint-level runtime tests for native provider and KB flows (success + error mappings).
+3. Continue reducing duplicate domain logic shared between Python and Next control-plane implementations.

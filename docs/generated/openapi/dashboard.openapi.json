@@ -1,0 +1,1538 @@
+{
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "cookieAuth": {
+        "in": "cookie",
+        "name": "dashboard_token",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Generated from Next.js dashboard route handlers under dashboard/src/app/v1.",
+    "title": "Playbook Dashboard API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/apps": {
+      "get": {
+        "operationId": "get_v1_apps",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "post": {
+        "operationId": "post_v1_apps",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId": {
+      "delete": {
+        "operationId": "delete_v1_apps_appId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "get": {
+        "operationId": "get_v1_apps_appId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_v1_apps_appId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/api-keys": {
+      "get": {
+        "operationId": "get_v1_apps_appId_api-keys",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "post": {
+        "operationId": "post_v1_apps_appId_api-keys",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/api-keys/keyId": {
+      "delete": {
+        "operationId": "delete_v1_apps_appId_api-keys_keyId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/audit-events": {
+      "get": {
+        "operationId": "get_v1_apps_appId_audit-events",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/chat-localizations": {
+      "get": {
+        "operationId": "get_v1_apps_appId_chat-localizations",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "put": {
+        "operationId": "put_v1_apps_appId_chat-localizations",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/chat-theme": {
+      "get": {
+        "operationId": "get_v1_apps_appId_chat-theme",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "put": {
+        "operationId": "put_v1_apps_appId_chat-theme",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/config": {
+      "get": {
+        "operationId": "get_v1_apps_appId_config",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "put": {
+        "operationId": "put_v1_apps_appId_config",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/config/models": {
+      "get": {
+        "operationId": "get_v1_apps_appId_config_models",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "post": {
+        "operationId": "post_v1_apps_appId_config_models",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/config/providers": {
+      "get": {
+        "operationId": "get_v1_apps_appId_config_providers",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/config/test": {
+      "post": {
+        "operationId": "post_v1_apps_appId_config_test",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/functions": {
+      "get": {
+        "operationId": "get_v1_apps_appId_functions",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/functions/functionId": {
+      "delete": {
+        "operationId": "delete_v1_apps_appId_functions_functionId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_v1_apps_appId_functions_functionId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/knowledge-bases": {
+      "get": {
+        "operationId": "get_v1_apps_appId_knowledge-bases",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "put": {
+        "operationId": "put_v1_apps_appId_knowledge-bases",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/playbooks": {
+      "get": {
+        "operationId": "get_v1_apps_appId_playbooks",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "post": {
+        "operationId": "post_v1_apps_appId_playbooks",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/playbooks/playbookId": {
+      "delete": {
+        "operationId": "delete_v1_apps_appId_playbooks_playbookId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "get": {
+        "operationId": "get_v1_apps_appId_playbooks_playbookId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_v1_apps_appId_playbooks_playbookId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/playbooks/playbookId/functions": {
+      "put": {
+        "operationId": "put_v1_apps_appId_playbooks_playbookId_functions",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/sessions": {
+      "get": {
+        "operationId": "get_v1_apps_appId_sessions",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/sessions/sessionId/messages": {
+      "get": {
+        "operationId": "get_v1_apps_appId_sessions_sessionId_messages",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "post_v1_auth_login",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "operationId": "get_v1_auth_me",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/password-guidance": {
+      "get": {
+        "operationId": "get_v1_auth_password-guidance",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/signup": {
+      "post": {
+        "operationId": "post_v1_auth_signup",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/knowledge-bases": {
+      "get": {
+        "operationId": "get_v1_knowledge-bases",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      },
+      "post": {
+        "operationId": "post_v1_knowledge-bases",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId": {
+      "delete": {
+        "operationId": "delete_v1_knowledge-bases_kbId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      },
+      "get": {
+        "operationId": "get_v1_knowledge-bases_kbId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_v1_knowledge-bases_kbId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/documents": {
+      "get": {
+        "operationId": "get_v1_knowledge-bases_kbId_documents",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/documents/documentId": {
+      "delete": {
+        "operationId": "delete_v1_knowledge-bases_kbId_documents_documentId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/embedding-change-impact": {
+      "post": {
+        "operationId": "post_v1_knowledge-bases_kbId_embedding-change-impact",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/jobs": {
+      "get": {
+        "operationId": "get_v1_knowledge-bases_kbId_jobs",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/search": {
+      "post": {
+        "operationId": "post_v1_knowledge-bases_kbId_search",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/sources": {
+      "get": {
+        "operationId": "get_v1_knowledge-bases_kbId_sources",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/sources/sourceId": {
+      "delete": {
+        "operationId": "delete_v1_knowledge-bases_kbId_sources_sourceId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/sources/sourceId/recrawl": {
+      "post": {
+        "operationId": "post_v1_knowledge-bases_kbId_sources_sourceId_recrawl",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/sources/upload": {
+      "post": {
+        "operationId": "post_v1_knowledge-bases_kbId_sources_upload",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/sources/upload-file": {
+      "post": {
+        "operationId": "post_v1_knowledge-bases_kbId_sources_upload-file",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/knowledge-bases/kbId/sources/url": {
+      "post": {
+        "operationId": "post_v1_knowledge-bases_kbId_sources_url",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
+    "/v1/organizations/embedding-models": {
+      "get": {
+        "operationId": "get_v1_organizations_embedding-models",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/embedding-profiles": {
+      "get": {
+        "operationId": "get_v1_organizations_embedding-profiles",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "operationId": "post_v1_organizations_embedding-profiles",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/embedding-profiles/profileId": {
+      "delete": {
+        "operationId": "delete_v1_organizations_embedding-profiles_profileId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_v1_organizations_embedding-profiles_profileId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/embedding-profiles/profileId/change-impact": {
+      "post": {
+        "operationId": "post_v1_organizations_embedding-profiles_profileId_change-impact",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/invitations": {
+      "post": {
+        "operationId": "post_v1_organizations_invitations",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/invitations/invitationId": {
+      "delete": {
+        "operationId": "delete_v1_organizations_invitations_invitationId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/invitations/invitationId/accept": {
+      "post": {
+        "operationId": "post_v1_organizations_invitations_invitationId_accept",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/invitations/received": {
+      "get": {
+        "operationId": "get_v1_organizations_invitations_received",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/invitations/sent": {
+      "get": {
+        "operationId": "get_v1_organizations_invitations_sent",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/llm-models": {
+      "get": {
+        "operationId": "get_v1_organizations_llm-models",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/llm-profiles": {
+      "get": {
+        "operationId": "get_v1_organizations_llm-profiles",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "operationId": "post_v1_organizations_llm-profiles",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/llm-profiles/profileId": {
+      "delete": {
+        "operationId": "delete_v1_organizations_llm-profiles_profileId",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_v1_organizations_llm-profiles_profileId",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/llm/providers": {
+      "get": {
+        "operationId": "get_v1_organizations_llm_providers",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/me": {
+      "get": {
+        "operationId": "get_v1_organizations_me",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/members": {
+      "get": {
+        "operationId": "get_v1_organizations_members",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/members/memberId/role": {
+      "patch": {
+        "operationId": "patch_v1_organizations_members_memberId_role",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/onboarding": {
+      "get": {
+        "operationId": "get_v1_organizations_onboarding",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/v1/organizations/onboarding/reset": {
+      "post": {
+        "operationId": "post_v1_organizations_onboarding_reset",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
+    }
+  }
+}

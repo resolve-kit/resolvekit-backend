@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export OpenAPI snapshots for agent and knowledge_bases."""
+"""Export OpenAPI snapshots for agent, knowledge_bases, and dashboard API routes."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 
 from agent.main import app as agent_app  # noqa: E402
 from knowledge_bases.main import app as knowledge_bases_app  # noqa: E402
+from scripts.export_dashboard_openapi import render_dashboard_openapi  # noqa: E402
 
 
 def _render_openapi(app) -> str:
@@ -33,6 +34,10 @@ def export_openapi() -> list[Path]:
     for output, app in targets.items():
         output.write_text(_render_openapi(app), encoding="utf-8")
         written.append(output)
+
+    dashboard_output = out_dir / "dashboard.openapi.json"
+    dashboard_output.write_text(render_dashboard_openapi(), encoding="utf-8")
+    written.append(dashboard_output)
     return written
 
 
@@ -43,4 +48,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

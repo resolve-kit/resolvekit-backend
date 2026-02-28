@@ -10,7 +10,7 @@ Playbook is split into four service roles:
   - Dashboard UI frontend.
 - `api` (`dashboard/`, Next.js Route Handlers under `/v1/*`)
   - Dashboard control-plane API boundary.
-  - Proxies control-plane requests to internal `agent` routes and sets cookie sessions.
+  - Implements control-plane routes directly and sets cookie sessions.
 - `agent` (`main.py` -> `agent/main.py`, FastAPI)
   - Runtime API for SDK/chat plus internal control-plane routes.
   - Control-plane routes require `X-Internal-Dashboard-Token` when `IAA_DASHBOARD_INTERNAL_TOKEN` is set.
@@ -46,13 +46,10 @@ Docker composition is defined in [`docker-compose.yml`](../../docker-compose.yml
 
 - External control-plane API origin for dashboard clients.
 - Route handlers:
-  - Next-owned direct implementations currently cover:
-    - `/v1/auth/*`
-    - `/v1/apps`
-    - `/v1/apps/{app_id}`
-    - `/v1/apps/{app_id}/api-keys/*`
-  - remaining control-plane endpoints are bridged through explicit Next route handlers that forward to `agent` with internal boundary token (`DASHBOARD_INTERNAL_TOKEN`)
-  - generic catch-all route forwarding is removed; all dashboard-used `/v1` paths are now explicitly declared under `src/app/v1`
+  - Next-owned direct implementations cover full dashboard `/v1/*` route surface.
+  - Uses Prisma for primary control-plane data operations.
+  - Uses direct KB service integration for knowledge-base and embedding-profile operations.
+  - Generic catch-all route forwarding is removed; all dashboard-used `/v1` paths are explicitly declared under `src/app/v1`.
 
 ## `knowledge_bases` ownership
 
@@ -64,9 +61,9 @@ Docker composition is defined in [`docker-compose.yml`](../../docker-compose.yml
 ## Dashboard flow
 
 1. Browser app (`dash`) calls `/v1/*` on `api`.
-2. `api` route handlers validate/attach session credentials and forward to `agent`.
-3. `agent` handles tenant/domain logic and persists to `db`.
-4. KB-related calls are proxied from `agent` to `knowledge_bases`.
+2. `api` route handlers validate session credentials and apply org/app authorization.
+3. `api` persists control-plane records directly to `db`.
+4. KB-related calls are performed from `api` to `knowledge_bases` using service JWT.
 
 ## SDK runtime flow
 

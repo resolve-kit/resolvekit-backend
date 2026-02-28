@@ -145,6 +145,7 @@ model RegisteredFunction {
   packName             String?  @map("pack_name") @db.VarChar(255)
 
   app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+  playbookFunctions PlaybookFunction[]
 
   @@unique([appId, name], map: "uq_function_app_name")
   @@index([appId], map: "ix_registered_functions_app_id")
@@ -162,10 +163,25 @@ model Playbook {
   updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
 
   app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+  playbookFunctions PlaybookFunction[]
 
   @@unique([appId, name], map: "uq_playbook_app_name")
   @@index([appId], map: "ix_playbooks_app_id")
   @@map("playbooks")
+}
+
+model PlaybookFunction {
+  playbookId       String  @map("playbook_id") @db.Uuid
+  functionId       String  @map("function_id") @db.Uuid
+  stepOrder        Int     @default(0) @map("step_order")
+  stepDescription  String? @map("step_description")
+
+  playbook Playbook           @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  function RegisteredFunction @relation(fields: [functionId], references: [id], onDelete: Cascade)
+
+  @@id([playbookId, functionId])
+  @@unique([playbookId, functionId], map: "uq_playbook_function")
+  @@map("playbook_functions")
 }
 
 model ChatSession {

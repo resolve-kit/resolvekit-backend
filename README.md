@@ -37,6 +37,7 @@ Playbook Backend provides the server-side runtime for embedded app assistants. I
 
 Generated snapshots (committed for LLM and developer reference):
 
+- [`dashboard` OpenAPI](docs/generated/openapi/dashboard.openapi.json)
 - [`agent` OpenAPI](docs/generated/openapi/agent.openapi.json)
 - [`knowledge_bases` OpenAPI](docs/generated/openapi/knowledge_bases.openapi.json)
 

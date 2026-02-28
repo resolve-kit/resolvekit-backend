@@ -48,10 +48,19 @@ Settings are loaded via pydantic settings models:
 
 - `NEXT_PUBLIC_API_BASE_URL`
   - Dashboard API origin used from `dash` UI (for example: `https://api.<domain>`).
-- `AGENT_API_BASE_URL`
-  - Internal base URL used by Next dashboard `/v1` route handlers when forwarding to `agent`.
-- `DASHBOARD_INTERNAL_TOKEN`
-  - Token injected by Next dashboard route handlers into `X-Internal-Dashboard-Token`.
+- `DATABASE_URL`
+  - Dashboard Next route handler DB connection string (Prisma).
+- `IAA_JWT_SECRET`
+- `IAA_JWT_ALGORITHM`
+- `IAA_JWT_EXPIRE_MINUTES`
+  - Dashboard browser-session token settings.
+- `IAA_ENCRYPTION_KEY`
+  - Used by dashboard API for encrypting/decrypting provider profile API keys (Fernet-compatible).
+- `IAA_KNOWLEDGE_BASES_BASE_URL`
+- `IAA_KNOWLEDGE_BASES_AUDIENCE`
+- `IAA_KNOWLEDGE_BASES_SIGNING_KEY`
+- `IAA_KNOWLEDGE_BASES_JWT_ALGORITHM`
+  - Used by dashboard API to call KB service internal endpoints directly.
 
 ## `KBS_*` variables
 

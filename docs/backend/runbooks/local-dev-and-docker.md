@@ -71,6 +71,6 @@
   - Verify `IAA_KNOWLEDGE_BASES_*` and `KBS_SERVICE_JWT_*` values match.
 - Dashboard cannot reach API:
   - Verify `NEXT_PUBLIC_API_BASE_URL` points to the dashboard API origin (for local, `http://localhost:3002`).
-  - Verify `DASHBOARD_INTERNAL_TOKEN` and `IAA_DASHBOARD_INTERNAL_TOKEN` match.
+  - Verify dashboard `api` service has `DATABASE_URL`, `IAA_JWT_*`, `IAA_ENCRYPTION_KEY`, and `IAA_KNOWLEDGE_BASES_*` configured.
 - WS auth failures:
   - Ensure ws-ticket flow is used and token not expired.

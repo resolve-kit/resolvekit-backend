@@ -3211,6 +3211,24 @@
     "/v1/apps": {
       "get": {
         "operationId": "list_apps_v1_apps_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3225,6 +3243,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -3239,6 +3267,24 @@
       },
       "post": {
         "operationId": "create_app_v1_apps_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3295,6 +3341,22 @@
               "title": "App Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -3333,6 +3395,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -3379,6 +3457,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -3438,6 +3532,22 @@
               "title": "App Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -3487,6 +3597,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -3555,6 +3681,22 @@
               "format": "uuid",
               "title": "Key Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -3641,6 +3783,22 @@
               ],
               "title": "Event Type"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -3689,6 +3847,22 @@
               "title": "App Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -3734,6 +3908,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -3793,6 +3983,22 @@
               "title": "App Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -3838,6 +4044,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -3897,6 +4119,22 @@
               "title": "App Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -3942,6 +4180,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4017,6 +4271,22 @@
               ],
               "title": "Provider"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -4062,6 +4332,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4121,6 +4407,22 @@
               "title": "App Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -4172,6 +4474,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4230,6 +4548,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4293,6 +4627,22 @@
               "title": "Function Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -4341,6 +4691,22 @@
               "format": "uuid",
               "title": "Function Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4400,6 +4766,22 @@
               "title": "App Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -4443,6 +4825,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4500,6 +4898,22 @@
               "title": "App Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -4549,6 +4963,22 @@
               "format": "uuid",
               "title": "App Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4618,6 +5048,22 @@
               "title": "Playbook Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -4666,6 +5112,22 @@
               "format": "uuid",
               "title": "Playbook Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4722,6 +5184,22 @@
               "format": "uuid",
               "title": "Playbook Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4790,6 +5268,22 @@
               "format": "uuid",
               "title": "Playbook Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -4908,6 +5402,22 @@
               "title": "Offset",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -4970,6 +5480,22 @@
               "title": "Session Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -5012,6 +5538,24 @@
     "/v1/auth/login": {
       "post": {
         "operationId": "login_v1_auth_login_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5053,6 +5597,24 @@
     "/v1/auth/me": {
       "get": {
         "operationId": "me_v1_auth_me_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -5063,6 +5625,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -5079,6 +5651,24 @@
     "/v1/auth/password-guidance": {
       "get": {
         "operationId": "password_guidance_v1_auth_password_guidance_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -5089,6 +5679,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Password Guidance",
@@ -5100,6 +5700,24 @@
     "/v1/auth/signup": {
       "post": {
         "operationId": "signup_v1_auth_signup_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5258,6 +5876,24 @@
     "/v1/knowledge-bases": {
       "get": {
         "operationId": "kb_list_v1_knowledge_bases_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -5266,6 +5902,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -5280,6 +5926,24 @@
       },
       "post": {
         "operationId": "kb_create_v1_knowledge_bases_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5334,6 +5998,22 @@
               "title": "Kb Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -5372,6 +6052,22 @@
               "format": "uuid",
               "title": "Kb Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -5416,6 +6112,22 @@
               "format": "uuid",
               "title": "Kb Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -5502,6 +6214,22 @@
               "title": "Limit",
               "type": "integer"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -5558,6 +6286,22 @@
               "title": "Document Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -5598,6 +6342,22 @@
               "format": "uuid",
               "title": "Kb Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -5655,6 +6415,22 @@
               "title": "Kb Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -5700,6 +6476,22 @@
               "format": "uuid",
               "title": "Kb Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -5757,6 +6549,22 @@
               "title": "Kb Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -5802,6 +6610,22 @@
               "format": "uuid",
               "title": "Kb Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -5859,6 +6683,22 @@
               "title": "Kb Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "requestBody": {
@@ -5914,6 +6754,22 @@
               "format": "uuid",
               "title": "Kb Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -5981,6 +6837,22 @@
               "title": "Source Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -6032,6 +6904,22 @@
               "title": "Source Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -6078,6 +6966,22 @@
               "title": "Llm Profile Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -6116,6 +7020,24 @@
     "/v1/organizations/embedding-profiles": {
       "get": {
         "operationId": "organization_embedding_profiles_list_v1_organizations_embedding_profiles_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6124,6 +7046,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -6138,6 +7070,24 @@
       },
       "post": {
         "operationId": "organization_embedding_profiles_create_v1_organizations_embedding_profiles_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6192,6 +7142,22 @@
               "title": "Profile Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -6230,6 +7196,22 @@
               "format": "uuid",
               "title": "Profile Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -6287,6 +7269,22 @@
               "title": "Profile Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "requestBody": {
@@ -6333,6 +7331,24 @@
     "/v1/organizations/invitations": {
       "post": {
         "operationId": "invite_member_v1_organizations_invitations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6379,6 +7395,24 @@
     "/v1/organizations/invitations/received": {
       "get": {
         "operationId": "list_received_invitations_v1_organizations_invitations_received_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6393,6 +7427,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -6409,6 +7453,24 @@
     "/v1/organizations/invitations/sent": {
       "get": {
         "operationId": "list_sent_invitations_v1_organizations_invitations_sent_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6423,6 +7485,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -6448,6 +7520,22 @@
               "format": "uuid",
               "title": "Invitation Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -6489,6 +7577,22 @@
               "format": "uuid",
               "title": "Invitation Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -6538,6 +7642,22 @@
               "title": "Llm Profile Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -6576,6 +7696,24 @@
     "/v1/organizations/llm-profiles": {
       "get": {
         "operationId": "list_llm_profiles_v1_organizations_llm_profiles_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6590,6 +7728,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -6604,6 +7752,24 @@
       },
       "post": {
         "operationId": "create_llm_profile_v1_organizations_llm_profiles_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6660,6 +7826,22 @@
               "title": "Profile Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
           }
         ],
         "responses": {
@@ -6698,6 +7880,22 @@
               "format": "uuid",
               "title": "Profile Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -6747,6 +7945,24 @@
     "/v1/organizations/llm/providers": {
       "get": {
         "operationId": "get_llm_provider_catalog_v1_organizations_llm_providers_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6755,6 +7971,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -6771,6 +7997,24 @@
     "/v1/organizations/me": {
       "get": {
         "operationId": "get_my_organization_v1_organizations_me_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6781,6 +8025,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -6797,6 +8051,24 @@
     "/v1/organizations/members": {
       "get": {
         "operationId": "list_organization_members_v1_organizations_members_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6811,6 +8083,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -6836,6 +8118,22 @@
               "format": "uuid",
               "title": "Member Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
             }
           }
         ],
@@ -6885,6 +8183,24 @@
     "/v1/organizations/onboarding": {
       "get": {
         "operationId": "get_onboarding_state_v1_organizations_onboarding_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6895,6 +8211,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -6911,6 +8237,24 @@
     "/v1/organizations/onboarding/reset": {
       "post": {
         "operationId": "reset_onboarding_state_v1_organizations_onboarding_reset_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-dashboard-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Dashboard-Token"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -6921,6 +8265,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [

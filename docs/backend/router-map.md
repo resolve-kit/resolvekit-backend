@@ -2,10 +2,12 @@
 
 This map groups endpoints by router and responsibility. For exact request/response schemas, use:
 
+- [`dashboard.openapi.json`](../generated/openapi/dashboard.openapi.json)
 - [`agent.openapi.json`](../generated/openapi/agent.openapi.json)
 - [`knowledge_bases.openapi.json`](../generated/openapi/knowledge_bases.openapi.json)
 
-Control-plane routes are expected to be called through dashboard `api` (Next route handlers). When `IAA_DASHBOARD_INTERNAL_TOKEN` is set, these routes require `X-Internal-Dashboard-Token`.
+Dashboard browser clients use dashboard `api` (Next route handlers under `/v1/*`) as the control-plane boundary.
+`agent` control-plane routes remain available for internal/compatibility use and require `X-Internal-Dashboard-Token` when `IAA_DASHBOARD_INTERNAL_TOKEN` is set.
 
 ## `agent` routers
 
