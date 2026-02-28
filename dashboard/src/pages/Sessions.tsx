@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
 import { Badge, Button, PageSpinner } from "../components/ui";
+import { PageHeader } from "../components/layout/PageHeader";
 
 interface Session {
   id: string;
@@ -66,7 +67,7 @@ function ToolCallCard({ calls }: { calls: unknown }) {
         const args = fnRecord?.arguments;
 
         return (
-          <div key={index} className="px-3 py-2 bg-canvas border-b border-border last:border-0">
+          <div key={index} className="border-b border-border bg-surface px-3 py-2 last:border-0">
             <div className="flex items-center justify-between mb-1">
               <span className="text-accent font-semibold">-&gt; {name}</span>
               <button
@@ -226,7 +227,7 @@ function LLMContextCard({ context }: { context: Record<string, unknown> }) {
       {complexEntries.length > 0 && (
         <div className="space-y-1">
           {complexEntries.map(([key, value]) => (
-            <details key={key} className="text-xs font-mono bg-canvas border border-border rounded p-2">
+            <details key={key} className="rounded border border-border bg-surface-2 p-2 text-xs font-mono">
               <summary className="cursor-pointer text-muted">{key}</summary>
               <pre className="text-dim overflow-auto max-h-44 mt-2 whitespace-pre-wrap">
                 {JSON.stringify(value, null, 2)}
@@ -248,6 +249,7 @@ export default function Sessions() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isMobileThreadOpen, setIsMobileThreadOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesError, setMessagesError] = useState<string | null>(null);
@@ -262,6 +264,11 @@ export default function Sessions() {
         setSessions(data.slice(0, PAGE_SIZE));
       })
       .finally(() => setIsLoading(false));
+  }, [appId]);
+
+  useEffect(() => {
+    setSelectedId(null);
+    setIsMobileThreadOpen(false);
   }, [appId]);
 
   async function loadMore() {
@@ -352,42 +359,51 @@ export default function Sessions() {
 
   if (isLoading) return <PageSpinner />;
 
+  const showListPane = !isMobileThreadOpen;
+  const showThreadPane = isMobileThreadOpen;
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-strong">Chat Sessions</h1>
-          <p className="text-sm text-subtle mt-1">View conversation history from your iOS app users.</p>
+      <PageHeader
+        eyebrow="Conversations"
+        title="Chat Sessions"
+        subtitle="Inspect user conversations, tool calls, and outcomes from SDK-embedded support."
+      />
+
+      <div className="glass-panel mb-4 rounded-2xl border border-border/70 p-3 md:p-4">
+        <div className="grid gap-2 md:grid-cols-[1fr_220px]">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by session ID or device ID..."
+            className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-body placeholder:text-muted focus:border-accent focus:outline-none"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-body focus:border-accent focus:outline-none"
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="closed">Closed</option>
+            <option value="expired">Expired</option>
+          </select>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by session ID or device ID..."
-          className="flex-1 bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-body focus:outline-none focus:border-accent placeholder:text-muted"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-body focus:outline-none focus:border-accent"
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="closed">Closed</option>
-          <option value="expired">Expired</option>
-        </select>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-1 space-y-2">
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className={`space-y-2 xl:col-span-1 ${showListPane ? "block" : "hidden xl:block"}`}>
           {filteredSessions.map((session) => (
             <button
               key={session.id}
-              onClick={() => loadMessages(session.id)}
-              className={`w-full text-left bg-surface border rounded-xl p-3 text-sm transition-all hover:border-border-2 ${
-                selectedId === session.id ? "border-accent/40 bg-accent-subtle" : "border-border"
+              onClick={() => {
+                void loadMessages(session.id);
+                if (window.innerWidth < 1280) setIsMobileThreadOpen(true);
+              }}
+              className={`w-full rounded-xl border p-3 text-left text-sm transition-all hover:-translate-y-0.5 hover:border-border-2 hover:shadow-card ${
+                selectedId === session.id
+                  ? "border-accent-dim bg-accent-subtle"
+                  : "border-border bg-surface"
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
@@ -402,7 +418,9 @@ export default function Sessions() {
           ))}
 
           {filteredSessions.length === 0 && (
-            <p className="text-subtle text-sm text-center py-8">No sessions match your filters.</p>
+            <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-subtle">
+              No sessions match your filters.
+            </p>
           )}
 
           {hasMore && (
@@ -412,12 +430,28 @@ export default function Sessions() {
           )}
         </div>
 
-        <div className="col-span-2 bg-surface border border-border rounded-xl flex flex-col min-h-[500px] overflow-hidden">
+        <div
+          className={`glass-panel xl:col-span-2 min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border/70 ${
+            showThreadPane ? "flex" : "hidden xl:flex"
+          }`}
+        >
           {selectedSession ? (
             <>
               <div className="px-4 py-3 border-b border-border flex-shrink-0">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs text-dim">{selectedSession.id}</span>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileThreadOpen(false)}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface text-subtle xl:hidden"
+                      aria-label="Back to session list"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span className="truncate font-mono text-xs text-dim">{selectedSession.id}</span>
+                  </div>
                   <Badge variant={statusVariant(selectedSession.status)} dot>
                     {selectedSession.status}
                   </Badge>
@@ -459,12 +493,12 @@ export default function Sessions() {
                     return (
                       <div key={message.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                         <div
-                          className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
+                          className={`max-w-[92%] rounded-xl px-3 py-2 text-sm shadow-card sm:max-w-[82%] ${
                             isUser
                               ? "bg-accent-subtle border border-accent-dim text-body"
-                              : isTool
-                              ? "bg-canvas border border-border text-dim w-full max-w-full"
-                              : "bg-surface-2 border border-border text-body"
+                            : isTool
+                              ? "w-full max-w-full border border-border bg-surface text-dim"
+                              : "border border-border bg-surface-2 text-body"
                           }`}
                         >
                           <p

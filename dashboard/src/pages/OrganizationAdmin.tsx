@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { ApiError, api } from "../api/client";
-import { Badge, Button, Input, Select, useToast } from "../components/ui";
+import { PageHeader } from "../components/layout/PageHeader";
+import { Badge, Button, DataPanel, Input, MetricTile, SectionCard, Select, useToast } from "../components/ui";
 import { useOnboarding } from "../context/OnboardingContext";
 
 interface OrganizationMember {
@@ -58,6 +59,8 @@ interface OrganizationLlmProfile {
   updated_at: string;
 }
 
+type OrganizationView = "llm-setup" | "team-management";
+
 export default function OrganizationAdmin() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [organization, setOrganization] = useState<OrganizationInfo | null>(null);
@@ -78,10 +81,12 @@ export default function OrganizationAdmin() {
   const [llmApiBase, setLlmApiBase] = useState("");
   const [creatingLlmProfile, setCreatingLlmProfile] = useState(false);
   const [deletingLlmProfileId, setDeletingLlmProfileId] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<OrganizationView>("team-management");
+  const hasInitializedDefaultView = useRef(false);
   const { toast } = useToast();
   const { refresh } = useOnboarding();
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const me = await api<DeveloperMe>("/v1/auth/me");
@@ -109,11 +114,17 @@ export default function OrganizationAdmin() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [loadData]);
+
+  useEffect(() => {
+    if (loading || hasInitializedDefaultView.current) return;
+    setActiveView(llmProfiles.length === 0 ? "llm-setup" : "team-management");
+    hasInitializedDefaultView.current = true;
+  }, [loading, llmProfiles.length]);
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
@@ -185,6 +196,7 @@ export default function OrganizationAdmin() {
     e.preventDefault();
     if (!llmProfileName.trim() || !llmProvider.trim() || !llmApiKey.trim()) return;
 
+    const hadNoProfiles = llmProfiles.length === 0;
     setCreatingLlmProfile(true);
     try {
       await api<OrganizationLlmProfile>("/v1/organizations/llm-profiles", {
@@ -202,6 +214,9 @@ export default function OrganizationAdmin() {
       toast("LLM profile created", "success");
       await loadData();
       await refresh();
+      if (hadNoProfiles) {
+        setActiveView("team-management");
+      }
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to create LLM profile", "error");
     } finally {
@@ -231,66 +246,80 @@ export default function OrganizationAdmin() {
       ? (["owner", "admin", "member"] as const)
       : (["admin", "member"] as const);
   const selectedLlmProvider = providerCatalog.find((provider) => provider.id === llmProvider);
+  const memberCount = loading ? "..." : members.length;
+  const profileCount = loading ? "..." : llmProfiles.length;
+  const sentInvitationCount = loading ? "..." : sentInvitations.length;
+  const receivedInvitationCount = loading ? "..." : receivedInvitations.length;
+  const headerSubtitle = organization
+    ? `Manage teammates and shared LLM credentials for ${organization.name}.`
+    : "Manage team access and shared LLM provider credentials.";
+  const llmViewActive = activeView === "llm-setup";
+  const teamViewActive = activeView === "team-management";
 
   return (
     <div className="space-y-6">
-      <div className="animate-fade-in-up">
-        <h1 className="font-display text-2xl font-bold text-strong">
-          Organization Admin
-        </h1>
-        {organization ? (
-          <div className="text-sm text-subtle mt-1">
-            <p>{organization.name}</p>
-            <p className="font-mono text-xs mt-0.5">
-              Organization ID: {organization.public_id}
-            </p>
+      <PageHeader
+        eyebrow="Organization Workspace"
+        title="Organization Admin"
+        subtitle={headerSubtitle}
+        rightSlot={
+          organization ? (
+            <Badge variant="default">Org ID: {organization.public_id}</Badge>
+          ) : undefined
+        }
+      />
+
+      <section className="grid grid-cols-2 gap-3 animate-fade-in-up delay-50 xl:grid-cols-4">
+        <MetricTile label="LLM Profiles" value={profileCount} hint="Shared provider credentials" />
+        <MetricTile label="Team Members" value={memberCount} hint="Users in this organization" />
+        <MetricTile label="Sent Invites" value={canManageOrganization ? sentInvitationCount : "-"} hint="Pending invitations" />
+        <MetricTile label="Invites For You" value={receivedInvitationCount} hint="Pending invites to accept" />
+      </section>
+
+      <section className="animate-fade-in-up delay-100">
+        <div className="flex gap-1 overflow-x-auto border-b border-border pb-1">
+          <button
+            type="button"
+            onClick={() => setActiveView("llm-setup")}
+            className={`relative whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors ${
+              llmViewActive ? "text-strong" : "text-subtle hover:text-body"
+            }`}
+          >
+            LLM Setup
+            {llmViewActive && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-accent" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView("team-management")}
+            className={`relative whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors ${
+              teamViewActive ? "text-strong" : "text-subtle hover:text-body"
+            }`}
+          >
+            Team Management
+            {teamViewActive && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-accent" />}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-subtle">
+          {llmViewActive
+            ? "Configure provider credentials once, then use them across apps and knowledge bases."
+            : "Invite teammates, set roles, and manage pending invitations."}
+        </p>
+      </section>
+
+      {llmViewActive && (
+        <SectionCard
+          title="Organization LLM Profiles"
+          subtitle="Set provider credentials once here. Individual app pages pick model settings from these profiles."
+          className="animate-fade-in-up delay-150"
+        >
+        {!canManageOrganization && (
+          <div className="mb-4 rounded-lg border border-border bg-surface-2 px-3 py-2">
+            <p className="text-xs text-subtle">Only organization owners and admins can create or delete provider profiles.</p>
           </div>
-        ) : (
-          <p className="text-sm text-subtle mt-1">
-            Invite team members and manage organization access.
-          </p>
         )}
-      </div>
-
-      {canManageOrganization ? (
-        <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">
-          <h2 className="text-sm font-semibold text-strong mb-1">Invite User</h2>
-          <p className="text-xs text-subtle mb-4">
-            Invitations work only for emails that already have a registered account.
-          </p>
-          <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-3">
-            <Input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="teammate@example.com"
-              className="flex-1"
-              required
-            />
-            <Button type="submit" loading={inviteLoading}>
-              Invite
-            </Button>
-          </form>
-        </div>
-      ) : (
-        <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">
-          <h2 className="text-sm font-semibold text-strong mb-1">Invite User</h2>
-          <p className="text-xs text-subtle">
-            Only organization owners and admins can send invitations.
-          </p>
-        </div>
-      )}
-
-      <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up space-y-4">
-        <div>
-          <h2 className="text-sm font-semibold text-strong mb-1">Organization LLM Profiles</h2>
-          <p className="text-xs text-subtle">
-            Configure reusable provider credentials once. Models are selected per app and embeddings in Knowledge Bases.
-          </p>
-        </div>
 
         {canManageOrganization && (
-          <form onSubmit={createLlmProfile} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <form onSubmit={createLlmProfile} className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <Input
               label="Profile Name"
               value={llmProfileName}
@@ -298,11 +327,7 @@ export default function OrganizationAdmin() {
               placeholder="OpenAI Prod"
               required
             />
-            <Select
-              label="Provider"
-              value={llmProvider}
-              onChange={(e) => setLlmProvider(e.target.value)}
-            >
+            <Select label="Provider" value={llmProvider} onChange={(e) => setLlmProvider(e.target.value)}>
               {providerCatalog.map((provider) => (
                 <option key={provider.id} value={provider.id}>
                   {provider.name}
@@ -322,9 +347,11 @@ export default function OrganizationAdmin() {
                 Add Profile
               </Button>
             </div>
-            <p className="md:col-span-4 text-xs text-subtle">
-              The API key is validated with a live provider request before the profile is saved.
+
+            <p className="text-xs text-subtle md:col-span-4">
+              API keys are validated with a live provider request before a profile is saved.
             </p>
+
             {selectedLlmProvider?.custom_base_url && (
               <div className="md:col-span-4">
                 <Input
@@ -339,176 +366,207 @@ export default function OrganizationAdmin() {
           </form>
         )}
 
-        {loading ? (
-          <p className="text-xs text-subtle">Loading LLM profiles...</p>
-        ) : llmProfiles.length === 0 ? (
-          <p className="text-xs text-subtle">No LLM profiles configured yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {llmProfiles.map((profile) => (
-              <div
-                key={profile.id}
-                className="rounded-lg border border-border bg-canvas/40 px-3 py-2 flex items-center justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm text-strong">{profile.name}</p>
-                  <p className="text-xs text-subtle">{profile.provider}</p>
-                  {profile.api_base && (
-                    <p className="text-xs text-dim font-mono truncate">{profile.api_base}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={profile.has_api_key ? "active" : "revoked"} dot>
-                    API key {profile.has_api_key ? "set" : "missing"}
-                  </Badge>
-                  {canManageOrganization && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      loading={deletingLlmProfileId === profile.id}
-                      onClick={() => {
-                        void deleteLlmProfile(profile.id);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">
-          <h2 className="text-sm font-semibold text-strong mb-3">Organization Members</h2>
-          {loading ? (
-            <p className="text-xs text-subtle">Loading members...</p>
-          ) : members.length === 0 ? (
-            <p className="text-xs text-subtle">No members found.</p>
-          ) : (
-            <div className="space-y-2">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="rounded-lg border border-border bg-canvas/40 px-3 py-2 flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm text-strong">
-                      {member.name}
-                      {currentUser?.id === member.id ? " (You)" : ""}
-                    </p>
-                    <p className="text-xs text-subtle font-mono truncate">{member.email}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={member.role === "owner" ? "live" : member.role === "admin" ? "active" : "default"}>
-                      {member.role}
-                    </Badge>
-                    {canManageOrganization && currentUser?.id !== member.id && (
-                      <select
-                        className="bg-surface border border-border rounded px-2 py-1 text-xs text-body"
-                        value={member.role}
-                        disabled={
-                          updatingRoleId === member.id ||
-                          (currentUser?.role === "admin" && member.role === "owner")
-                        }
-                        onChange={(e) => {
-                          void updateMemberRole(
-                            member.id,
-                            e.target.value as "owner" | "admin" | "member",
-                          );
-                        }}
-                      >
-                        {editableRoles.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {canManageOrganization && (
-          <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">
-            <h2 className="text-sm font-semibold text-strong mb-3">Pending Invitations (Sent)</h2>
+        <div className="mt-4">
+          <DataPanel
+            title="Configured Profiles"
+            subtitle="These credentials are reusable across app config and Knowledge Base embeddings."
+          >
             {loading ? (
-              <p className="text-xs text-subtle">Loading invitations...</p>
-            ) : sentInvitations.length === 0 ? (
-              <p className="text-xs text-subtle">No pending invitations sent.</p>
+              <p className="text-xs text-subtle">Loading LLM profiles...</p>
+            ) : llmProfiles.length === 0 ? (
+              <p className="text-xs text-subtle">No LLM profiles configured yet.</p>
             ) : (
               <div className="space-y-2">
-                {sentInvitations.map((invitation) => (
+                {llmProfiles.map((profile) => (
                   <div
-                    key={invitation.id}
-                    className="rounded-lg border border-border bg-canvas/40 px-3 py-2 flex items-center justify-between gap-3"
+                    key={profile.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-canvas/40 px-3 py-2"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm text-strong truncate">{invitation.invitee_email}</p>
-                      <p className="text-xs text-subtle">
-                        Expires {new Date(invitation.expires_at).toLocaleString()}
-                      </p>
+                      <p className="text-sm text-strong">{profile.name}</p>
+                      <p className="text-xs text-subtle">{profile.provider}</p>
+                      {profile.api_base && <p className="truncate font-mono text-xs text-dim">{profile.api_base}</p>}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="live">Pending</Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        loading={cancelingInvitationId === invitation.id}
-                        onClick={() => {
-                          void cancelInvitation(invitation.id);
-                        }}
-                      >
-                        Cancel
-                      </Button>
+                      <Badge variant={profile.has_api_key ? "active" : "revoked"} dot>
+                        API key {profile.has_api_key ? "set" : "missing"}
+                      </Badge>
+                      {canManageOrganization && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={deletingLlmProfileId === profile.id}
+                          onClick={() => {
+                            void deleteLlmProfile(profile.id);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        )}
-      </div>
+          </DataPanel>
+        </div>
+      </SectionCard>
+      )}
 
-      <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">
-        <h2 className="text-sm font-semibold text-strong mb-3">Invitations For You</h2>
-        {loading ? (
-          <p className="text-xs text-subtle">Loading invitations...</p>
-        ) : receivedInvitations.length === 0 ? (
-          <p className="text-xs text-subtle">No pending invitations to accept.</p>
+      {teamViewActive && (
+        <SectionCard
+          title="Team Access Management"
+          subtitle="Invite teammates, set roles, review pending invitations, and accept invites sent to you."
+          className="animate-fade-in-up delay-150"
+        >
+        {canManageOrganization ? (
+          <DataPanel title="Invite User" subtitle="Invitations work only for emails that already registered an account.">
+            <form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row">
+              <Input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="teammate@example.com"
+                className="flex-1"
+                required
+              />
+              <Button type="submit" loading={inviteLoading}>
+                Invite
+              </Button>
+            </form>
+          </DataPanel>
         ) : (
-          <div className="space-y-2">
-            {receivedInvitations.map((invitation) => (
-              <div
-                key={invitation.id}
-                className="rounded-lg border border-border bg-canvas/40 px-3 py-2 flex items-center justify-between gap-3"
-              >
-                <div>
-                  <p className="text-sm text-strong">Organization Invitation</p>
-                  <p className="text-xs text-subtle">
-                    Expires {new Date(invitation.expires_at).toLocaleString()}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  loading={acceptingId === invitation.id}
-                  onClick={() => {
-                    void acceptInvitation(invitation.id);
-                  }}
-                >
-                  Accept
-                </Button>
-              </div>
-            ))}
-          </div>
+          <DataPanel title="Invite User">
+            <p className="text-xs text-subtle">Only organization owners and admins can send invitations.</p>
+          </DataPanel>
         )}
-      </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <DataPanel title="Organization Members">
+            {loading ? (
+              <p className="text-xs text-subtle">Loading members...</p>
+            ) : members.length === 0 ? (
+              <p className="text-xs text-subtle">No members found.</p>
+            ) : (
+              <div className="space-y-2">
+                {members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-canvas/40 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-strong">
+                        {member.name}
+                        {currentUser?.id === member.id ? " (You)" : ""}
+                      </p>
+                      <p className="truncate font-mono text-xs text-subtle">{member.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={member.role === "owner" ? "live" : member.role === "admin" ? "active" : "default"}>
+                        {member.role}
+                      </Badge>
+                      {canManageOrganization && currentUser?.id !== member.id && (
+                        <select
+                          className="rounded border border-border bg-surface px-2 py-1 text-xs text-body"
+                          value={member.role}
+                          disabled={
+                            updatingRoleId === member.id ||
+                            (currentUser?.role === "admin" && member.role === "owner")
+                          }
+                          onChange={(e) => {
+                            void updateMemberRole(
+                              member.id,
+                              e.target.value as "owner" | "admin" | "member",
+                            );
+                          }}
+                        >
+                          {editableRoles.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DataPanel>
+
+          {canManageOrganization && (
+            <DataPanel title="Pending Invitations (Sent)">
+              {loading ? (
+                <p className="text-xs text-subtle">Loading invitations...</p>
+              ) : sentInvitations.length === 0 ? (
+                <p className="text-xs text-subtle">No pending invitations sent.</p>
+              ) : (
+                <div className="space-y-2">
+                  {sentInvitations.map((invitation) => (
+                    <div
+                      key={invitation.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-canvas/40 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-strong">{invitation.invitee_email}</p>
+                        <p className="text-xs text-subtle">Expires {new Date(invitation.expires_at).toLocaleString()}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="live">Pending</Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={cancelingInvitationId === invitation.id}
+                          onClick={() => {
+                            void cancelInvitation(invitation.id);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DataPanel>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <DataPanel title="Invitations For You">
+            {loading ? (
+              <p className="text-xs text-subtle">Loading invitations...</p>
+            ) : receivedInvitations.length === 0 ? (
+              <p className="text-xs text-subtle">No pending invitations to accept.</p>
+            ) : (
+              <div className="space-y-2">
+                {receivedInvitations.map((invitation) => (
+                  <div
+                    key={invitation.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-canvas/40 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm text-strong">Organization Invitation</p>
+                      <p className="text-xs text-subtle">Expires {new Date(invitation.expires_at).toLocaleString()}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      loading={acceptingId === invitation.id}
+                      onClick={() => {
+                        void acceptInvitation(invitation.id);
+                      }}
+                    >
+                      Accept
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DataPanel>
+        </div>
+      </SectionCard>
+      )}
     </div>
   );
 }

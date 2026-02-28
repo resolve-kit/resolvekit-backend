@@ -1,162 +1,79 @@
 import Link from "next/link";
 
 import { HeroChatPreview } from "@/components/hero-chat-preview";
+import { MissionRail } from "@/components/sections/mission-rail";
+import { ProofGrid } from "@/components/sections/proof-grid";
+import { SdkFlow } from "@/components/sections/sdk-flow";
+import { ToolApprovalStrip } from "@/components/sections/tool-approval-strip";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { dashboardLoginUrl, feedbackIssuesUrl } from "@/lib/urls";
-
-const FREE_FOR_NOW_LABEL = "Free (for now)";
-const FEEDBACK_LABEL = "Pay us in feedback";
-
-const VALUE_POINTS = [
-  {
-    title: "Product-Native Assistant",
-    description:
-      "Deliver an assistant that sounds like your product team and understands your app, not a generic chatbot.",
-  },
-  {
-    title: "Scoped + Controlled Responses",
-    description:
-      "Set open or strict scope, define guardrails, and keep answers focused on your product experience.",
-  },
-  {
-    title: "Context-Enriched Every Turn",
-    description:
-      "Combine docs, workflows, tools, platform details, and custom session data so each answer is truly relevant.",
-  },
-];
-
-const CONFIG_PILLARS = [
-  {
-    title: "Product Context Prompt",
-    description:
-      "Define your product, capabilities, and assistant behavior so responses match your brand and support standards.",
-  },
-  {
-    title: "Scope Mode",
-    description:
-      "Choose `open` for broad help or `strict` to reject requests that are outside your product domain.",
-  },
-  {
-    title: "Knowledge Bases",
-    description:
-      "Connect docs, FAQs, and troubleshooting content so answers stay grounded in approved sources.",
-  },
-  {
-    title: "Playbooks",
-    description:
-      "Build repeatable resolution flows with clear tool steps to drive consistent, high-quality support.",
-  },
-  {
-    title: "Functions + Eligibility",
-    description:
-      "Expose actions and gate them by platform, app version, entitlements, and capabilities.",
-  },
-  {
-    title: "Session LLM Context",
-    description:
-      "Pass per-session fields like location, network quality, account state, or plan tier for tailored responses.",
-  },
-];
-
-const PLATFORM_STEPS = [
-  "Identify intent and scope before generating a response",
-  "Load the most relevant docs and support workflows for that request",
-  "Blend product context, user platform, and session signals into one answer",
-  "Execute eligible tools when needed and keep a full trace of decisions",
-];
+import { dashboardLoginUrl, dashboardRegisterUrl, feedbackIssuesUrl } from "@/lib/urls";
 
 export default function HomePage() {
   return (
-    <main className="mx-auto max-w-6xl px-6 pb-20 pt-12">
-      <header className="flex items-center justify-between">
-        <p className="text-sm tracking-[0.2em] uppercase text-muted-foreground">Playbook</p>
-        <div className="flex gap-3">
+    <main className="mx-auto max-w-6xl px-6 pb-20 pt-10">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/" className="text-sm uppercase tracking-[0.22em] text-muted-foreground">
+          Playbook
+        </Link>
+        <div className="flex flex-wrap gap-3">
           <Link href="/pricing">
             <Button variant="ghost">Pricing</Button>
           </Link>
           <a href={dashboardLoginUrl}>
-            <Button variant="outline">Sign In</Button>
+            <Button variant="outline">Dashboard Sign In</Button>
           </a>
         </div>
       </header>
 
-      <section className="mt-16 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+      <section className="mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,430px)]">
         <div className="max-w-3xl animate-fade-up">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            Configurable Assistant Platform
-          </p>
-          <h1 className="text-5xl font-semibold leading-[1.04]">
-            Configure the Assistant Your App Actually Needs
+          <h1 className="text-5xl font-semibold leading-[1.02] tracking-tight">
+            Embedded Chat Support Powered by an LLM Agent That Can Actually Act
           </h1>
-          <p className="mt-5 text-lg text-muted-foreground">
-            Playbook gives teams full control over how their assistant behaves: what it can answer, which tools it can
-            use, what context it sees, and how it adapts by platform and user session.
-          </p>
-          <p className="mt-4 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-            <span className="font-semibold">{FREE_FOR_NOW_LABEL}</span>
-            <span className="mx-2 text-muted-foreground">-</span>
-            <span>{FEEDBACK_LABEL}. Roast us kindly by opening GitHub issues.</span>
+          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+            Developers integrate the Playbook SDK into mobile or web apps. Users get embedded chat. Your LLM agent
+            understands the app, explains fixes clearly, and can invoke approved on-device functions to resolve issues.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href={dashboardLoginUrl}>
-              <Button>Use It Free</Button>
+            <a href={dashboardRegisterUrl}>
+              <Button>Start Free</Button>
             </a>
             <Link href="/pricing">
-              <Button variant="outline">See Free Plan</Button>
+              <Button variant="outline">See plan details</Button>
             </Link>
             <a href={feedbackIssuesUrl} target="_blank" rel="noreferrer">
-              <Button variant="ghost">Leave Feedback</Button>
+              <Button variant="ghost">Share feedback</Button>
             </a>
           </div>
         </div>
         <HeroChatPreview />
       </section>
 
-      <section className="mt-12 grid gap-4 md:grid-cols-3">
-        {VALUE_POINTS.map((item, idx) => (
-          <Card
-            key={item.title}
-            className={`p-5 animate-fade-up ${idx === 1 ? "[animation-delay:120ms]" : idx === 2 ? "[animation-delay:240ms]" : ""}`}
-          >
-            <h2 className="text-lg font-semibold">{item.title}</h2>
-            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-          </Card>
-        ))}
-      </section>
+      <MissionRail />
+      <SdkFlow />
+      <ToolApprovalStrip />
+      <ProofGrid />
 
       <section className="mt-12">
         <Card className="p-6 md:p-8 animate-fade-up">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">What You Can Configure</p>
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {CONFIG_PILLARS.map((pillar) => (
-              <div key={pillar.title} className="rounded-xl border border-border bg-background/70 px-4 py-3">
-                <p className="text-sm font-semibold">{pillar.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{pillar.description}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
-
-      <section className="mt-12">
-        <Card className="p-6 md:p-8 animate-fade-up">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">How It Works Per Turn</p>
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {PLATFORM_STEPS.map((step, idx) => (
-              <div key={step} className="rounded-xl border border-border bg-background/70 px-4 py-3">
-                <p className="text-xs text-muted-foreground">Step {idx + 1}</p>
-                <p className="mt-1 text-sm">{step}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 border-t border-border pt-6 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              Launch in one app and scale consistent assistant behavior across mobile, web, dashboard, and TV experiences.
-            </p>
-            <Link href="/pricing">
-              <Button variant="outline">Go To Pricing</Button>
-            </Link>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Operator Command</p>
+              <h2 className="mt-2 text-2xl font-semibold">Control prompts, functions, limits, and session traces from one dashboard</h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Keep assistant behavior consistent across every app surface while still adapting to platform, version,
+                and real-time session context.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <a href={dashboardLoginUrl}>
+                <Button>Open Dashboard</Button>
+              </a>
+              <Link href="/pricing">
+                <Button variant="outline">Pricing</Button>
+              </Link>
+            </div>
           </div>
         </Card>
       </section>

@@ -135,9 +135,9 @@ export default function Languages() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="glass-panel rounded-2xl px-4 py-3 flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-strong">Languages</h1>
+          <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">Localization</h1>
           <p className="text-sm text-subtle mt-1">
             Customize chat title, message placeholder, and initial message per language.
           </p>
@@ -158,7 +158,7 @@ export default function Languages() {
           const code = row.locale.code;
           const draft = drafts[code] || row.effective;
           return (
-            <div key={code} className="bg-surface border border-border rounded-xl p-4">
+            <div key={code} className="glass-panel rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="font-medium text-strong">

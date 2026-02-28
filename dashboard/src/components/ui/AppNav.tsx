@@ -8,12 +8,16 @@ interface AppNavProps {
 }
 
 const TABS = [
-  { label: "Config", slug: "config" },
-  { label: "Functions", slug: "functions" },
-  { label: "Chat Theme", slug: "chat-theme" },
-  { label: "Sessions", slug: "sessions" },
-  { label: "API Keys", slug: "api-keys" },
+  { label: "Model", slug: "llm" },
+  { label: "System Prompt", slug: "agent" },
+  { label: "Limits", slug: "limits" },
   { label: "Playbooks", slug: "playbooks" },
+  { label: "Knowledge Bases", slug: "knowledge-bases" },
+  { label: "API Keys", slug: "api-keys" },
+  { label: "Chat Theme", slug: "chat-theme" },
+  { label: "Localization", slug: "languages" },
+  { label: "Sessions", slug: "sessions" },
+  { label: "Audit Log", slug: "audit" },
 ];
 
 export function AppNav({ appId, appName: propAppName }: AppNavProps) {

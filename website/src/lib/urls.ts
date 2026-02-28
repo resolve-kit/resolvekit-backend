@@ -8,4 +8,5 @@ const rawFeedbackIssuesUrl =
 
 export const dashboardBaseUrl = trimTrailingSlash(rawDashboardBaseUrl);
 export const dashboardLoginUrl = `${dashboardBaseUrl}/login`;
+export const dashboardRegisterUrl = `${dashboardBaseUrl}/login?mode=register`;
 export const feedbackIssuesUrl = rawFeedbackIssuesUrl;

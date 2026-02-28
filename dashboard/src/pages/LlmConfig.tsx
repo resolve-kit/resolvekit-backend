@@ -101,7 +101,7 @@ export default function LlmConfig() {
         setModelsError(err instanceof ApiError ? err.detail : "Failed to load models");
       })
       .finally(() => setModelsLoading(false));
-  }, [draftProfileId]);
+  }, [draftProfileId, draftModel]);
 
   const selectedProfile = useMemo(
     () => profiles.find((profile) => profile.id === draftProfileId) ?? null,
@@ -137,7 +137,7 @@ export default function LlmConfig() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-strong">LLM Provider</h1>
+        <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">LLM Provider</h1>
         <p className="text-sm text-subtle mt-1">
           Select organization provider credentials first, then choose the app model.
         </p>
@@ -150,7 +150,7 @@ export default function LlmConfig() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="glass-panel rounded-xl p-6 space-y-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-subtle">
             Provider keys are managed in Organization Admin. This page selects the model used by this app.

@@ -14,15 +14,15 @@ const config: Config = {
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))"
+          foreground: "hsl(var(--primary-foreground))",
         },
         card: {
           DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))"
+          foreground: "hsl(var(--card-foreground))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))"
+          foreground: "hsl(var(--muted-foreground))",
         },
         border: "hsl(var(--border))",
       },
@@ -30,11 +30,12 @@ const config: Config = {
         lg: "var(--radius)",
       },
       boxShadow: {
-        panel: "0 18px 55px -28px rgba(7, 27, 54, 0.4)",
+        panel: "0 22px 58px -34px rgba(7, 31, 66, 0.48)",
+        card: "0 14px 36px -22px rgba(17, 48, 90, 0.36)",
       },
       keyframes: {
         "fade-up": {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "0%": { opacity: "0", transform: "translateY(16px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
       },

@@ -3,11 +3,15 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
   Button,
+  EmptyState,
   Input,
+  MetricTile,
+  SectionCard,
   ConfirmDialog,
   useToast,
 } from "../components/ui";
 import { useOnboarding } from "../context/OnboardingContext";
+import { PageHeader } from "../components/layout/PageHeader";
 
 interface App {
   id: string;
@@ -27,11 +31,6 @@ interface ApiKeySummary {
   is_active: boolean;
 }
 
-interface FunctionSummary {
-  id: string;
-  is_active: boolean;
-}
-
 function AppIcon({ name }: { name: string }) {
   const palettes = [
     "bg-accent-subtle text-accent border-accent-dim",
@@ -42,7 +41,7 @@ function AppIcon({ name }: { name: string }) {
   const idx = (name.charCodeAt(0) || 0) % palettes.length;
   return (
     <div
-      className={`w-10 h-10 rounded-xl flex items-center justify-center text-base font-semibold font-display border flex-shrink-0 ${palettes[idx]}`}
+      className={`h-10 w-10 flex-shrink-0 rounded-xl border text-base font-semibold font-display flex items-center justify-center shadow-card ${palettes[idx]}`}
     >
       {name[0]?.toUpperCase() || "?"}
     </div>
@@ -50,16 +49,16 @@ function AppIcon({ name }: { name: string }) {
 }
 
 const APP_NAV_ITEMS = [
-  { label: "LLM", slug: "llm" },
-  { label: "API Keys", slug: "api-keys" },
-  { label: "Functions", slug: "functions" },
-  { label: "Chat Theme", slug: "chat-theme" },
-  { label: "Agent", slug: "agent" },
-  { label: "Knowledge", slug: "knowledge-bases" },
+  { label: "Model", slug: "llm" },
+  { label: "System Prompt", slug: "agent" },
   { label: "Limits", slug: "limits" },
-  { label: "Sessions", slug: "sessions" },
   { label: "Playbooks", slug: "playbooks" },
-  { label: "Audit", slug: "audit" },
+  { label: "Knowledge Bases", slug: "knowledge-bases" },
+  { label: "API Keys", slug: "api-keys" },
+  { label: "Chat Theme", slug: "chat-theme" },
+  { label: "Localization", slug: "languages" },
+  { label: "Sessions", slug: "sessions" },
+  { label: "Audit Log", slug: "audit" },
 ];
 
 export default function Apps() {
@@ -85,26 +84,22 @@ export default function Apps() {
     const entries = await Promise.all(
       targetApps.map(async (app) => {
         try {
-          const [config, apiKeys, functions] = await Promise.all([
+          const [config, apiKeys] = await Promise.all([
             api<ConfigSummary>(`/v1/apps/${app.id}/config`),
             api<ApiKeySummary[]>(`/v1/apps/${app.id}/api-keys`),
-            api<FunctionSummary[]>(`/v1/apps/${app.id}/functions`),
           ]);
 
           const missing: string[] = [];
           if (!config.llm_profile_id || !config.llm_model) {
-            missing.push("LLM");
+            missing.push("Model");
           }
           if (!apiKeys.some((key) => key.is_active)) {
             missing.push("API Keys");
           }
-          if (!functions.some((fn) => fn.is_active)) {
-            missing.push("Functions");
-          }
 
           return [app.id, missing] as const;
         } catch {
-          return [app.id, ["LLM", "API Keys", "Functions"]] as const;
+          return [app.id, ["Model", "API Keys"]] as const;
         }
       })
     );
@@ -126,7 +121,7 @@ export default function Apps() {
       setApps([app, ...apps]);
       setAppMissingConfig((prev) => ({
         ...prev,
-        [app.id]: ["LLM", "API Keys", "Functions"],
+        [app.id]: ["Model", "API Keys"],
       }));
       setNewName("");
       setNewBundleId("");
@@ -141,15 +136,20 @@ export default function Apps() {
   }
 
   async function deleteApp(id: string) {
-    await api(`/v1/apps/${id}`, { method: "DELETE" });
-    setApps(apps.filter((a) => a.id !== id));
-    setAppMissingConfig((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-    toast("App deleted", "info");
-    void refresh();
+    try {
+      await api(`/v1/apps/${id}`, { method: "DELETE" });
+      setApps((prev) => prev.filter((a) => a.id !== id));
+      setAppMissingConfig((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setConfirmDeleteId(null);
+      toast("App deleted", "info");
+      void refresh();
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to delete app", "error");
+    }
   }
 
   async function toggleIntegration(id: string, enable: boolean) {
@@ -167,37 +167,41 @@ export default function Apps() {
 
   const appToDelete = apps.find((a) => a.id === confirmDeleteId);
   const appToToggle = apps.find((a) => a.id === confirmToggleAppId) ?? null;
+  const configuredApps = Object.values(appMissingConfig).filter((missing) => missing.length === 0).length;
+  const enabledApps = apps.filter((app) => app.integration_enabled).length;
 
   return (
     <div>
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-6 animate-fade-in-up">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-strong">
-            Your Apps
-          </h1>
-          <p className="text-sm text-subtle mt-1">
-            Manage your iOS apps and their agent configurations
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => setShowCreate(!showCreate)}
-          icon={
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-          }
-        >
-          New App
-        </Button>
+      <PageHeader
+        eyebrow="Applications"
+        title="Your Apps"
+        subtitle="Manage embedded chat deployments and operator configuration readiness across your app portfolio."
+        rightSlot={
+          <Button
+            variant="primary"
+            size="md"
+            className="w-full sm:w-auto"
+            onClick={() => setShowCreate(!showCreate)}
+            icon={
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            }
+          >
+            New App
+          </Button>
+        }
+      />
+
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 animate-fade-in-up">
+        <MetricTile label="Total apps" value={apps.length} />
+        <MetricTile label="Integration enabled" value={enabledApps} />
+        <MetricTile label="Config complete" value={configuredApps} />
       </div>
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-surface border border-border rounded-xl p-5 mb-6 animate-fade-in-up">
-          <h2 className="text-sm font-semibold text-strong mb-4">Create New App</h2>
+        <SectionCard title="Create New App" className="mb-6 animate-fade-in-up">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <Input
               label="App Name"
@@ -230,15 +234,15 @@ export default function Apps() {
               Cancel
             </Button>
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {/* App grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {apps.map((app, i) => (
           <div
             key={app.id}
-            className={`group relative bg-surface border border-border rounded-xl p-4 hover:border-border-2 transition-all animate-fade-in-up ${
+            className={`group relative glass-panel rounded-xl border border-border/70 p-4 transition-all hover:-translate-y-0.5 hover:border-border-2 hover:shadow-card animate-fade-in-up ${
               i === 0 ? "" : i === 1 ? "delay-50" : i === 2 ? "delay-100" : "delay-150"
             }`}
           >
@@ -264,7 +268,7 @@ export default function Apps() {
                     {app.bundle_id}
                   </p>
                 )}
-                <p className={`text-[10px] mt-1 ${app.integration_enabled ? "text-success" : "text-warning"}`}>
+                <p className={`mt-1 text-[10px] ${app.integration_enabled ? "text-success" : "text-warning"}`}>
                   Integration {app.integration_enabled ? "Enabled" : "Disabled"}
                 </p>
                 {appMissingConfig[app.id] && appMissingConfig[app.id].length > 0 && (
@@ -279,12 +283,12 @@ export default function Apps() {
             </div>
 
             {/* Nav chips */}
-            <div className="flex gap-1.5 flex-wrap">
+            <div className="flex flex-wrap gap-1.5">
               {APP_NAV_ITEMS.map((item) => (
                 <Link
                   key={item.slug}
                   to={`/apps/${app.id}/${item.slug}`}
-                  className="text-xs px-2.5 py-1 rounded-full bg-surface-2 border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
+                  className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs text-subtle transition-colors hover:border-border-2 hover:bg-surface-2 hover:text-body"
                 >
                   {item.label}
                 </Link>
@@ -306,13 +310,11 @@ export default function Apps() {
       </div>
 
       {apps.length === 0 && !showCreate && (
-        <div className="text-center py-16 text-subtle animate-fade-in-up">
-          <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
-            <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-          </div>
-          <p className="text-sm">No apps yet. Create your first app to get started.</p>
+        <div className="animate-fade-in-up">
+          <EmptyState
+            title="No apps yet"
+            description="Create your first app to start shipping embedded LLM support."
+          />
         </div>
       )}
 
@@ -322,7 +324,10 @@ export default function Apps() {
         description={`Are you sure you want to delete "${appToDelete?.name}"? This will permanently remove all associated configuration, functions, sessions, and API keys.`}
         confirmLabel="Delete App"
         confirmVariant="danger"
-        onConfirm={() => deleteApp(confirmDeleteId!)}
+        onConfirm={async () => {
+          if (!confirmDeleteId) return;
+          await deleteApp(confirmDeleteId);
+        }}
         onCancel={() => setConfirmDeleteId(null)}
       />
 

@@ -223,9 +223,9 @@ export default function ChatTheme() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="glass-panel rounded-2xl px-4 py-3 flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-strong">Chat Theme</h1>
+          <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">Chat Theme</h1>
           <p className="text-sm text-subtle mt-1">
             Configure chat colors for light and dark modes with a live preview.
           </p>
@@ -267,7 +267,7 @@ export default function ChatTheme() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-surface border border-border rounded-xl p-4">
+        <div className="lg:col-span-3 glass-panel rounded-xl p-4">
           <h2 className="text-sm font-semibold text-strong mb-4">
             {activeMode === "light" ? "Light" : "Dark"} Palette
           </h2>

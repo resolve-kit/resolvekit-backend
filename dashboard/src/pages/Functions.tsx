@@ -24,18 +24,33 @@ export default function Functions() {
   const { appId } = useParams();
   const { toast } = useToast();
   const { refresh } = useOnboarding();
-  const [functions, setFunctions] = useState<Fn[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [functions, setFunctions] = useState<Fn[] | null>(null);
+  const [loadedAppId, setLoadedAppId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [overrideText, setOverrideText] = useState("");
   const [openSchemas, setOpenSchemas] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    setIsLoading(true);
+    if (!appId) return;
+    let cancelled = false;
+
     api<Fn[]>(`/v1/apps/${appId}/functions`)
-      .then(setFunctions)
-      .finally(() => setIsLoading(false));
-  }, [appId]);
+      .then((data) => {
+        if (cancelled) return;
+        setFunctions(data);
+        setLoadedAppId(appId);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setFunctions([]);
+        setLoadedAppId(appId);
+        toast(err instanceof ApiError ? err.detail : "Failed to load functions", "error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appId, toast]);
 
   async function toggleActive(fn: Fn) {
     try {
@@ -43,7 +58,7 @@ export default function Functions() {
         method: "PATCH",
         body: JSON.stringify({ is_active: !fn.is_active }),
       });
-      setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
+      setFunctions((prev) => prev?.map((f) => (f.id === fn.id ? updated : f)) ?? prev);
       toast(
         `${fn.name} ${updated.is_active ? "activated" : "deactivated"}`,
         "success"
@@ -65,7 +80,7 @@ export default function Functions() {
         method: "PATCH",
         body: JSON.stringify({ description_override: overrideText || null }),
       });
-      setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
+      setFunctions((prev) => prev?.map((f) => (f.id === fn.id ? updated : f)) ?? prev);
       setEditingId(null);
       toast("Description override saved", "success");
     } catch (err: unknown) {
@@ -79,7 +94,7 @@ export default function Functions() {
         method: "PATCH",
         body: JSON.stringify({ description_override: null }),
       });
-      setFunctions(functions.map((f) => (f.id === fn.id ? updated : f)));
+      setFunctions((prev) => prev?.map((f) => (f.id === fn.id ? updated : f)) ?? prev);
       setEditingId(null);
       toast("Override cleared", "info");
     } catch (err: unknown) {
@@ -96,13 +111,16 @@ export default function Functions() {
     });
   }
 
+  if (!appId) return null;
+
+  const isLoading = loadedAppId !== appId || functions === null;
   if (isLoading) return <PageSpinner />;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="glass-panel rounded-2xl px-4 py-3 flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-strong">
+          <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">
             Registered Functions
           </h1>
           <p className="text-sm text-subtle mt-1">
@@ -115,7 +133,7 @@ export default function Functions() {
         {functions.map((fn) => (
           <div
             key={fn.id}
-            className={`bg-surface border border-border rounded-xl p-4 transition-opacity ${
+            className={`glass-panel rounded-xl p-4 transition-opacity ${
               !fn.is_active ? "opacity-50" : ""
             }`}
           >

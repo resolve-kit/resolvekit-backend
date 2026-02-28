@@ -3,29 +3,80 @@
 @tailwind utilities;
 
 :root {
-  --background: 210 50% 98%;
-  --foreground: 214 51% 15%;
-  --primary: 198 100% 35%;
+  --cmd-bg: 205 43% 97%;
+  --cmd-foreground: 218 40% 16%;
+  --cmd-surface-1: 0 0% 100%;
+  --cmd-surface-2: 208 36% 94%;
+  --cmd-surface-3: 207 37% 89%;
+  --cmd-border-soft: 209 26% 82%;
+  --cmd-border-strong: 213 30% 68%;
+  --cmd-accent: 214 92% 44%;
+  --cmd-accent-hover: 213 90% 39%;
+  --cmd-accent-soft: 213 92% 90%;
+  --cmd-success: 160 84% 31%;
+  --cmd-warning: 35 93% 41%;
+  --cmd-danger: 1 74% 52%;
+  --cmd-muted-text: 216 23% 39%;
+  --cmd-quiet-text: 217 18% 54%;
+  --radius: 0.95rem;
+
+  /* Backward-compatible aliases for existing utility usage */
+  --background: var(--cmd-bg);
+  --foreground: var(--cmd-foreground);
+  --primary: var(--cmd-accent);
   --primary-foreground: 210 40% 98%;
-  --card: 210 45% 100%;
-  --card-foreground: 213 43% 18%;
-  --muted: 206 35% 92%;
-  --muted-foreground: 214 24% 42%;
-  --border: 207 26% 84%;
-  --radius: 0.9rem;
+  --card: var(--cmd-surface-1);
+  --card-foreground: var(--cmd-foreground);
+  --muted: var(--cmd-surface-2);
+  --muted-foreground: var(--cmd-muted-text);
+  --border: var(--cmd-border-soft);
 }
 
 * {
   border-color: hsl(var(--border));
 }
 
+html,
 body {
   margin: 0;
+  min-height: 100%;
+}
+
+body {
+  position: relative;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 8% 15%, rgba(21, 138, 219, 0.2), transparent 34%),
-    radial-gradient(circle at 90% 0%, rgba(22, 163, 74, 0.16), transparent 40%),
-    hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: "Mona Sans", "Avenir Next", sans-serif;
+  font-family: "Mona Sans", "Avenir Next", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(13, 88, 214, 0.15), transparent 42%),
+    radial-gradient(circle at 90% 14%, rgba(7, 178, 155, 0.14), transparent 44%),
+    linear-gradient(180deg, #f7fbff 0%, #eef5fc 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(50, 84, 128, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(50, 84, 128, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at center, black 35%, transparent 95%);
+}
+
+::selection {
+  background: rgba(14, 96, 238, 0.22);
+  color: hsl(var(--foreground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

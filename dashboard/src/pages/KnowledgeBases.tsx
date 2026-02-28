@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, ApiError } from "../api/client";
 import {
@@ -9,6 +9,7 @@ import {
   Select,
   useToast,
 } from "../components/ui";
+import { PageHeader } from "../components/layout/PageHeader";
 import OnboardingTipCard from "../components/OnboardingTipCard";
 
 interface KnowledgeBaseItem {
@@ -95,6 +96,15 @@ interface KnowledgeDocument {
   updated_at: string;
 }
 
+interface ActionModalProps {
+  open: boolean;
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: ReactNode;
+  maxWidthClass?: string;
+}
+
 interface SearchHit {
   document_id: string;
   title: string | null;
@@ -153,6 +163,48 @@ function estimateLabel(impact: ImpactResponse): string {
   return `Estimated tokens to regenerate: ${impact.estimated_tokens.toLocaleString()}`;
 }
 
+function ActionModal({
+  open,
+  title,
+  subtitle,
+  onClose,
+  children,
+  maxWidthClass = "max-w-4xl",
+}: ActionModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[45] flex items-start justify-center overflow-y-auto p-4 pt-20 md:pt-24">
+      <div className="absolute inset-0 bg-slate-900/28 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative w-full ${maxWidthClass} glass-panel rounded-2xl border border-border/70 p-4 shadow-card md:p-5`}>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-strong">{title}</h2>
+            {subtitle && <p className="mt-1 text-sm text-subtle">{subtitle}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-subtle transition-colors hover:border-border-2 hover:text-body"
+          >
+            Close
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function KnowledgeBases() {
   const [kbs, setKbs] = useState<KnowledgeBaseItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -170,6 +222,8 @@ export default function KnowledgeBases() {
   const [newProfileModelsError, setNewProfileModelsError] = useState<string | null>(null);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [deletingProfileId, setDeletingProfileId] = useState<string | null>(null);
+  const [isEmbeddingModalOpen, setIsEmbeddingModalOpen] = useState(false);
+  const [isCreateKbModalOpen, setIsCreateKbModalOpen] = useState(false);
 
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editProfileName, setEditProfileName] = useState("");
@@ -230,7 +284,7 @@ export default function KnowledgeBases() {
     [organizationLlmProfiles, newProfileLlmProfileId]
   );
 
-  async function loadEmbeddingProfiles() {
+  const loadEmbeddingProfiles = useCallback(async () => {
     setEmbeddingLoading(true);
     try {
       const payload = await api<{ items: EmbeddingProfile[] }>("/v1/organizations/embedding-profiles");
@@ -242,9 +296,9 @@ export default function KnowledgeBases() {
     } finally {
       setEmbeddingLoading(false);
     }
-  }
+  }, [toast]);
 
-  async function loadOrganizationLlmProfiles() {
+  const loadOrganizationLlmProfiles = useCallback(async () => {
     try {
       const profiles = await api<OrganizationLlmProfile[]>("/v1/organizations/llm-profiles");
       setOrganizationLlmProfiles(profiles);
@@ -252,12 +306,12 @@ export default function KnowledgeBases() {
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to load organization LLM profiles", "error");
     }
-  }
+  }, [toast]);
 
-  async function loadEmbeddingModelsForLlmProfile(
+  const loadEmbeddingModelsForLlmProfile = useCallback(async (
     llmProfileId: string,
     target: "new" | "edit",
-  ) {
+  ) => {
     if (!llmProfileId) {
       if (target === "new") {
         setNewProfileEmbeddingModels([]);
@@ -312,9 +366,9 @@ export default function KnowledgeBases() {
       if (target === "new") setNewProfileModelsLoading(false);
       else setEditProfileModelsLoading(false);
     }
-  }
+  }, [toast]);
 
-  async function loadKnowledgeBases() {
+  const loadKnowledgeBases = useCallback(async () => {
     setIsLoading(true);
     try {
       const payload = await api<{ items: KnowledgeBaseItem[] }>("/v1/knowledge-bases");
@@ -326,9 +380,9 @@ export default function KnowledgeBases() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [toast]);
 
-  async function loadKbDetails(kbId: string) {
+  const loadKbDetails = useCallback(async (kbId: string) => {
     try {
       const [sourcesPayload, jobsPayload, docsPayload] = await Promise.all([
         api<{ items: KnowledgeSource[] }>(`/v1/knowledge-bases/${kbId}/sources`),
@@ -341,11 +395,11 @@ export default function KnowledgeBases() {
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to load KB details", "error");
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     void Promise.all([loadEmbeddingProfiles(), loadKnowledgeBases(), loadOrganizationLlmProfiles()]);
-  }, []);
+  }, [loadEmbeddingProfiles, loadKnowledgeBases, loadOrganizationLlmProfiles]);
 
   useEffect(() => {
     if (!newProfileLlmProfileId) {
@@ -354,7 +408,7 @@ export default function KnowledgeBases() {
       return;
     }
     void loadEmbeddingModelsForLlmProfile(newProfileLlmProfileId, "new");
-  }, [newProfileLlmProfileId]);
+  }, [newProfileLlmProfileId, loadEmbeddingModelsForLlmProfile]);
 
   useEffect(() => {
     if (!editProfileLlmProfileId) {
@@ -363,7 +417,7 @@ export default function KnowledgeBases() {
       return;
     }
     void loadEmbeddingModelsForLlmProfile(editProfileLlmProfileId, "edit");
-  }, [editProfileLlmProfileId]);
+  }, [editProfileLlmProfileId, loadEmbeddingModelsForLlmProfile]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -374,7 +428,7 @@ export default function KnowledgeBases() {
       return;
     }
     void loadKbDetails(selectedId);
-  }, [selectedId]);
+  }, [selectedId, loadKbDetails]);
 
   useEffect(() => {
     setDocumentsPage(1);
@@ -390,7 +444,7 @@ export default function KnowledgeBases() {
       return;
     }
     setKbEmbeddingDraftId(selectedKb.embedding_profile_id || "");
-  }, [selectedKb?.id, selectedKb?.embedding_profile_id]);
+  }, [selectedKb]);
 
   async function createEmbeddingProfile() {
     if (!newProfileName.trim() || !newProfileLlmProfileId || !newProfileEmbeddingModel.trim()) {
@@ -515,7 +569,7 @@ export default function KnowledgeBases() {
   }
 
   async function createKnowledgeBase() {
-    if (!newKbName.trim() || !newKbEmbeddingProfileId) return;
+    if (!newKbName.trim() || !newKbEmbeddingProfileId) return false;
     setIsCreatingKb(true);
     try {
       await api("/v1/knowledge-bases", {
@@ -530,8 +584,10 @@ export default function KnowledgeBases() {
       setNewKbDescription("");
       toast("Knowledge base created", "success");
       await loadKnowledgeBases();
+      return true;
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to create knowledge base", "error");
+      return false;
     } finally {
       setIsCreatingKb(false);
     }
@@ -727,238 +783,57 @@ export default function KnowledgeBases() {
   const confirmDescription = confirmAction
     ? `This change will regenerate embeddings and may increase LLM/embedding usage costs. Affected: ${confirmAction.impact.kb_count} KB(s), ${confirmAction.impact.doc_count} documents, ${confirmAction.impact.chunk_count} chunks. ${estimateLabel(confirmAction.impact)}.`
     : "";
+  const kbCountLabel = isLoading ? "Loading..." : `${kbs.length} KB${kbs.length === 1 ? "" : "s"}`;
+  const profileCountLabel = embeddingLoading
+    ? "Loading..."
+    : `${embeddingProfiles.length} profile${embeddingProfiles.length === 1 ? "" : "s"}`;
+
+  async function handleCreateKbFromModal() {
+    const created = await createKnowledgeBase();
+    if (created) {
+      setIsCreateKbModalOpen(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div className="animate-fade-in-up flex items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-strong">Knowledge Bases</h1>
-          <p className="text-sm text-subtle mt-1">
-            Crawl docs, add support content, and assign reusable knowledge across apps.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Knowledge"
+        title="Knowledge Bases"
+        subtitle="Crawl docs, add support content, and assign reusable knowledge across apps."
+      />
       <OnboardingTipCard tipId="knowledge_bases_tip" fallbackRoute="/knowledge-bases" />
 
-      <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up space-y-4">
-        <h2 className="text-sm font-semibold text-strong">Embedding Profiles</h2>
-        <p className="text-xs text-subtle">
-          Link each embedding profile to an organization LLM profile, then choose an embedding-capable model.
-        </p>
-
-        {organizationLlmProfiles.length === 0 && (
-          <div className="rounded-lg border border-warning-dim bg-warning-subtle px-3 py-2">
+      <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-strong">Knowledge Base Setup</h2>
+            <p className="text-xs text-subtle">
+              Keep the page clean and trigger setup only when needed.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="active">{kbCountLabel}</Badge>
+            <Badge variant={embeddingProfiles.length > 0 ? "active" : "default"}>{profileCountLabel}</Badge>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button onClick={() => setIsCreateKbModalOpen(true)}>Create Knowledge Base</Button>
+          <Button variant="outline" onClick={() => setIsEmbeddingModalOpen(true)}>
+            Manage Embedding Profiles
+          </Button>
+        </div>
+        {!embeddingLoading && embeddingProfiles.length === 0 && (
+          <div className="mt-3 rounded-lg border border-warning-dim bg-warning-subtle px-3 py-2">
             <p className="text-xs text-warning">
-              No organization LLM profiles configured. Create one in Organization Admin first.
+              No embedding profiles configured. Set one up before creating a knowledge base.
             </p>
           </div>
         )}
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <Input
-            label="Profile Name"
-            placeholder="OpenAI Embeddings"
-            value={newProfileName}
-            onChange={(e) => setNewProfileName(e.target.value)}
-          />
-          <Select
-            label="LLM Profile"
-            value={newProfileLlmProfileId}
-            onChange={(e) => setNewProfileLlmProfileId(e.target.value)}
-          >
-            <option value="">Select LLM profile</option>
-            {organizationLlmProfiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.name} · {profile.provider}
-              </option>
-            ))}
-          </Select>
-          <Select
-            label="Embedding Model"
-            value={newProfileEmbeddingModel}
-            onChange={(e) => setNewProfileEmbeddingModel(e.target.value)}
-            disabled={!newProfileLlmProfileId || newProfileModelsLoading}
-          >
-            <option value="">
-              {newProfileModelsLoading
-                ? "Loading models..."
-                : newProfileEmbeddingModels.length === 0
-                  ? "No embedding models available"
-                  : "Select embedding model"}
-            </option>
-            {newProfileEmbeddingModels.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.name}
-              </option>
-            ))}
-          </Select>
-          <div className="flex items-end">
-            <Button
-              className="w-full"
-              loading={isCreatingProfile}
-              onClick={createEmbeddingProfile}
-              disabled={
-                organizationLlmProfiles.length === 0 ||
-                !newProfileName.trim() ||
-                !newProfileLlmProfileId ||
-                !newProfileEmbeddingModel
-              }
-            >
-              Add
-            </Button>
-          </div>
-        </div>
-
-        {selectedNewProfileLlm && (
-          <p className="text-xs text-subtle">
-            Credentials source: {selectedNewProfileLlm.name} ({selectedNewProfileLlm.provider})
-          </p>
-        )}
-        {newProfileModelsError && (
-          <p className="text-xs text-warning">Model catalog note: {newProfileModelsError}</p>
-        )}
-
-        {embeddingLoading ? (
-          <p className="text-xs text-subtle">Loading embedding profiles...</p>
-        ) : embeddingProfiles.length === 0 ? (
-          <p className="text-xs text-subtle">No embedding profiles configured yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {embeddingProfiles.map((profile) => (
-              <div key={profile.id} className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
-                {editingProfileId === profile.id ? (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <Input
-                      label="Name"
-                      value={editProfileName}
-                      onChange={(e) => setEditProfileName(e.target.value)}
-                    />
-                    <Select
-                      label="LLM Profile"
-                      value={editProfileLlmProfileId}
-                      onChange={(e) => setEditProfileLlmProfileId(e.target.value)}
-                    >
-                      <option value="">Select LLM profile</option>
-                      {organizationLlmProfiles.map((llmProfile) => (
-                        <option key={llmProfile.id} value={llmProfile.id}>
-                          {llmProfile.name} · {llmProfile.provider}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select
-                      label="Embedding Model"
-                      value={editProfileEmbeddingModel}
-                      onChange={(e) => setEditProfileEmbeddingModel(e.target.value)}
-                      disabled={!editProfileLlmProfileId || editProfileModelsLoading}
-                    >
-                      <option value="">
-                        {editProfileModelsLoading
-                          ? "Loading models..."
-                          : editProfileEmbeddingModels.length === 0
-                            ? "No embedding models available"
-                            : "Select embedding model"}
-                      </option>
-                      {editProfileEmbeddingModels.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <div className="flex items-end gap-2">
-                      <Button
-                        size="sm"
-                        loading={isSavingProfileEdit}
-                        onClick={saveEmbeddingProfileEdit}
-                        disabled={!editProfileName.trim() || !editProfileLlmProfileId || !editProfileEmbeddingModel}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingProfileId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                    {editProfileModelsError && (
-                      <p className="text-xs text-warning md:col-span-4">
-                        Model catalog note: {editProfileModelsError}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm text-strong">{profile.name}</p>
-                      <p className="text-xs text-subtle">
-                        {profile.provider}/{profile.embedding_model}
-                      </p>
-                      <p className="text-xs text-dim truncate">
-                        LLM profile: {profile.llm_profile_name}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="default">Updated {new Date(profile.updated_at).toLocaleDateString()}</Badge>
-                      <Button size="sm" variant="outline" onClick={() => startEditingProfile(profile)}>
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        loading={deletingProfileId === profile.id}
-                        onClick={() => {
-                          void deleteEmbeddingProfile(profile.id);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up">
-        <h2 className="text-sm font-semibold text-strong mb-3">Create Knowledge Base</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <Input
-            label="Name"
-            placeholder="iOS Support Docs"
-            value={newKbName}
-            onChange={(e) => setNewKbName(e.target.value)}
-          />
-          <Input
-            label="Description"
-            placeholder="Troubleshooting and FAQ"
-            value={newKbDescription}
-            onChange={(e) => setNewKbDescription(e.target.value)}
-          />
-          <Select
-            label="Embedding Profile"
-            value={newKbEmbeddingProfileId}
-            onChange={(e) => setNewKbEmbeddingProfileId(e.target.value)}
-          >
-            <option value="">Select profile</option>
-            {embeddingProfiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.name} · {profile.provider}/{profile.embedding_model}
-              </option>
-            ))}
-          </Select>
-          <div className="flex items-end">
-            <Button className="w-full" loading={isCreatingKb} onClick={createKnowledgeBase}>
-              Create
-            </Button>
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up">
+        <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up">
           <h2 className="text-sm font-semibold text-strong mb-3">All Knowledge Bases</h2>
           {isLoading ? (
             <p className="text-xs text-subtle">Loading...</p>
@@ -972,7 +847,7 @@ export default function KnowledgeBases() {
                   className={`rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
                     selectedId === kb.id
                       ? "border-accent-dim bg-accent-subtle"
-                      : "border-border bg-canvas/40 hover:border-border-2"
+                      : "border-border bg-surface hover:border-border-2"
                   }`}
                   onClick={() => setSelectedId(kb.id)}
                 >
@@ -1012,8 +887,8 @@ export default function KnowledgeBases() {
         <div className="lg:col-span-2 space-y-6">
           {selectedKb ? (
             <>
-              <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-semibold text-strong">{selectedKb.name}</h2>
                     <p className="text-xs text-subtle mt-1">{selectedKb.description || "No description"}</p>
@@ -1036,6 +911,7 @@ export default function KnowledgeBases() {
                   </Select>
                   <div className="md:col-span-2 flex items-end">
                     <Button
+                      className="w-full md:w-auto"
                       loading={isUpdatingKbEmbedding}
                       onClick={() => {
                         void requestKbEmbeddingChange();
@@ -1064,7 +940,7 @@ export default function KnowledgeBases() {
                 )}
               </div>
 
-              <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up space-y-4">
+              <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up space-y-4">
                 <h3 className="text-sm font-semibold text-strong">Add URL Source</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <Input
@@ -1099,7 +975,7 @@ export default function KnowledgeBases() {
                     <input
                       type="file"
                       onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-                      className="w-full rounded-xl border border-border bg-canvas px-3 py-2 text-sm text-strong"
+                      className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-strong"
                     />
                     <p className="text-xs text-subtle mt-1">
                       Supported formats: {SUPPORTED_UPLOAD_FORMATS.join(", ")}
@@ -1115,7 +991,7 @@ export default function KnowledgeBases() {
                 </div>
               </div>
 
-              <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up">
+              <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up">
                 <h3 className="text-sm font-semibold text-strong mb-3">Sources</h3>
                 {sources.length === 0 ? (
                   <p className="text-xs text-subtle">No sources yet.</p>
@@ -1124,7 +1000,7 @@ export default function KnowledgeBases() {
                     {sources.map((source) => (
                       <div
                         key={source.id}
-                        className="rounded-lg border border-border bg-canvas/40 px-3 py-2 flex items-center justify-between gap-3"
+                        className="flex flex-col gap-3 rounded-lg border border-border bg-surface px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="min-w-0">
                           <p className="text-sm text-strong truncate">
@@ -1135,7 +1011,7 @@ export default function KnowledgeBases() {
                           </p>
                           {source.last_error && <p className="text-xs text-danger mt-1">{source.last_error}</p>}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                           <Badge
                             variant={
                               source.status === "ready"
@@ -1162,22 +1038,22 @@ export default function KnowledgeBases() {
                 )}
               </div>
 
-              <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up">
+              <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up">
                 <h3 className="text-sm font-semibold text-strong mb-3">Search</h3>
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <Input
                     placeholder="Search by keyword or natural question..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="flex-1"
                   />
-                  <Button loading={isSearching} onClick={runSearch}>
+                  <Button className="w-full sm:w-auto" loading={isSearching} onClick={runSearch}>
                     Search
                   </Button>
                 </div>
                 <div className="space-y-2 mt-4">
                   {searchHits.map((hit) => (
-                    <div key={`${hit.document_id}-${hit.score}`} className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
+                    <div key={`${hit.document_id}-${hit.score}`} className="rounded-lg border border-border bg-surface px-3 py-2">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm text-strong truncate">{hit.title || "Untitled Document"}</p>
                         <span className="text-xs text-subtle">score {hit.score.toFixed(3)}</span>
@@ -1192,7 +1068,7 @@ export default function KnowledgeBases() {
                 </div>
               </div>
 
-              <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up">
+              <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up">
                 <h3 className="text-sm font-semibold text-strong mb-3">Indexed Documents</h3>
                 {documents.length === 0 ? (
                   <p className="text-xs text-subtle">No indexed documents yet.</p>
@@ -1201,7 +1077,7 @@ export default function KnowledgeBases() {
                     {pagedDocuments.map((doc) => (
                       <div
                         key={doc.id}
-                        className="rounded-lg border border-border bg-canvas/40 px-3 py-2 flex items-center justify-between gap-3"
+                        className="flex flex-col gap-3 rounded-lg border border-border bg-surface px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="min-w-0">
                           <p className="text-sm text-strong truncate">{doc.title || "Untitled"}</p>
@@ -1209,16 +1085,16 @@ export default function KnowledgeBases() {
                             <p className="text-xs text-subtle truncate">{doc.canonical_url}</p>
                           )}
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => void removeDocument(doc.id)}>
+                        <Button size="sm" variant="outline" onClick={() => void removeDocument(doc.id)} className="w-full sm:w-auto">
                           Remove
                         </Button>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between pt-2">
+                    <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-xs text-subtle">
                         Page {documentsPage} of {totalDocumentPages}
                       </p>
-                      <div className="flex items-center gap-2">
+                      <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
                         <Button
                           size="sm"
                           variant="outline"
@@ -1241,14 +1117,14 @@ export default function KnowledgeBases() {
                 )}
               </div>
 
-              <div className="bg-surface border border-border rounded-xl p-4 animate-fade-in-up">
+              <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up">
                 <h3 className="text-sm font-semibold text-strong mb-3">Ingestion Jobs</h3>
                 {jobs.length === 0 ? (
                   <p className="text-xs text-subtle">No jobs yet.</p>
                 ) : (
                   <div className="space-y-2">
                     {jobs.map((job) => (
-                      <div key={job.id} className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
+                      <div key={job.id} className="rounded-lg border border-border bg-surface px-3 py-2">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-mono text-dim">{job.id.slice(0, 8)}...</p>
                           <Badge
@@ -1272,12 +1148,271 @@ export default function KnowledgeBases() {
               </div>
             </>
           ) : (
-            <div className="bg-surface border border-border rounded-xl p-8 animate-fade-in-up">
+            <div className="glass-panel rounded-2xl border border-border/70 p-8 animate-fade-in-up">
               <p className="text-sm text-subtle">Select a knowledge base to manage sources and search content.</p>
             </div>
           )}
         </div>
       </div>
+
+      <ActionModal
+        open={isCreateKbModalOpen}
+        onClose={() => setIsCreateKbModalOpen(false)}
+        title="Create Knowledge Base"
+        subtitle="Name the KB, add an optional description, and choose an embedding profile."
+        maxWidthClass="max-w-3xl"
+      >
+        <div className="space-y-4">
+          {embeddingProfiles.length === 0 && !embeddingLoading && (
+            <div className="rounded-lg border border-warning-dim bg-warning-subtle px-3 py-2">
+              <p className="text-xs text-warning">
+                You need an embedding profile first.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreateKbModalOpen(false);
+                  setIsEmbeddingModalOpen(true);
+                }}
+                className="mt-1 text-xs font-semibold text-accent hover:text-accent-hover"
+              >
+                Open embedding profile setup
+              </button>
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Input
+              label="Name"
+              placeholder="iOS Support Docs"
+              value={newKbName}
+              onChange={(e) => setNewKbName(e.target.value)}
+            />
+            <Input
+              label="Description"
+              placeholder="Troubleshooting and FAQ"
+              value={newKbDescription}
+              onChange={(e) => setNewKbDescription(e.target.value)}
+            />
+            <Select
+              label="Embedding Profile"
+              value={newKbEmbeddingProfileId}
+              onChange={(e) => setNewKbEmbeddingProfileId(e.target.value)}
+              disabled={embeddingLoading || embeddingProfiles.length === 0}
+            >
+              <option value="">
+                {embeddingLoading
+                  ? "Loading profiles..."
+                  : embeddingProfiles.length === 0
+                    ? "No profiles configured"
+                    : "Select profile"}
+              </option>
+              {embeddingProfiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.name} · {profile.provider}/{profile.embedding_model}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setIsCreateKbModalOpen(false)} disabled={isCreatingKb}>
+              Cancel
+            </Button>
+            <Button
+              loading={isCreatingKb}
+              onClick={() => {
+                void handleCreateKbFromModal();
+              }}
+              disabled={embeddingLoading || embeddingProfiles.length === 0 || !newKbName.trim() || !newKbEmbeddingProfileId}
+            >
+              Create Knowledge Base
+            </Button>
+          </div>
+        </div>
+      </ActionModal>
+
+      <ActionModal
+        open={isEmbeddingModalOpen}
+        onClose={() => setIsEmbeddingModalOpen(false)}
+        title="Embedding Profiles"
+        subtitle="One-time setup. Add or edit profiles used by knowledge bases."
+      >
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          {organizationLlmProfiles.length === 0 && (
+            <div className="rounded-lg border border-warning-dim bg-warning-subtle px-3 py-2">
+              <p className="text-xs text-warning">
+                No organization LLM profiles configured. Create one in Organization Admin first.
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <Input
+              label="Profile Name"
+              placeholder="OpenAI Embeddings"
+              value={newProfileName}
+              onChange={(e) => setNewProfileName(e.target.value)}
+            />
+            <Select
+              label="LLM Profile"
+              value={newProfileLlmProfileId}
+              onChange={(e) => setNewProfileLlmProfileId(e.target.value)}
+            >
+              <option value="">Select LLM profile</option>
+              {organizationLlmProfiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.name} · {profile.provider}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label="Embedding Model"
+              value={newProfileEmbeddingModel}
+              onChange={(e) => setNewProfileEmbeddingModel(e.target.value)}
+              disabled={!newProfileLlmProfileId || newProfileModelsLoading}
+            >
+              <option value="">
+                {newProfileModelsLoading
+                  ? "Loading models..."
+                  : newProfileEmbeddingModels.length === 0
+                    ? "No embedding models available"
+                    : "Select embedding model"}
+              </option>
+              {newProfileEmbeddingModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </Select>
+            <div className="flex items-end">
+              <Button
+                className="w-full"
+                loading={isCreatingProfile}
+                onClick={createEmbeddingProfile}
+                disabled={
+                  organizationLlmProfiles.length === 0 ||
+                  !newProfileName.trim() ||
+                  !newProfileLlmProfileId ||
+                  !newProfileEmbeddingModel
+                }
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+
+          {selectedNewProfileLlm && (
+            <p className="text-xs text-subtle">
+              Credentials source: {selectedNewProfileLlm.name} ({selectedNewProfileLlm.provider})
+            </p>
+          )}
+          {newProfileModelsError && (
+            <p className="text-xs text-warning">Model catalog note: {newProfileModelsError}</p>
+          )}
+
+          {embeddingLoading ? (
+            <p className="text-xs text-subtle">Loading embedding profiles...</p>
+          ) : embeddingProfiles.length === 0 ? (
+            <p className="text-xs text-subtle">No embedding profiles configured yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {embeddingProfiles.map((profile) => (
+                <div key={profile.id} className="rounded-lg border border-border bg-surface px-3 py-2">
+                  {editingProfileId === profile.id ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                      <Input
+                        label="Name"
+                        value={editProfileName}
+                        onChange={(e) => setEditProfileName(e.target.value)}
+                      />
+                      <Select
+                        label="LLM Profile"
+                        value={editProfileLlmProfileId}
+                        onChange={(e) => setEditProfileLlmProfileId(e.target.value)}
+                      >
+                        <option value="">Select LLM profile</option>
+                        {organizationLlmProfiles.map((llmProfile) => (
+                          <option key={llmProfile.id} value={llmProfile.id}>
+                            {llmProfile.name} · {llmProfile.provider}
+                          </option>
+                        ))}
+                      </Select>
+                      <Select
+                        label="Embedding Model"
+                        value={editProfileEmbeddingModel}
+                        onChange={(e) => setEditProfileEmbeddingModel(e.target.value)}
+                        disabled={!editProfileLlmProfileId || editProfileModelsLoading}
+                      >
+                        <option value="">
+                          {editProfileModelsLoading
+                            ? "Loading models..."
+                            : editProfileEmbeddingModels.length === 0
+                              ? "No embedding models available"
+                              : "Select embedding model"}
+                        </option>
+                        {editProfileEmbeddingModels.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                          </option>
+                        ))}
+                      </Select>
+                      <div className="flex items-end gap-2">
+                        <Button
+                          size="sm"
+                          loading={isSavingProfileEdit}
+                          onClick={saveEmbeddingProfileEdit}
+                          disabled={!editProfileName.trim() || !editProfileLlmProfileId || !editProfileEmbeddingModel}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingProfileId(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                      {editProfileModelsError && (
+                        <p className="text-xs text-warning md:col-span-4">
+                          Model catalog note: {editProfileModelsError}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm text-strong">{profile.name}</p>
+                        <p className="text-xs text-subtle">
+                          {profile.provider}/{profile.embedding_model}
+                        </p>
+                        <p className="text-xs text-dim truncate">
+                          LLM profile: {profile.llm_profile_name}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <Badge variant="default">Updated {new Date(profile.updated_at).toLocaleDateString()}</Badge>
+                        <Button size="sm" variant="outline" onClick={() => startEditingProfile(profile)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={deletingProfileId === profile.id}
+                          onClick={() => {
+                            void deleteEmbeddingProfile(profile.id);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </ActionModal>
 
       <ConfirmDialog
         open={Boolean(confirmAction)}

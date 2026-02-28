@@ -20,12 +20,12 @@ import Sessions from "./pages/Sessions";
 import ChatTheme from "./pages/ChatTheme";
 import { ToastProvider, ToastContainer } from "./components/ui";
 
-function RootRedirect() {
+export function RootRedirect() {
   const token = localStorage.getItem("token");
   return <Navigate to={token ? "/apps" : "/login"} replace />;
 }
 
-function App() {
+export function App() {
   return (
     <BrowserRouter>
       <Routes>

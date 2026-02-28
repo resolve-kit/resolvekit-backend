@@ -83,9 +83,9 @@ export default function ApiKeys() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="glass-panel rounded-2xl px-4 py-3 flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-strong">
+          <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">
             API Keys
           </h1>
           <p className="text-sm text-subtle mt-1">
@@ -95,7 +95,7 @@ export default function ApiKeys() {
       </div>
 
       {/* Generate form */}
-      <div className="bg-surface border border-border rounded-xl p-4 mb-6">
+      <div className="glass-panel rounded-xl p-4 mb-6">
         <h2 className="text-xs font-semibold text-subtle uppercase tracking-wider mb-3">
           Generate New Key
         </h2>
@@ -156,7 +156,7 @@ export default function ApiKeys() {
         {keys.map((k) => (
           <div
             key={k.id}
-            className={`bg-surface border border-border rounded-xl px-4 py-3 flex items-center justify-between transition-opacity ${
+            className={`glass-panel rounded-xl px-4 py-3 flex items-center justify-between transition-opacity ${
               !k.is_active ? "opacity-50" : ""
             }`}
           >

@@ -228,9 +228,9 @@ export default function Playbooks() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="glass-panel rounded-2xl px-4 py-3 flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-strong">
+          <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">
             Playbooks
           </h1>
           <p className="text-sm text-subtle mt-1">
@@ -352,7 +352,7 @@ export default function Playbooks() {
 
         {/* Detail / edit pane */}
         {selected && (
-          <div className="col-span-2 bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="col-span-2 glass-panel rounded-xl overflow-hidden">
             {editMode ? (
               <div className="p-5 space-y-4">
                 <h3 className="text-sm font-semibold text-strong">

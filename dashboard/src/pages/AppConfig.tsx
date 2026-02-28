@@ -82,8 +82,12 @@ export default function AppConfig() {
     );
   }, [appId]);
 
+  const hasLlmApiKey = Boolean(config?.has_llm_api_key);
+  const llmProvider = config?.llm_provider ?? "";
+  const llmModel = config?.llm_model ?? "";
+
   useEffect(() => {
-    if (!config || !config.has_llm_api_key) {
+    if (!hasLlmApiKey || !llmProvider) {
       setModels([]);
       setModelsError(null);
       return;
@@ -91,7 +95,7 @@ export default function AppConfig() {
     setModelsLoading(true);
     setModelsError(null);
     api<ModelsResponse>(
-      `/v1/apps/${appId}/config/models?provider=${config.llm_provider}`
+      `/v1/apps/${appId}/config/models?provider=${llmProvider}`
     )
       .then((res) => {
         setModels(res.models);
@@ -99,13 +103,13 @@ export default function AppConfig() {
         setModelsError(res.error ?? null);
         if (
           res.models.length > 0 &&
-          !res.models.some((m) => m.id === config.llm_model)
+          !res.models.some((m) => m.id === llmModel)
         ) {
           setConfig((prev) => prev && { ...prev, llm_model: res.models[0].id });
         }
       })
       .finally(() => setModelsLoading(false));
-  }, [appId, config?.llm_provider, config?.has_llm_api_key]);
+  }, [appId, hasLlmApiKey, llmProvider, llmModel]);
 
   function handleProviderChange(providerId: string) {
     if (!config) return;
@@ -152,9 +156,9 @@ export default function AppConfig() {
     <div>
       <AppNav appId={appId!} />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="glass-panel rounded-2xl px-4 py-3 flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-strong">
+          <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">
             Agent Configuration
           </h1>
           <p className="text-sm text-subtle mt-1">
@@ -164,7 +168,7 @@ export default function AppConfig() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="bg-surface border border-border rounded-xl divide-y-0">
+        <div className="glass-panel rounded-xl divide-y-0">
           {/* Agent Behavior */}
           <FormSection title="Agent Behavior">
             <Textarea

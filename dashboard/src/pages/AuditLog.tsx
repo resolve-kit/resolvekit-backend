@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { api } from "../api/client";
@@ -97,12 +97,15 @@ export default function AuditLog() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [typeFilter, setTypeFilter] = useState("all");
 
-  function buildUrl(cursor?: string) {
-    const params = new URLSearchParams({ limit: "50" });
-    if (typeFilter !== "all") params.set("event_type", typeFilter);
-    if (cursor) params.set("cursor", cursor);
-    return `/v1/apps/${appId}/audit-events?${params.toString()}`;
-  }
+  const buildUrl = useCallback(
+    (cursor?: string) => {
+      const params = new URLSearchParams({ limit: "50" });
+      if (typeFilter !== "all") params.set("event_type", typeFilter);
+      if (cursor) params.set("cursor", cursor);
+      return `/v1/apps/${appId}/audit-events?${params.toString()}`;
+    },
+    [appId, typeFilter]
+  );
 
   useEffect(() => {
     setIsLoading(true);
@@ -114,7 +117,7 @@ export default function AuditLog() {
         setNextCursor(data.next_cursor);
       })
       .finally(() => setIsLoading(false));
-  }, [appId, typeFilter]);
+  }, [buildUrl]);
 
   async function loadMore() {
     if (!nextCursor) return;
@@ -157,9 +160,9 @@ export default function AuditLog() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="glass-panel rounded-2xl px-4 py-3 flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-strong">Audit Log</h1>
+          <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">Audit Log</h1>
           <p className="text-sm text-subtle mt-1">All configuration and key changes for this app.</p>
         </div>
         <div className="flex gap-2">

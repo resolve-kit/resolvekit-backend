@@ -79,7 +79,7 @@ export default function LimitsConfig() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-strong">Runtime Limits</h1>
+        <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">Runtime Limits</h1>
         <p className="text-sm text-subtle mt-1">Control sampling parameters and session constraints.</p>
       </div>
 
@@ -90,7 +90,7 @@ export default function LimitsConfig() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="glass-panel rounded-xl p-6 space-y-6">
         <div>
           <label className="text-xs font-medium text-subtle block mb-1.5">
             Temperature

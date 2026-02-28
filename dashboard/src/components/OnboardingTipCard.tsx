@@ -16,14 +16,11 @@ export default function OnboardingTipCard({ tipId, fallbackRoute }: OnboardingTi
   if (!tip) return null;
 
   return (
-    <div className="mb-4 rounded-xl border border-accent-dim bg-accent-subtle/60 px-4 py-3 animate-fade-in-up">
-      <p className="text-[10px] uppercase tracking-widest text-accent">Optional Tip</p>
-      <p className="text-sm font-semibold text-strong mt-1">{tip.title}</p>
-      <p className="text-xs text-subtle mt-1">{tip.description}</p>
-      <Link
-        to={tip.route || fallbackRoute}
-        className="inline-block mt-2 text-xs text-accent hover:text-accent-hover transition-colors"
-      >
+    <div className="mb-4 rounded-xl border border-accent-dim bg-accent-subtle px-4 py-3 animate-fade-in-up">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-accent">Optional operator tip</p>
+      <p className="mt-1 text-sm font-semibold text-strong">{tip.title}</p>
+      <p className="mt-1 text-xs leading-relaxed text-subtle">{tip.description}</p>
+      <Link to={tip.route || fallbackRoute} className="mt-2 inline-block text-xs text-accent transition-colors hover:text-accent-hover">
         Open suggested page
       </Link>
     </div>

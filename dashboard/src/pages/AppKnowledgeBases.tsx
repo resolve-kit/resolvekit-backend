@@ -55,7 +55,7 @@ export default function AppKnowledgeBases() {
     return () => {
       isCancelled = true;
     };
-  }, [appId]);
+  }, [appId, toast]);
 
   if (!appId) return null;
 
@@ -83,14 +83,14 @@ export default function AppKnowledgeBases() {
   return (
     <div className="space-y-6">
       <div className="animate-fade-in-up">
-        <h1 className="font-display text-2xl font-bold text-strong">App Knowledge Bases</h1>
+        <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">App Knowledge Bases</h1>
         <p className="text-sm text-subtle mt-1">
           {appName ? `${appName}: select which knowledge bases the session agent can query.` : "Loading app..."}
         </p>
       </div>
       <OnboardingTipCard tipId="knowledge_bases_tip" fallbackRoute={`/apps/${appId}/knowledge-bases`} />
 
-      <div className="bg-surface border border-border rounded-xl p-5 animate-fade-in-up">
+      <div className="glass-panel rounded-xl p-5 animate-fade-in-up">
         <h2 className="text-sm font-semibold text-strong mb-3">Assigned Knowledge Bases</h2>
         {isLoading ? (
           <p className="text-xs text-subtle">Loading...</p>
