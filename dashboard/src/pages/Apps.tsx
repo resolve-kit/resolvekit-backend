@@ -68,6 +68,10 @@ export default function Apps() {
   const [newBundleId, setNewBundleId] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [editingAppId, setEditingAppId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editBundleId, setEditBundleId] = useState("");
+  const [isUpdatingApp, setIsUpdatingApp] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmToggleAppId, setConfirmToggleAppId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -135,6 +139,43 @@ export default function Apps() {
     }
   }
 
+  function beginEdit(app: App) {
+    setEditingAppId(app.id);
+    setEditName(app.name);
+    setEditBundleId(app.bundle_id ?? "");
+  }
+
+  function cancelEdit() {
+    setEditingAppId(null);
+    setEditName("");
+    setEditBundleId("");
+    setIsUpdatingApp(false);
+  }
+
+  async function updateAppDetails(id: string) {
+    if (!editName.trim()) {
+      toast("App name is required", "error");
+      return;
+    }
+
+    setIsUpdatingApp(true);
+    try {
+      const updated = await api<App>(`/v1/apps/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: editName.trim(),
+          bundle_id: editBundleId.trim() || null,
+        }),
+      });
+      setApps((prev) => prev.map((app) => (app.id === id ? updated : app)));
+      cancelEdit();
+      toast("App details updated", "success");
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to update app", "error");
+      setIsUpdatingApp(false);
+    }
+  }
+
   async function deleteApp(id: string) {
     try {
       await api(`/v1/apps/${id}`, { method: "DELETE" });
@@ -144,11 +185,13 @@ export default function Apps() {
         delete next[id];
         return next;
       });
-      setConfirmDeleteId(null);
       toast("App deleted", "info");
       void refresh();
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to delete app", "error");
+    } finally {
+      // Always close the modal so stale ids cannot leave the dialog stuck open.
+      setConfirmDeleteId(null);
     }
   }
 
@@ -165,10 +208,16 @@ export default function Apps() {
     }
   }
 
-  const appToDelete = apps.find((a) => a.id === confirmDeleteId);
+  const appToDelete = apps.find((a) => a.id === confirmDeleteId) ?? null;
   const appToToggle = apps.find((a) => a.id === confirmToggleAppId) ?? null;
   const configuredApps = Object.values(appMissingConfig).filter((missing) => missing.length === 0).length;
   const enabledApps = apps.filter((app) => app.integration_enabled).length;
+
+  useEffect(() => {
+    if (confirmDeleteId && !appToDelete) {
+      setConfirmDeleteId(null);
+    }
+  }, [confirmDeleteId, appToDelete]);
 
   return (
     <div>
@@ -246,16 +295,30 @@ export default function Apps() {
               i === 0 ? "" : i === 1 ? "delay-50" : i === 2 ? "delay-100" : "delay-150"
             }`}
           >
-            {/* Delete button — visible on hover */}
-            <button
-              onClick={() => setConfirmDeleteId(app.id)}
-              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-subtle hover:text-danger p-1 rounded"
-              title="Delete app"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+              <button
+                onClick={() => beginEdit(app)}
+                className="rounded p-1 text-subtle hover:text-body"
+                title="Rename / edit bundle ID"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.232 5.232l3.536 3.536M9 13l6.768-6.768a2.5 2.5 0 113.536 3.536L12.536 16.536a4 4 0 01-1.414.943L7 19l1.52-4.122A4 4 0 019.536 13z"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => setConfirmDeleteId(app.id)}
+                className="rounded p-1 text-subtle hover:text-danger"
+                title="Delete app"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
 
             <div className="flex items-start gap-3 mb-4">
               <AppIcon name={app.name} />
@@ -281,6 +344,39 @@ export default function Apps() {
                 )}
               </div>
             </div>
+
+            {editingAppId === app.id && (
+              <div className="mb-4 rounded-lg border border-border bg-surface-2 p-3">
+                <div className="grid grid-cols-1 gap-3">
+                  <Input
+                    label="App name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="My iOS App"
+                  />
+                  <Input
+                    label="Bundle ID (optional)"
+                    value={editBundleId}
+                    onChange={(e) => setEditBundleId(e.target.value)}
+                    placeholder="com.example.app"
+                    mono
+                  />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => updateAppDetails(app.id)}
+                    loading={isUpdatingApp}
+                  >
+                    Save
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={isUpdatingApp}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Nav chips */}
             <div className="flex flex-wrap gap-1.5">
@@ -319,11 +415,14 @@ export default function Apps() {
       )}
 
       <ConfirmDialog
-        open={confirmDeleteId !== null}
+        open={confirmDeleteId !== null && appToDelete !== null}
         title="Delete App"
-        description={`Are you sure you want to delete "${appToDelete?.name}"? This will permanently remove all associated configuration, functions, sessions, and API keys.`}
+        description={`Are you sure you want to delete "${appToDelete?.name ?? "this app"}"? This will permanently remove all associated configuration, functions, sessions, and API keys.`}
         confirmLabel="Delete App"
         confirmVariant="danger"
+        confirmTextRequired={appToDelete?.name ?? ""}
+        confirmTextLabel="Type app name to confirm"
+        confirmTextPlaceholder="Enter app name exactly"
         onConfirm={async () => {
           if (!confirmDeleteId) return;
           await deleteApp(confirmDeleteId);

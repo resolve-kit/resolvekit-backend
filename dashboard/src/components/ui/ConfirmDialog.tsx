@@ -9,6 +9,9 @@ interface ConfirmDialogProps {
   description?: string;
   confirmLabel?: string;
   confirmVariant?: ConfirmVariant;
+  confirmTextRequired?: string;
+  confirmTextLabel?: string;
+  confirmTextPlaceholder?: string;
   onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
@@ -19,31 +22,50 @@ export function ConfirmDialog({
   description,
   confirmLabel = "Confirm",
   confirmVariant = "danger",
+  confirmTextRequired,
+  confirmTextLabel = "Type to confirm",
+  confirmTextPlaceholder,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const requiresTypedConfirm = Boolean(confirmTextRequired);
+  const typedConfirmMatches = !requiresTypedConfirm || confirmText.trim() === (confirmTextRequired ?? "");
 
   const handleConfirm = useCallback(async () => {
+    if (loading || !typedConfirmMatches) return;
     setLoading(true);
     try {
       await onConfirm();
     } finally {
       setLoading(false);
     }
-  }, [onConfirm]);
+  }, [loading, onConfirm, typedConfirmMatches]);
 
   useEffect(() => {
     if (!open) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onCancel();
-      if (event.key === "Enter") void handleConfirm();
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (!loading && typedConfirmMatches) {
+          void handleConfirm();
+        }
+      }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onCancel, handleConfirm]);
+  }, [open, onCancel, handleConfirm, loading, typedConfirmMatches]);
+
+  useEffect(() => {
+    if (open) {
+      setConfirmText("");
+      setLoading(false);
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -54,12 +76,26 @@ export function ConfirmDialog({
         <p className="text-[10px] uppercase tracking-[0.2em] text-subtle">Confirm action</p>
         <h2 className="mt-2 font-display text-lg font-semibold text-strong">{title}</h2>
         {description && <p className="mt-2 text-sm text-subtle leading-relaxed">{description}</p>}
+        {requiresTypedConfirm && (
+          <div className="mt-4">
+            <label className="mb-1 block text-xs font-medium text-subtle">
+              {confirmTextLabel}
+              <span className="ml-1 font-mono text-strong">"{confirmTextRequired}"</span>
+            </label>
+            <input
+              value={confirmText}
+              onChange={(event) => setConfirmText(event.target.value)}
+              placeholder={confirmTextPlaceholder ?? confirmTextRequired}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-body focus:border-accent focus:outline-none"
+            />
+          </div>
+        )}
 
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="ghost" onClick={onCancel} disabled={loading}>
             Cancel
           </Button>
-          <Button variant={confirmVariant} onClick={handleConfirm} loading={loading}>
+          <Button variant={confirmVariant} onClick={handleConfirm} loading={loading} disabled={!typedConfirmMatches}>
             {confirmLabel}
           </Button>
         </div>
