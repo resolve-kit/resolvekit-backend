@@ -22,11 +22,11 @@ Separate runtime-agent responsibilities from dashboard-control-plane responsibil
 - Owns external control-plane API boundary for dashboard.
 - Exposes `/v1/*` routes to dashboard UI.
 - Responsibilities:
-  - direct control-plane implementation for auth/apps/api-keys
-  - request forwarding for remaining yet-to-be-ported endpoints
+  - direct control-plane implementation for `auth`, `apps`, and `api-keys`
+  - explicit route-handler forwarding for remaining control-plane endpoints (no generic catch-all route)
   - attaching `X-Internal-Dashboard-Token`
   - converting login/signup token response into HttpOnly cookie (`dashboard_token`)
-  - forwarding authenticated session context for bridged endpoints back to `agent`
+  - forwarding authenticated session context for bridged endpoint groups back to `agent`
 
 ## `agent` (runtime, FastAPI/Python)
 
@@ -73,3 +73,4 @@ Separate runtime-agent responsibilities from dashboard-control-plane responsibil
   - set: dashboard routes require internal token header
 - `DASHBOARD_INTERNAL_TOKEN` on Next dashboard backend must match `IAA_DASHBOARD_INTERNAL_TOKEN`.
 - `AGENT_API_BASE_URL` configures where `api` forwards control-plane requests.
+- Catch-all forwarding route `src/app/v1/[...path]/route.ts` has been removed in favor of explicit endpoint files.

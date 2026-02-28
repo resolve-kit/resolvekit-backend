@@ -51,7 +51,8 @@ Docker composition is defined in [`docker-compose.yml`](../../docker-compose.yml
     - `/v1/apps`
     - `/v1/apps/{app_id}`
     - `/v1/apps/{app_id}/api-keys/*`
-  - remaining control-plane endpoints are currently bridged through internal forwarding to `agent` with internal boundary token (`DASHBOARD_INTERNAL_TOKEN`)
+  - remaining control-plane endpoints are bridged through explicit Next route handlers that forward to `agent` with internal boundary token (`DASHBOARD_INTERNAL_TOKEN`)
+  - generic catch-all route forwarding is removed; all dashboard-used `/v1` paths are now explicitly declared under `src/app/v1`
 
 ## `knowledge_bases` ownership
 

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
   "keep-alive",
@@ -16,7 +14,6 @@ const HOP_BY_HOP_HEADERS = new Set([
 
 const AGENT_API_BASE_URL = (process.env.AGENT_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
 const DASHBOARD_INTERNAL_TOKEN = process.env.DASHBOARD_INTERNAL_TOKEN ?? "";
-const AUTH_PATHS = new Set(["auth/login", "auth/signup"]);
 
 function copyForwardHeaders(input: Headers): Headers {
   const out = new Headers();
@@ -60,39 +57,7 @@ function buildResponse(proxyResponse: Response): NextResponse {
   return response;
 }
 
-async function maybeAttachSessionCookie(
-  req: NextRequest,
-  path: string[],
-  proxyResponse: Response,
-): Promise<NextResponse> {
-  const routePath = path.join("/");
-  if (!AUTH_PATHS.has(routePath)) {
-    return buildResponse(proxyResponse);
-  }
-
-  const contentType = proxyResponse.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
-    return buildResponse(proxyResponse);
-  }
-
-  const payload = await proxyResponse.clone().json().catch(() => null) as { access_token?: string } | null;
-  const accessToken = payload?.access_token;
-  const response = buildResponse(proxyResponse);
-  if (!accessToken || typeof accessToken !== "string") {
-    return response;
-  }
-
-  response.cookies.set("dashboard_token", accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24,
-  });
-  return response;
-}
-
-async function forward(req: NextRequest, path: string[]): Promise<NextResponse> {
+export async function forwardToAgent(req: NextRequest, path: string[]): Promise<NextResponse> {
   const headers = copyForwardHeaders(req.headers);
   withCookieAuth(req, headers);
   withInternalBoundary(headers);
@@ -109,40 +74,9 @@ async function forward(req: NextRequest, path: string[]): Promise<NextResponse> 
     cache: "no-store",
   });
 
+  const response = buildResponse(proxyResponse);
   if (proxyResponse.status === 401) {
-    const response = buildResponse(proxyResponse);
     response.cookies.delete("dashboard_token");
-    return response;
   }
-  return maybeAttachSessionCookie(req, path, proxyResponse);
-}
-
-export async function GET(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  const { path } = await context.params;
-  return forward(req, path);
-}
-
-export async function POST(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  const { path } = await context.params;
-  return forward(req, path);
-}
-
-export async function PUT(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  const { path } = await context.params;
-  return forward(req, path);
-}
-
-export async function PATCH(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  const { path } = await context.params;
-  return forward(req, path);
-}
-
-export async function DELETE(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  const { path } = await context.params;
-  return forward(req, path);
-}
-
-export async function OPTIONS(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  const { path } = await context.params;
-  return forward(req, path);
+  return response;
 }

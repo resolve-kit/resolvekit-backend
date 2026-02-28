@@ -38,7 +38,7 @@ Separate control-plane traffic from runtime traffic:
 
 ### Task 3: Add dashboard backend in Next route handlers
 
-- Add catch-all proxy route at `src/app/v1/[...path]/route.ts`.
+- Add initial proxy route coverage for `/v1/*`.
 - Forward requests to `AGENT_API_BASE_URL`.
 - Inject `DASHBOARD_INTERNAL_TOKEN` as internal trust header.
 - Set HttpOnly cookie on successful login/signup responses.
@@ -72,6 +72,31 @@ Separate control-plane traffic from runtime traffic:
 - Dashboard Next build verification.
 - Existing runtime route tests that should remain unchanged.
 
+## Progress Tracking
+
+### Phase A: Split foundation
+
+- [x] Next dashboard migration (`dash` + `api` codebase).
+- [x] Internal token boundary enforcement in `agent`.
+- [x] Direct Next handlers for `auth`, `apps`, `api-keys`.
+- [x] Initial ownership/config/docs updates.
+
+### Phase B: Full `/v1` route map in Next (no catch-all)
+
+- [x] Add shared route-forwarding helper (`src/lib/server/agent-proxy.ts`).
+- [x] Replace generic catch-all with explicit route handlers for all dashboard-used `/v1` endpoints:
+  - apps/functions/playbooks/sessions/audit/chat-theme/chat-localizations/config
+  - organizations/me/onboarding/members/invitations/llm/embedding endpoints
+  - knowledge-bases and app knowledge-base assignment endpoints
+- [x] Remove `src/app/v1/[...path]/route.ts`.
+- [x] Add contract test coverage for explicit route presence and catch-all removal.
+
+### Phase C: Verification
+
+- [x] `uv run python -m pytest tests/test_dashboard_next_control_plane_contract.py -v`
+- [x] `uv run python -m pytest tests/test_dashboard_internal_boundary.py tests/test_dashboard_api_base_url_contract.py tests/test_subdomain_env_contract.py tests/test_dashboard_onboarding_contract.py -v`
+- [x] `npm --prefix dashboard run build`
+
 ## Validation Checklist
 
 - [x] `uv run python -m pytest tests/test_dashboard_internal_boundary.py -v`
@@ -79,8 +104,8 @@ Separate control-plane traffic from runtime traffic:
 - [x] `npm --prefix dashboard run build`
 - [x] confirm `agent` runtime routes continue to load/start
 
-## Follow-up Work (next iteration)
+## Remaining Follow-up Work
 
-1. Replace proxy behavior with native Next control-plane handlers endpoint by endpoint.
+1. Replace remaining forwarded route handlers with native Next-owned implementations where practical (provider and KB flows).
 2. Add dedicated OpenAPI artifact for dashboard Next API.
-3. Remove deprecated Vite-only artifacts once fully unused.
+3. Keep service docs in sync with endpoint ownership as native coverage expands.
