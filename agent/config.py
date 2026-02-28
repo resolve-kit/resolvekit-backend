@@ -22,8 +22,10 @@ class Settings(BaseSettings):
     cors_origins: list[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
+        "http://localhost:3002",
         "http://localhost:5173",
     ]
+    dashboard_internal_token: str | None = None
 
     # Server
     debug: bool = False

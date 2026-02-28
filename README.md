@@ -2,9 +2,9 @@
 
 Playbook Backend provides the server-side runtime for embedded app assistants. It includes:
 
-- `agent`: primary API and orchestrator for sessions, chat, tool execution, config, and governance.
+- `agent`: runtime API and orchestrator for SDK sessions/chat/tool execution.
 - `knowledge_bases`: internal knowledge-base ingestion and semantic search service.
-- `dashboard`: web UI for developers to configure assistant behavior.
+- `dashboard`: Next.js dashboard app (UI + `/v1` control-plane route handlers).
 - `website`: Next.js marketing site (Tailwind + shadcn-style components).
 
 ## Start Here
@@ -22,6 +22,7 @@ Playbook Backend provides the server-side runtime for embedded app assistants. I
 - [Documentation Index](docs/INDEX.md)
 - [SDK Integration Protocol](SDK_INTEGRATION.md)
 - [Service Overview](docs/backend/services-overview.md)
+- [Platform Ownership Split](docs/backend/platform-ownership-split.md)
 - [iOS App Agent Capabilities](docs/backend/ios-app-agent-capabilities.md)
 - [KB Service Capabilities](docs/backend/kb-service-capabilities.md)
 - [Router Map](docs/backend/router-map.md)

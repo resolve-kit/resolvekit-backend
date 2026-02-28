@@ -5,6 +5,7 @@ This index is optimized for both engineers and LLM-based coding agents.
 ## Architecture and Service Boundaries
 
 - [Service Overview](backend/services-overview.md)
+- [Platform Ownership Split](backend/platform-ownership-split.md)
 - [Orchestrator Flow](backend/orchestrator-flow.md)
 - [Data Model Map](backend/data-model-map.md)
 
@@ -34,4 +35,3 @@ Regenerate snapshots:
 
 - `uv run python scripts/export_openapi.py`
 - `uv run python scripts/check_openapi_sync.py`
-

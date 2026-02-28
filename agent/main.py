@@ -1,11 +1,12 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from agent.config import settings
 from agent.database import async_session_factory
+from agent.middleware.dashboard_internal import require_dashboard_internal_token
 from agent.routers import (
     api_keys,
     apps,
@@ -22,6 +23,8 @@ from agent.routers import (
     sessions,
 )
 from agent.services.session_service import expire_stale_sessions
+
+dashboard_internal_dependency = [Depends(require_dashboard_internal_token)]
 
 
 def validate_security_config() -> None:
@@ -75,26 +78,26 @@ app.add_middleware(
 )
 
 # Auth & developer
-app.include_router(auth.router)
-app.include_router(organizations.router)
+app.include_router(auth.router, dependencies=dashboard_internal_dependency)
+app.include_router(organizations.router, dependencies=dashboard_internal_dependency)
 
 # App management (JWT)
-app.include_router(apps.router)
-app.include_router(api_keys.router)
-app.include_router(config.router)
-app.include_router(audit.router)
-app.include_router(knowledge_bases.router)
+app.include_router(apps.router, dependencies=dashboard_internal_dependency)
+app.include_router(api_keys.router, dependencies=dashboard_internal_dependency)
+app.include_router(config.router, dependencies=dashboard_internal_dependency)
+app.include_router(audit.router, dependencies=dashboard_internal_dependency)
+app.include_router(knowledge_bases.router, dependencies=dashboard_internal_dependency)
 
 # Function management
 app.include_router(functions.sdk_router)
-app.include_router(functions.dashboard_router)
+app.include_router(functions.dashboard_router, dependencies=dashboard_internal_dependency)
 
 # Playbooks
-app.include_router(playbooks.router)
+app.include_router(playbooks.router, dependencies=dashboard_internal_dependency)
 
 # Sessions
 app.include_router(sessions.sdk_router)
-app.include_router(sessions.dashboard_router)
+app.include_router(sessions.dashboard_router, dependencies=dashboard_internal_dependency)
 
 # Chat
 app.include_router(chat_ws.router)

@@ -23,6 +23,8 @@ Settings are loaded via pydantic settings models:
 - `IAA_JWT_EXPIRE_MINUTES`
 - `IAA_ENCRYPTION_KEY`
   - Fernet key used for encrypting sensitive data at rest.
+- `IAA_DASHBOARD_INTERNAL_TOKEN`
+  - Shared secret expected on `X-Internal-Dashboard-Token` for control-plane routes.
 
 ## Chat transport and compatibility
 
@@ -44,8 +46,12 @@ Settings are loaded via pydantic settings models:
 
 ## Frontend integration
 
-- `VITE_API_BASE_URL`
+- `NEXT_PUBLIC_API_BASE_URL`
   - Dashboard API origin used from `dash` UI (for example: `https://api.<domain>`).
+- `AGENT_API_BASE_URL`
+  - Internal base URL used by Next dashboard `/v1` route handlers when forwarding to `agent`.
+- `DASHBOARD_INTERNAL_TOKEN`
+  - Token injected by Next dashboard route handlers into `X-Internal-Dashboard-Token`.
 
 ## `KBS_*` variables
 

@@ -5,6 +5,8 @@ This map groups endpoints by router and responsibility. For exact request/respon
 - [`agent.openapi.json`](../generated/openapi/agent.openapi.json)
 - [`knowledge_bases.openapi.json`](../generated/openapi/knowledge_bases.openapi.json)
 
+Control-plane routes are expected to be called through dashboard `api` (Next route handlers). When `IAA_DASHBOARD_INTERNAL_TOKEN` is set, these routes require `X-Internal-Dashboard-Token`.
+
 ## `agent` routers
 
 ## Auth (`agent/routers/auth.py`)

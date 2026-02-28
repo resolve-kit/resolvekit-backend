@@ -2,67 +2,73 @@
 
 ## Topology
 
-Playbook backend runtime is split into two FastAPI services plus supporting infrastructure:
+Playbook is split into four service roles:
 
-- `agent` (`main.py` -> `agent/main.py`)
-  - Public API used by dashboard and SDK clients.
-  - Owns auth, organizations, apps, config, sessions, chat orchestration, playbooks, and function registry.
-- `knowledge_bases` (`knowledge_bases/main.py`)
-  - Internal KB ingestion and search service.
-  - Owns document crawling, chunking, embeddings, search, and ingestion jobs.
-- PostgreSQL databases
-  - `db`: primary app database for `agent`.
-  - `kb-db`: KB database for `knowledge_bases`.
-- `dashboard`
-  - React frontend for developer configuration and observability.
+- `www` (`website/`, Next.js)
+  - Public marketing site.
+- `dash` (`dashboard/`, Next.js)
+  - Dashboard UI frontend.
+- `api` (`dashboard/`, Next.js Route Handlers under `/v1/*`)
+  - Dashboard control-plane API boundary.
+  - Proxies control-plane requests to internal `agent` routes and sets cookie sessions.
+- `agent` (`main.py` -> `agent/main.py`, FastAPI)
+  - Runtime API for SDK/chat plus internal control-plane routes.
+  - Control-plane routes require `X-Internal-Dashboard-Token` when `IAA_DASHBOARD_INTERNAL_TOKEN` is set.
+- `knowledge_bases` (`knowledge_bases/main.py`, FastAPI)
+  - Internal KB ingestion and semantic retrieval service.
+
+Supporting infrastructure:
+
+- `db`: primary PostgreSQL for app/runtime/control-plane records.
+- `kb-db`: PostgreSQL for KB ingestion/search data.
 
 Docker composition is defined in [`docker-compose.yml`](../../docker-compose.yml).
 
-## High-Level Boundaries
+## Ownership Boundaries
 
-## `agent`
+## `agent` ownership
 
-- API surface:
-  - `/v1/auth`, `/v1/organizations`, `/v1/apps`, `/v1/apps/*`, `/v1/functions`, `/v1/sessions`, `/v1/sdk`.
-  - Chat transports:
-    - WebSocket: `/v1/sessions/{session_id}/ws`
-    - SSE fallback: `/v1/sessions/{session_id}/messages`
-- Core internals:
-  - Orchestrator: [`agent/services/orchestrator.py`](../../agent/services/orchestrator.py)
-  - LLM integration: [`agent/services/llm_service.py`](../../agent/services/llm_service.py)
-  - KB bridge: [`agent/services/knowledge_bases_client.py`](../../agent/services/knowledge_bases_client.py)
+- Public runtime ownership (SDK):
+  - `/v1/functions` SDK routes
+  - `/v1/sessions` SDK routes
+  - `/v1/sdk`
+  - `WS /v1/sessions/{session_id}/ws`
+  - `POST /v1/sessions/{session_id}/messages`
+  - `POST /v1/sessions/{session_id}/tool-results`
+- Internal control-plane ownership (called via `api`):
+  - `/v1/auth`
+  - `/v1/organizations`
+  - `/v1/apps/*` management
+  - `/v1/knowledge-bases/*`
+  - dashboard-specific routes (`functions.dashboard_router`, `sessions.dashboard_router`, `playbooks`, `audit`, `config`, `api-keys`)
 
-## `knowledge_bases`
+## `api` ownership
+
+- External control-plane API origin for dashboard clients.
+- Route handlers:
+  - attach cookie/session auth to outgoing requests
+  - apply internal boundary token (`DASHBOARD_INTERNAL_TOKEN`)
+  - proxy to `agent` for current control-plane behavior
+
+## `knowledge_bases` ownership
 
 - Internal API prefix: `/internal/*` (JWT-protected service-to-service calls).
-- Core internals:
-  - Router: [`knowledge_bases/router.py`](../../knowledge_bases/router.py)
-  - Ingestion: [`knowledge_bases/services/ingestion.py`](../../knowledge_bases/services/ingestion.py)
-  - Crawling: [`knowledge_bases/services/crawling.py`](../../knowledge_bases/services/crawling.py)
-  - Embeddings/search: [`knowledge_bases/services/embedding.py`](../../knowledge_bases/services/search.py)
-  - Worker loop: [`knowledge_bases/services/worker.py`](../../knowledge_bases/services/worker.py)
+- Owns document ingestion, chunking, embedding generation, and search.
 
-## Request Flow Patterns
+## Primary Flow Patterns
 
-## Dashboard/API management flow
+## Dashboard flow
 
-1. Dashboard authenticates developer via JWT endpoints in `agent`.
-2. Dashboard manages app-level resources (config, functions, playbooks, KB assignments).
-3. `agent` persists primary records in `db`.
-4. For KB operations, `agent` proxies to `knowledge_bases` and syncs local KB references.
+1. Browser app (`dash`) calls `/v1/*` on `api`.
+2. `api` route handlers validate/attach session credentials and forward to `agent`.
+3. `agent` handles tenant/domain logic and persists to `db`.
+4. KB-related calls are proxied from `agent` to `knowledge_bases`.
 
-## Runtime chat flow (SDK)
+## SDK runtime flow
 
-1. SDK creates session and sends client/session context (`client`, `metadata`, `llm_context`, eligibility fields).
-2. SDK opens chat transport (WS preferred, SSE fallback).
-3. Orchestrator routes request, enriches prompt with KB/playbook context, calls LLM.
-4. Tool calls are dispatched back to SDK; results are returned to orchestrator.
-5. Final assistant response is streamed/completed to client and persisted.
+1. SDK calls `agent` runtime endpoints directly with app API key.
+2. `agent` orchestrator executes LLM + tool loop.
+3. Optional KB retrieval is fetched through `knowledge_bases`.
+4. Responses stream over WS/SSE back to SDK.
 
 See [Orchestrator Flow](orchestrator-flow.md) for detailed turn lifecycle.
-
-## Source-of-Truth Artifacts
-
-- Exact endpoint schemas: [generated OpenAPI](../generated/openapi/agent.openapi.json), [KB OpenAPI](../generated/openapi/knowledge_bases.openapi.json)
-- Runtime protocol semantics: [SDK Integration Protocol](../../SDK_INTEGRATION.md)
-

@@ -19,6 +19,7 @@
    - `docker compose logs -f backend`
    - `docker compose logs -f kb-service`
    - `docker compose logs -f dashboard`
+   - `docker compose logs -f api`
    - `docker compose logs -f website`
 
 ## Python local backend setup
@@ -38,6 +39,9 @@
    - `npm --prefix dashboard run dev`
 3. Production build check:
    - `npm --prefix dashboard run build`
+4. If using separate local API origin:
+   - set `NEXT_PUBLIC_API_BASE_URL` to `http://localhost:3002`
+   - run a second dashboard container/service as `api` from compose
 
 ## Website local setup
 
@@ -66,6 +70,7 @@
 - KB request failures:
   - Verify `IAA_KNOWLEDGE_BASES_*` and `KBS_SERVICE_JWT_*` values match.
 - Dashboard cannot reach API:
-  - Verify `VITE_API_BASE_URL` points to the API origin (for local, `http://localhost:8000`).
+  - Verify `NEXT_PUBLIC_API_BASE_URL` points to the dashboard API origin (for local, `http://localhost:3002`).
+  - Verify `DASHBOARD_INTERNAL_TOKEN` and `IAA_DASHBOARD_INTERNAL_TOKEN` match.
 - WS auth failures:
   - Ensure ws-ticket flow is used and token not expired.
