@@ -1,73 +1,33 @@
-# React + TypeScript + Vite
+# Dashboard (Next.js)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This package now serves two roles:
 
-Currently, two official plugins are available:
+1. Dashboard UI (`dash` origin)
+2. Dashboard API boundary (`api` origin) via Next route handlers at `/v1/*`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Environment
 
-## React Compiler
+- `NEXT_PUBLIC_API_BASE_URL`
+  - Browser-facing API base URL used by dashboard client code.
+- `DATABASE_URL`
+  - Prisma connection string for control-plane DB operations.
+- `IAA_JWT_SECRET`, `IAA_JWT_ALGORITHM`, `IAA_JWT_EXPIRE_MINUTES`
+  - Dashboard session token settings.
+- `IAA_ENCRYPTION_KEY`
+  - Fernet-compatible key for provider profile secret encryption/decryption.
+- `IAA_KNOWLEDGE_BASES_BASE_URL`, `IAA_KNOWLEDGE_BASES_AUDIENCE`, `IAA_KNOWLEDGE_BASES_SIGNING_KEY`, `IAA_KNOWLEDGE_BASES_JWT_ALGORITHM`
+  - KB internal service integration settings for dashboard API route handlers.
+- `IAA_CORS_ALLOWED_ORIGINS`
+  - Comma-separated list of allowed browser origins for cross-origin `/v1/*` requests to the `api` origin.
+  - Same-host origins are also allowed automatically (for example, `http://<host>:3000` -> `http://<host>:3002`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Commands
 
-## Expanding the ESLint configuration
+- `npm run dev`
+- `npm run build`
+- `npm run start`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Notes
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- Existing dashboard views are currently mounted as a client-side app within Next.
+- `/v1/*` route handlers preserve the existing dashboard API contract while owning control-plane behavior directly in Next.

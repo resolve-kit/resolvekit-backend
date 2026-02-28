@@ -75,7 +75,11 @@ Reference: [`agent/services/chat_access_service.py`](../../agent/services/chat_a
 
 ## KB service error mapping
 
-`agent` wraps `KBServiceError` from KB client calls and forwards:
+`agent` runtime wraps KB client failures surfaced from `agent/services/knowledge_bases_client.py` when KB retrieval is used in orchestration.
+
+Dashboard control-plane KB endpoints (`dashboard/src/app/v1/knowledge-bases/**`) map errors through `dashboard/src/lib/server/kb-service.ts`.
+
+Common mapping behavior:
 
 - status code
 - optional upstream error `code`
@@ -84,5 +88,4 @@ Reference: [`agent/services/chat_access_service.py`](../../agent/services/chat_a
 Reference:
 
 - [`agent/services/knowledge_bases_client.py`](../../agent/services/knowledge_bases_client.py)
-- [`agent/routers/knowledge_bases.py`](../../agent/routers/knowledge_bases.py)
-
+- [`dashboard/src/lib/server/kb-service.ts`](../../dashboard/src/lib/server/kb-service.ts)

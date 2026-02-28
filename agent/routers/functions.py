@@ -1,24 +1,19 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.database import get_db
-from agent.middleware.auth import get_app_from_api_key, get_current_developer, require_app_ownership
+from agent.middleware.auth import get_app_from_api_key
 from agent.models.app import App
-from agent.models.developer import DeveloperAccount
 from agent.models.function_registry import RegisteredFunction
 from agent.models.session import ChatSession
-from agent.schemas.function_registry import FunctionBulkSync, FunctionOut, FunctionUpdate
-from agent.services.audit_service import AuditService
+from agent.schemas.function_registry import FunctionBulkSync, FunctionOut
 from agent.services.function_service import get_eligible_functions
 
 # SDK endpoints (API key auth)
 sdk_router = APIRouter(prefix="/v1/functions", tags=["functions-sdk"])
-
-# Dashboard endpoints (JWT auth)
-dashboard_router = APIRouter(prefix="/v1/apps/{app_id}/functions", tags=["functions-dashboard"])
 
 
 @sdk_router.put("/bulk", response_model=list[FunctionOut])
@@ -93,100 +88,3 @@ async def list_eligible_functions_sdk(
     if not session or session.app_id != app.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     return await get_eligible_functions(db, app.id, session)
-
-
-@dashboard_router.get("", response_model=list[FunctionOut])
-async def list_functions_dashboard(
-    app_id: uuid.UUID,
-    developer: DeveloperAccount = Depends(get_current_developer),
-    db: AsyncSession = Depends(get_db),
-):
-    app = await db.get(App, app_id)
-    if not app:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")
-    require_app_ownership(developer, app_id, app)
-
-    result = await db.execute(select(RegisteredFunction).where(RegisteredFunction.app_id == app_id))
-    return result.scalars().all()
-
-
-@dashboard_router.patch("/{function_id}", response_model=FunctionOut)
-async def update_function(
-    app_id: uuid.UUID,
-    function_id: uuid.UUID,
-    body: FunctionUpdate,
-    request: Request,
-    developer: DeveloperAccount = Depends(get_current_developer),
-    db: AsyncSession = Depends(get_db),
-):
-    app = await db.get(App, app_id)
-    if not app:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")
-    require_app_ownership(developer, app_id, app)
-
-    fn = await db.get(RegisteredFunction, function_id)
-    if not fn or fn.app_id != app_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Function not found")
-
-    updates = body.model_dump(exclude_unset=True)
-    old_is_active = fn.is_active
-    old_override = fn.description_override
-
-    for field, value in updates.items():
-        setattr(fn, field, value)
-
-    await db.commit()
-    await db.refresh(fn)
-
-    ip_address = request.client.host if request.client else None
-    emitted_event = False
-
-    if "is_active" in updates and fn.is_active != old_is_active:
-        event_type = "function.activated" if fn.is_active else "function.deactivated"
-        await AuditService.emit(
-            db=db,
-            app_id=app_id,
-            actor_email=developer.email,
-            event_type=event_type,
-            entity_id=str(function_id),
-            entity_name=fn.name,
-            ip_address=ip_address,
-        )
-        emitted_event = True
-
-    if "description_override" in updates and fn.description_override != old_override:
-        await AuditService.emit(
-            db=db,
-            app_id=app_id,
-            actor_email=developer.email,
-            event_type="function.override_set",
-            entity_id=str(function_id),
-            entity_name=fn.name,
-            ip_address=ip_address,
-        )
-        emitted_event = True
-
-    if emitted_event:
-        await db.commit()
-
-    return fn
-
-
-@dashboard_router.delete("/{function_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def deactivate_function(
-    app_id: uuid.UUID,
-    function_id: uuid.UUID,
-    developer: DeveloperAccount = Depends(get_current_developer),
-    db: AsyncSession = Depends(get_db),
-):
-    app = await db.get(App, app_id)
-    if not app:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App not found")
-    require_app_ownership(developer, app_id, app)
-
-    fn = await db.get(RegisteredFunction, function_id)
-    if not fn or fn.app_id != app_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Function not found")
-
-    fn.is_active = False
-    await db.commit()

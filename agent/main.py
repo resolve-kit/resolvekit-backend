@@ -7,17 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from agent.config import settings
 from agent.database import async_session_factory
 from agent.routers import (
-    api_keys,
-    apps,
-    audit,
-    auth,
     chat_http,
     chat_ws,
-    config,
     functions,
-    knowledge_bases,
-    organizations,
-    playbooks,
     sdk,
     sessions,
 )
@@ -60,8 +52,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="iOS App Agent",
-    description="Backend service for iOS App Agent SDK",
+    title="Playbook Agent Runtime API",
+    description="Runtime service for Playbook SDK chat, sessions, and function execution",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -74,29 +66,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Auth & developer
-app.include_router(auth.router)
-app.include_router(organizations.router)
-
-# App management (JWT)
-app.include_router(apps.router)
-app.include_router(api_keys.router)
-app.include_router(config.router)
-app.include_router(audit.router)
-app.include_router(knowledge_bases.router)
-
-# Function management
+# Function management (SDK)
 app.include_router(functions.sdk_router)
-app.include_router(functions.dashboard_router)
 
-# Playbooks
-app.include_router(playbooks.router)
-
-# Sessions
+# Sessions (SDK)
 app.include_router(sessions.sdk_router)
-app.include_router(sessions.dashboard_router)
 
-# Chat
+# Chat runtime
 app.include_router(chat_ws.router)
 app.include_router(chat_http.router)
 app.include_router(sdk.router)

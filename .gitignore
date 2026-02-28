@@ -15,6 +15,8 @@ wheels/
 # Node
 node_modules/
 dashboard/dist/
+dashboard/.next/
+website/.next/
 
 # IDE
 .idea/

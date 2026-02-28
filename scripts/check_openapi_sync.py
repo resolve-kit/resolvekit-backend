@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.export_openapi import _render_openapi  # noqa: E402
+from scripts.export_dashboard_openapi import render_dashboard_openapi  # noqa: E402
 from agent.main import app as agent_app  # noqa: E402
 from knowledge_bases.main import app as knowledge_bases_app  # noqa: E402
 
@@ -34,6 +35,7 @@ def check_openapi_sync() -> int:
     targets = {
         "agent.openapi.json": _render_openapi(agent_app),
         "knowledge_bases.openapi.json": _render_openapi(knowledge_bases_app),
+        "dashboard.openapi.json": render_dashboard_openapi(),
     }
 
     drift_found = False
@@ -60,4 +62,3 @@ def check_openapi_sync() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(check_openapi_sync())
-

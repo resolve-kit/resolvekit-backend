@@ -71,12 +71,43 @@ services:
     build:
       context: ./dashboard
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+      IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
+      IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
+      IAA_JWT_EXPIRE_MINUTES: ${IAA_JWT_EXPIRE_MINUTES:-1440}
+      IAA_ENCRYPTION_KEY: ${IAA_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+      IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
+    ports:
+      - "3000:3000"
+
+  api:
+    build:
+      context: ./dashboard
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+      IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
+      IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
+      IAA_JWT_EXPIRE_MINUTES: ${IAA_JWT_EXPIRE_MINUTES:-1440}
+      IAA_ENCRYPTION_KEY: ${IAA_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+      IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
     ports:
-      - "3000:80"
+      - "3002:3000"
 
   website:
     build: ./website

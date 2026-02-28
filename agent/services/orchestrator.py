@@ -80,6 +80,43 @@ INTENT_STOPWORDS = {
     "what",
     "you",
 }
+SUPPORT_CONTACT_HINT_PATTERN = re.compile(
+    r"(?i)\b(support|help(?:\s*desk)?)\b.*\b(email|e-?mail|contact|phone|number)\b|"
+    r"\b(email|e-?mail|contact|phone|number)\b.*\b(support|help(?:\s*desk)?)\b"
+)
+URL_TEXT_PATTERN = re.compile(r"https?://\S+", re.IGNORECASE)
+URL_REQUEST_HINT_WORDS = ("share", "provide", "paste", "send", "specific", "track", "monitor", "add")
+FOLLOWUP_PROMPT_HINT_WORDS = (
+    "please share",
+    "please provide",
+    "can you share",
+    "could you share",
+    "which one",
+    "what frequency",
+    "how often",
+    "confirm",
+    "should i",
+    "would you like",
+)
+NEW_REQUEST_PREFIXES = {
+    "what",
+    "who",
+    "where",
+    "when",
+    "why",
+    "how",
+    "can",
+    "could",
+    "would",
+    "should",
+    "tell",
+    "explain",
+    "write",
+    "create",
+    "find",
+    "search",
+    "browse",
+}
 
 BASE_PROMPT = """\
 You are an assistant for a software product. Your role is to help users, answer questions about the product,
@@ -118,9 +155,19 @@ Analyze the user's message and return a JSON object with exactly these fields:
 Rules:
 - in_scope: true if the message relates to using, troubleshooting, or understanding the product described in the
   product context. false if it is entirely unrelated to the product.
+- Greetings and brief social niceties (for example: hi, hello, sup, thanks, thank you, bye, good morning) are
+  considered in scope for conversational flow. For these messages, in_scope should be true.
+- Use recent conversation context to resolve ambiguous follow-ups. If a short user reply (for example "yes",
+  "this one", "every 10 minutes", or a pasted URL) clearly continues a prior product-related assistant prompt,
+  in_scope should be true.
 - rejection_reason: a short, polite user-facing sentence explaining why the message is out of scope. Only set when
   in_scope is false; null otherwise.
+- For requests where the user asks you to find or choose products on the user's behalf, set in_scope to false and
+  set rejection_reason to explain that you cannot browse/shop for them directly, then ask the user to share a
+  specific product URL they want to track in the app.
 - needs_kb: true if answering would likely benefit from searching product documentation.
+- For questions asking for support contact details (for example support email, support phone, or how to contact
+  support), needs_kb should be true.
 - kb_query: if needs_kb is true, write a focused semantic search query optimized for finding relevant documentation.
   If client platform context is available, include it in the query. null otherwise.
 - intent: one short sentence describing what the user wants.
@@ -300,6 +347,112 @@ def _context_intent_tokens(messages: list[Message]) -> set[str]:
     return tokens
 
 
+def _format_recent_messages_for_router(messages: list[Message], limit: int = 8) -> str:
+    if not messages:
+        return "None"
+    rows: list[str] = []
+    for msg in messages[-limit:]:
+        role = str(getattr(msg, "role", "unknown") or "unknown")
+        content = str(getattr(msg, "content", "") or "").strip()
+        if not content:
+            continue
+        compact = " ".join(content.split())
+        if len(compact) > 260:
+            compact = f"{compact[:260].rstrip()}..."
+        rows.append(f"{role}: {compact}")
+    return "\n".join(rows) if rows else "None"
+
+
+def _format_functions_for_router(functions: list[RegisteredFunction], limit: int = 20) -> str:
+    if not functions:
+        return "None"
+    rows: list[str] = []
+    for fn in functions:
+        if not fn.is_active:
+            continue
+        desc = (fn.description_override or fn.description or "").strip()
+        if len(desc) > 200:
+            desc = f"{desc[:200].rstrip()}..."
+        rows.append(f"- {fn.name}: {desc}")
+        if len(rows) >= limit:
+            break
+    return "\n".join(rows) if rows else "None"
+
+
+def _function_accepts_url_input(fn: RegisteredFunction) -> bool:
+    schema = getattr(fn, "parameters_schema", None)
+    if not isinstance(schema, dict):
+        return False
+    properties = schema.get("properties")
+    if not isinstance(properties, dict):
+        return False
+    for raw_name in properties:
+        name = str(raw_name).strip().lower()
+        if name in {"url", "link", "href", "source_url"} or name.endswith("_url"):
+            return True
+    return False
+
+
+def _assistant_recently_requested_url(messages: list[Message], lookback: int = 8) -> bool:
+    recent = messages[-lookback:] if lookback > 0 else messages
+    for msg in reversed(recent):
+        if msg.role != "assistant":
+            continue
+        content = (msg.content or "").lower()
+        if not content:
+            continue
+        if ("url" in content or "link" in content) and any(word in content for word in URL_REQUEST_HINT_WORDS):
+            return True
+    return False
+
+
+def _assistant_recently_prompted_for_followup(messages: list[Message], lookback: int = 8) -> bool:
+    recent = messages[-lookback:] if lookback > 0 else messages
+    for msg in reversed(recent):
+        if msg.role != "assistant":
+            continue
+        content = (msg.content or "").strip().lower()
+        if not content:
+            continue
+        if "?" in content:
+            return True
+        if any(hint in content for hint in FOLLOWUP_PROMPT_HINT_WORDS):
+            return True
+    return False
+
+
+def _is_brief_followup_user_reply(user_text: str, max_tokens: int = 8, max_chars: int = 100) -> bool:
+    text = user_text.strip()
+    if not text or len(text) > max_chars:
+        return False
+    if "?" in text or URL_TEXT_PATTERN.search(text):
+        return False
+    tokens = re.findall(r"[a-z0-9]+", text.lower())
+    if not tokens or len(tokens) > max_tokens:
+        return False
+    if tokens[0] in NEW_REQUEST_PREFIXES:
+        return False
+    return True
+
+
+def _should_override_scope_rejection_for_brief_followup(user_text: str, recent_messages: list[Message]) -> bool:
+    if not _assistant_recently_prompted_for_followup(recent_messages):
+        return False
+    return _is_brief_followup_user_reply(user_text)
+
+
+def _should_override_scope_rejection_for_url_followup(
+    user_text: str,
+    active_functions: list[RegisteredFunction],
+    recent_messages: list[Message],
+) -> bool:
+    if not URL_TEXT_PATTERN.search(user_text):
+        return False
+    if not any(_function_accepts_url_input(fn) for fn in active_functions):
+        return False
+    return _assistant_recently_requested_url(recent_messages)
+
+
 def _should_override_scope_rejection(
     user_text: str,
     functions: list[RegisteredFunction],
@@ -307,7 +460,11 @@ def _should_override_scope_rejection(
 ) -> bool:
     active_functions = [fn for fn in functions if fn.is_active]
     if not active_functions:
-        return False
+        return _should_override_scope_rejection_for_brief_followup(user_text, recent_messages)
+    if _should_override_scope_rejection_for_url_followup(user_text, active_functions, recent_messages):
+        return True
+    if _should_override_scope_rejection_for_brief_followup(user_text, recent_messages):
+        return True
 
     user_tokens = _tokenize_intent_text(user_text)
     if not user_tokens:
@@ -337,14 +494,22 @@ def _should_override_scope_rejection(
     return False
 
 
+def _should_force_kb_prefetch(user_text: str) -> bool:
+    return bool(SUPPORT_CONTACT_HINT_PATTERN.search(user_text))
+
+
 async def _run_router(
     config: AgentConfig,
     user_text: str,
     session_id: uuid.UUID,
     platform_context: str,
     custom_context: str,
+    recent_messages: list[Message] | None = None,
+    functions: list[RegisteredFunction] | None = None,
 ) -> RouterResult:
     """Classify whether the message is in-scope and whether KB prefetch is useful."""
+    recent_context = _format_recent_messages_for_router(recent_messages or [])
+    function_context = _format_functions_for_router(functions or [])
     router_messages = [
         {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
         {
@@ -353,6 +518,8 @@ async def _run_router(
                 f"Product context:\n{config.system_prompt}\n\n"
                 f"Client platform context:\n{platform_context or 'Unknown'}\n\n"
                 f"Session custom context:\n{custom_context or 'None'}\n\n"
+                f"Recent conversation context:\n{recent_context}\n\n"
+                f"Available product actions:\n{function_context}\n\n"
                 f"User message:\n{user_text}"
             ),
         },
@@ -643,10 +810,18 @@ async def run_agent_loop(
     raw_custom_context = _session_llm_context(session)
     custom_context_prompt = _format_custom_context_for_prompt(raw_custom_context)
     custom_context_query = _format_custom_context_for_query(raw_custom_context)
-    router_result, (app_org_id, assigned_kb_ids), preloaded_context_msgs = await asyncio.gather(
-        _run_router(config, user_text, session.id, platform_context, custom_context_prompt),
+    (app_org_id, assigned_kb_ids), preloaded_context_msgs = await asyncio.gather(
         _load_kb_assignment_context(db, session.app_id),
         load_context_messages(db, session.id, config.max_context_messages),
+    )
+    router_result = await _run_router(
+        config,
+        user_text,
+        session.id,
+        platform_context,
+        custom_context_prompt,
+        preloaded_context_msgs,
+        functions,
     )
 
     scope_mode = str(getattr(config, "scope_mode", "strict") or "strict")
@@ -658,7 +833,8 @@ async def run_agent_loop(
                 session.app_id,
             )
         else:
-            rejection_text = STRICT_SCOPE_REJECTION_TEXT
+            router_reason = (router_result.rejection_reason or "").strip()
+            rejection_text = router_reason or STRICT_SCOPE_REJECTION_TEXT
             seq = await get_next_sequence(db, session.id)
             rejection_msg = Message(
                 session_id=session.id,
@@ -671,8 +847,15 @@ async def run_agent_loop(
             await sender.send_turn_complete(rejection_text, None)
             return
 
+    force_kb_prefetch = _should_force_kb_prefetch(user_text)
+    if force_kb_prefetch and not router_result.needs_kb:
+        logger.info(
+            "kb_prefetch_forced_by_support_contact_intent session_id=%s app_id=%s",
+            session.id,
+            session.app_id,
+        )
     should_prefetch = bool(
-        router_result.needs_kb
+        (router_result.needs_kb or force_kb_prefetch)
         and (router_result.kb_query or user_text).strip()
         and app_org_id is not None
         and assigned_kb_ids

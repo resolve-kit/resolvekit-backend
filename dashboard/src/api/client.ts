@@ -1,4 +1,4 @@
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").trim();
+const RAW_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
 const BASE = RAW_BASE.replace(/\/$/, "");
 
 function getToken(): string | null {
@@ -67,7 +67,11 @@ export async function api<T = unknown>(
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers,
+    credentials: options.credentials ?? "include",
+  });
   if (res.status === 204) return undefined as T;
   if (res.status === 401) {
     const body = await res.json().catch(() => ({ detail: res.statusText })) as { detail?: unknown };

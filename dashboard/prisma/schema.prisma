@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DeveloperAccount {
+  id             String   @id @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  email          String   @unique @db.VarChar(255)
+  name           String   @db.VarChar(255)
+  hashedPassword String   @map("hashed_password") @db.VarChar(255)
+  role           String   @default("member") @db.VarChar(20)
+  organizationId String   @map("organization_id") @db.Uuid
+
+  organization       Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  apps               App[]
+  sentInvitations    OrganizationInvitation[]  @relation("sent_invitations")
+  receivedInvitations OrganizationInvitation[] @relation("received_invitations")
+
+  @@index([organizationId], map: "ix_developer_accounts_organization_id")
+  @@map("developer_accounts")
+}
+
+model Organization {
+  id                   String    @id @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  name                 String    @db.VarChar(255)
+  publicId             String    @unique @map("public_id") @db.VarChar(64)
+  onboardingTargetAppId String?  @map("onboarding_target_app_id") @db.Uuid
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at") @db.Timestamptz(6)
+  onboardingResetCount Int       @default(0) @map("onboarding_reset_count")
+
+  developers         DeveloperAccount[]
+  apps               App[]
+  invitations        OrganizationInvitation[]
+  llmProviderProfiles OrganizationLlmProviderProfile[]
+
+  @@index([publicId], map: "ix_organizations_public_id")
+  @@index([onboardingTargetAppId], map: "ix_organizations_onboarding_target_app_id")
+  @@map("organizations")
+}
+
+model App {
+  id                        String   @id @db.Uuid
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  developerId               String   @map("developer_id") @db.Uuid
+  organizationId            String   @map("organization_id") @db.Uuid
+  name                      String   @db.VarChar(255)
+  bundleId                  String?  @map("bundle_id") @db.VarChar(255)
+  integrationEnabled        Boolean  @default(true) @map("integration_enabled")
+  integrationVersion        Int      @default(1) @map("integration_version")
+  chatTheme                 Json     @default("{}") @map("chat_theme")
+  chatLocalizationOverrides Json     @default("{}") @map("chat_localization_overrides")
+
+  developer  DeveloperAccount  @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  apiKeys       ApiKey[]
+  agentConfig   AgentConfig?
+  functions     RegisteredFunction[]
+  playbooks     Playbook[]
+  sessions      ChatSession[]
+  auditEvents   AuditEvent[]
+  knowledgeBaseAssignments AppKnowledgeBase[]
+
+  @@unique([organizationId, name], map: "uq_app_organization_name")
+  @@index([organizationId], map: "ix_apps_organization_id")
+  @@map("apps")
+}
+
+model ApiKey {
+  id        String   @id @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  appId     String   @map("app_id") @db.Uuid
+  keyHash   String   @unique @map("key_hash") @db.VarChar(64)
+  keyPrefix String   @map("key_prefix") @db.VarChar(12)
+  label     String   @default("") @db.VarChar(255)
+  isActive  Boolean  @default(true) @map("is_active")
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId], map: "ix_api_keys_app_id")
+  @@map("api_keys")
+}
+
+model AgentConfig {
+  id                 String   @id @db.Uuid
+  appId              String   @unique @map("app_id") @db.Uuid
+  systemPrompt       String   @map("system_prompt")
+  llmProvider        String   @default("openai") @map("llm_provider") @db.VarChar(50)
+  llmModel           String   @default("gpt-4o") @map("llm_model") @db.VarChar(100)
+  llmApiKeyEncrypted String?  @map("llm_api_key_encrypted")
+  llmApiBase         String?  @map("llm_api_base") @db.VarChar(255)
+  llmProfileId       String?  @map("llm_profile_id") @db.Uuid
+  temperature        Float    @default(0.7)
+  maxTokens          Int      @default(4096) @map("max_tokens")
+  maxToolRounds      Int      @default(10) @map("max_tool_rounds")
+  sessionTtlMinutes  Int      @default(60) @map("session_ttl_minutes")
+  maxContextMessages Int      @default(100) @map("max_context_messages")
+  scopeMode          String   @default("strict") @map("scope_mode") @db.VarChar(20)
+
+  app        App                            @relation(fields: [appId], references: [id], onDelete: Cascade)
+  llmProfile OrganizationLlmProviderProfile? @relation(fields: [llmProfileId], references: [id], onDelete: SetNull)
+
+  @@index([llmProfileId], map: "ix_agent_configs_llm_profile_id")
+  @@map("agent_configs")
+}
+
+model OrganizationLlmProviderProfile {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String   @db.VarChar(120)
+  provider       String   @db.VarChar(50)
+  model          String   @default("default") @db.VarChar(128)
+  apiKeyEncrypted String  @map("api_key_encrypted")
+  apiBase        String?  @map("api_base") @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agentConfigs AgentConfig[]
+
+  @@unique([organizationId, name], map: "uq_org_llm_profile_name")
+  @@index([organizationId], map: "ix_organization_llm_provider_profiles_organization_id")
+  @@map("organization_llm_provider_profiles")
+}
+
+model RegisteredFunction {
+  id                   String   @id @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  appId                String   @map("app_id") @db.Uuid
+  name                 String   @db.VarChar(255)
+  description          String   @default("") @db.VarChar(1000)
+  parametersSchema     Json     @default("{}") @map("parameters_schema")
+  isActive             Boolean  @default(true) @map("is_active")
+  descriptionOverride  String?  @map("description_override") @db.VarChar(1000)
+  timeoutSeconds       Int      @default(30) @map("timeout_seconds")
+  availability         Json     @default("{}")
+  requiredEntitlements Json     @default("[]") @map("required_entitlements")
+  requiredCapabilities Json     @default("[]") @map("required_capabilities")
+  source               String   @default("app_inline") @db.VarChar(32)
+  packName             String?  @map("pack_name") @db.VarChar(255)
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+  playbookFunctions PlaybookFunction[]
+
+  @@unique([appId, name], map: "uq_function_app_name")
+  @@index([appId], map: "ix_registered_functions_app_id")
+  @@map("registered_functions")
+}
+
+model Playbook {
+  id           String   @id @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  appId        String   @map("app_id") @db.Uuid
+  name         String   @db.VarChar(255)
+  description  String   @default("")
+  instructions String   @default("")
+  isActive     Boolean  @default(true) @map("is_active")
+  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+  playbookFunctions PlaybookFunction[]
+
+  @@unique([appId, name], map: "uq_playbook_app_name")
+  @@index([appId], map: "ix_playbooks_app_id")
+  @@map("playbooks")
+}
+
+model PlaybookFunction {
+  playbookId       String  @map("playbook_id") @db.Uuid
+  functionId       String  @map("function_id") @db.Uuid
+  stepOrder        Int     @default(0) @map("step_order")
+  stepDescription  String? @map("step_description")
+
+  playbook Playbook           @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  function RegisteredFunction @relation(fields: [functionId], references: [id], onDelete: Cascade)
+
+  @@id([playbookId, functionId])
+  @@unique([playbookId, functionId], map: "uq_playbook_function")
+  @@map("playbook_functions")
+}
+
+model ChatSession {
+  id            String   @id @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  appId         String   @map("app_id") @db.Uuid
+  deviceId      String?  @map("device_id") @db.VarChar(255)
+  status        String   @default("active") @db.VarChar(20)
+  lastActivityAt DateTime @default(now()) @map("last_activity_at") @db.Timestamptz(6)
+  metadata      Json     @default("{}") @map("metadata")
+  clientContext Json     @default("{}") @map("client_context")
+  llmContext    Json     @default("{}") @map("llm_context")
+  entitlements  Json     @default("[]")
+  capabilities  Json     @default("[]")
+  locale        String   @default("en") @db.VarChar(16)
+
+  app      App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([appId], map: "ix_chat_sessions_app_id")
+  @@map("chat_sessions")
+}
+
+model Message {
+  id            String   @id @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  sessionId     String   @map("session_id") @db.Uuid
+  sequenceNumber Int     @map("sequence_number")
+  role          String   @db.VarChar(20)
+  content       String?
+  toolCalls     Json?    @map("tool_calls")
+  toolCallId    String?  @map("tool_call_id") @db.VarChar(255)
+  tokenCount    Int?     @map("token_count")
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId], map: "ix_messages_session_id")
+  @@map("messages")
+}
+
+model AuditEvent {
+  id         String   @id @db.Uuid
+  appId      String   @map("app_id") @db.Uuid
+  actorEmail String   @map("actor_email")
+  eventType  String   @map("event_type")
+  entityId   String?  @map("entity_id")
+  entityName String?  @map("entity_name")
+  diff       Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId, createdAt], map: "idx_audit_events_app_id_created")
+  @@map("audit_events")
+}
+
+model OrganizationInvitation {
+  id                String   @id @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  organizationId    String   @map("organization_id") @db.Uuid
+  inviterDeveloperId String  @map("inviter_developer_id") @db.Uuid
+  inviteeDeveloperId String  @map("invitee_developer_id") @db.Uuid
+  inviteeEmail      String   @map("invitee_email") @db.VarChar(255)
+  status            String   @default("pending") @db.VarChar(20)
+  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
+  acceptedAt        DateTime? @map("accepted_at") @db.Timestamptz(6)
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  inviter      DeveloperAccount @relation("sent_invitations", fields: [inviterDeveloperId], references: [id], onDelete: Cascade)
+  invitee      DeveloperAccount @relation("received_invitations", fields: [inviteeDeveloperId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "ix_organization_invitations_organization_id")
+  @@index([inviterDeveloperId], map: "ix_organization_invitations_inviter_developer_id")
+  @@index([inviteeDeveloperId], map: "ix_organization_invitations_invitee_developer_id")
+  @@index([inviteeEmail], map: "ix_organization_invitations_invitee_email")
+  @@map("organization_invitations")
+}
+
+model KnowledgeBaseRef {
+  id             String   @id @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  organizationId String   @map("organization_id") @db.Uuid
+  externalKbId   String   @map("external_kb_id") @db.VarChar(64)
+  nameCache      String   @map("name_cache") @db.VarChar(255)
+
+  appAssignments AppKnowledgeBase[]
+
+  @@unique([organizationId, externalKbId], map: "uq_kb_refs_org_external")
+  @@index([organizationId], map: "ix_knowledge_base_refs_organization_id")
+  @@index([externalKbId], map: "ix_knowledge_base_refs_external_kb_id")
+  @@map("knowledge_base_refs")
+}
+
+model AppKnowledgeBase {
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  appId              String   @map("app_id") @db.Uuid
+  knowledgeBaseRefId String   @map("knowledge_base_ref_id") @db.Uuid
+
+  app              App              @relation(fields: [appId], references: [id], onDelete: Cascade)
+  knowledgeBaseRef KnowledgeBaseRef @relation(fields: [knowledgeBaseRefId], references: [id], onDelete: Cascade)
+
+  @@id([appId, knowledgeBaseRefId])
+  @@unique([appId, knowledgeBaseRefId], map: "uq_app_knowledge_base")
+  @@map("app_knowledge_bases")
+}
