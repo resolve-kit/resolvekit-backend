@@ -10,6 +10,7 @@ from agent.services.chat_access_service import (
     chat_unavailable_http_exception,
     is_chat_unavailable_provider_error,
     issue_chat_capability_token,
+    resolve_chat_capability_token,
     validate_chat_capability_token,
 )
 
@@ -27,6 +28,19 @@ def test_chat_unavailable_http_exception_shape() -> None:
     assert exc.status_code == 403
     assert isinstance(exc.detail, dict)
     assert exc.detail == {"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE}
+
+
+def test_resolve_chat_capability_token_accepts_legacy_header() -> None:
+    headers = {"x-chat-capability-token": "legacy-token"}
+    assert resolve_chat_capability_token(headers) == "legacy-token"
+
+
+def test_resolve_chat_capability_token_prefers_primary_header() -> None:
+    headers = {
+        "X-Playbook-Chat-Capability": "primary-token",
+        "x-chat-capability-token": "legacy-token",
+    }
+    assert resolve_chat_capability_token(headers) == "primary-token"
 
 
 def test_chat_capability_token_validates_for_same_session_and_version() -> None:

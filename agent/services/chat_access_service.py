@@ -13,6 +13,7 @@ from agent.models.app import App
 CHAT_UNAVAILABLE_CODE = "chat_unavailable"
 CHAT_UNAVAILABLE_MESSAGE = "Chat is unavailable, try again later"
 CHAT_CAPABILITY_HEADER = "X-Playbook-Chat-Capability"
+LEGACY_CHAT_CAPABILITY_HEADER = "x-chat-capability-token"
 CHAT_CAPABILITY_QUERY = "chat_capability"
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,17 @@ def chat_unavailable_http_exception() -> HTTPException:
         status_code=status.HTTP_403_FORBIDDEN,
         detail={"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE},
     )
+
+
+def resolve_chat_capability_token(headers: Mapping[str, str] | Any) -> str | None:
+    token = headers.get(CHAT_CAPABILITY_HEADER) if headers else None
+    if token and str(token).strip():
+        return str(token)
+
+    legacy_token = headers.get(LEGACY_CHAT_CAPABILITY_HEADER) if headers else None
+    if legacy_token and str(legacy_token).strip():
+        return str(legacy_token)
+    return None
 
 
 def ensure_chat_available_for_app(app: App) -> None:

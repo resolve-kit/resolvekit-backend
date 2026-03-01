@@ -17,8 +17,8 @@ from agent.models.organization_llm_provider_profile import OrganizationLLMProvid
 from agent.models.session import ChatSession
 from agent.schemas.ws_protocol import ToolResultPayload
 from agent.services.chat_access_service import (
-    CHAT_CAPABILITY_HEADER,
     apply_runtime_llm_profile,
+    resolve_chat_capability_token,
     validate_chat_capability_token,
 )
 from agent.services.chat_localization_service import resolve_locale
@@ -103,7 +103,7 @@ async def send_message_sse(
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
-        token=request.headers.get(CHAT_CAPABILITY_HEADER),
+        token=resolve_chat_capability_token(request.headers),
         session_id=session_id,
         app=app,
     )
@@ -163,7 +163,7 @@ async def submit_tool_result(
     app: App = Depends(get_app_from_api_key),
 ):
     validate_chat_capability_token(
-        token=request.headers.get(CHAT_CAPABILITY_HEADER),
+        token=resolve_chat_capability_token(request.headers),
         session_id=session_id,
         app=app,
     )

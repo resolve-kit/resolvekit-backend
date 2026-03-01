@@ -85,3 +85,22 @@ async def test_sdk_session_history_rejects_foreign_session() -> None:
             await get_session_messages_sdk(session_id=foreign_session.id, request=request, app=app, db=db)
 
     assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_sdk_session_history_accepts_legacy_capability_header() -> None:
+    app_id = uuid.uuid4()
+    session_id = uuid.uuid4()
+    app = SimpleNamespace(id=app_id, integration_enabled=True, integration_version=1)
+    session_obj = SimpleNamespace(id=session_id, app_id=app_id)
+    db = _FakeDB(session_obj=session_obj, messages=[])
+    request = SimpleNamespace(headers={"x-chat-capability-token": "legacy-token"})
+
+    with patch("agent.routers.sessions.validate_chat_capability_token") as validate:
+        await get_session_messages_sdk(session_id=session_id, request=request, app=app, db=db)
+
+    validate.assert_called_once_with(
+        token="legacy-token",
+        session_id=session_id,
+        app=app,
+    )

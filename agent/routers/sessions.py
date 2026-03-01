@@ -13,9 +13,9 @@ from agent.models.session import ChatSession
 from agent.schemas.session import MessageOut, SessionCreate, SessionOut, SessionWSTicketOut
 from agent.services.chat_localization_service import effective_texts, resolve_locale
 from agent.services.chat_access_service import (
-    CHAT_CAPABILITY_HEADER,
     ensure_chat_available_for_app,
     issue_chat_capability_token,
+    resolve_chat_capability_token,
     validate_chat_capability_token,
 )
 from agent.services.session_service import get_next_sequence, get_reusable_session, resolve_session_ttl_minutes
@@ -116,7 +116,7 @@ async def get_session_localization(
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
-        token=request.headers.get(CHAT_CAPABILITY_HEADER),
+        token=resolve_chat_capability_token(request.headers),
         session_id=session_id,
         app=app,
     )
@@ -145,7 +145,7 @@ async def create_ws_ticket(
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
-        token=request.headers.get(CHAT_CAPABILITY_HEADER),
+        token=resolve_chat_capability_token(request.headers),
         session_id=session_id,
         app=app,
     )
@@ -170,7 +170,7 @@ async def get_session_messages_sdk(
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
-        token=request.headers.get(CHAT_CAPABILITY_HEADER),
+        token=resolve_chat_capability_token(request.headers),
         session_id=session_id,
         app=app,
     )
