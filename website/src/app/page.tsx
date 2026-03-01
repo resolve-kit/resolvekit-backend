@@ -33,7 +33,8 @@ export default function HomePage() {
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
             Developers integrate the Playbook SDK into mobile or web apps. Users get embedded chat. Your LLM agent
-            understands the app, explains fixes clearly, and can invoke approved on-device functions to resolve issues.
+            understands the app, including screen layout and flow from docs, guide images, and submitted screenshots,
+            explains fixes clearly, and can invoke approved on-device functions to resolve issues.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href={dashboardRegisterUrl}>
@@ -63,7 +64,7 @@ export default function HomePage() {
               <h2 className="mt-2 text-2xl font-semibold">Control prompts, functions, limits, and session traces from one dashboard</h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 Keep assistant behavior consistent across every app surface while still adapting to platform, version,
-                and real-time session context.
+                real-time session context, and knowledge-base vision mode (OCR-safe or full multimodal).
               </p>
             </div>
             <div className="flex gap-3">

@@ -17,6 +17,7 @@ const PLAN = {
     "Agent prompt + scope controls",
     "Function approval workflows with trace logs",
     "Knowledge-base driven support answers",
+    "Vision indexing for docs and screenshots (OCR-safe or full multimodal)",
   ],
 };
 

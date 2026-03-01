@@ -17,9 +17,9 @@ const PROOF_CARDS = [
     text: "Function eligibility can be constrained by platform, app version, and custom session fields.",
   },
   {
-    label: "Scale-ready",
-    title: "From one app to many",
-    text: "Run consistent support behavior across multiple apps and channels from the same control plane.",
+    label: "Visual understanding",
+    title: "Learns UI layout from images",
+    text: "Ingestion can process relevant guide images and screenshots so the agent can reason about where things are and how flows move.",
   },
 ];
 

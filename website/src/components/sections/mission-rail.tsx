@@ -4,7 +4,7 @@ const VALUE_POINTS = [
   {
     title: "Product-aware by default",
     description:
-      "Agents are grounded in app behavior, docs, troubleshooting paths, and language rules before every response.",
+      "Agents are grounded in app behavior, docs, troubleshooting paths, and visual references so they understand UI layout from guide images and screenshots.",
   },
   {
     title: "SDK-embedded assistance",
