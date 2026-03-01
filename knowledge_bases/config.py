@@ -26,6 +26,11 @@ class Settings(BaseSettings):
         ".csv,.tsv,.xlsx,.xls,.json,.xml,.yaml,.yml"
     )
     upload_ocr_enabled: bool = False
+    multimodal_assets_dir: str = "/tmp/kb-assets"
+    multimodal_image_max_file_bytes: int = 6 * 1024 * 1024
+    multimodal_image_timeout_seconds: float = 12.0
+    multimodal_max_images_per_page: int = 6
+    multimodal_caption_enabled: bool = True
 
     worker_poll_seconds: float = 2.0
     worker_enabled: bool = True

@@ -57,6 +57,37 @@ async def test_execute_internal_kb_tool_call_searches_assigned_kbs(monkeypatch: 
         kb_ids=kb_ids,
         query="how to reset password",
         limit=3,
+        exclude_modalities=["image_caption"],
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_internal_kb_tool_call_multimodal_mode_does_not_exclude_caption(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    search_mock = AsyncMock(return_value={"items": [{"title": "Reset Password", "snippet": "Open settings"}]})
+    monkeypatch.setattr("agent.services.orchestrator.search_multiple_knowledge_bases", search_mock)
+
+    session_id = uuid.uuid4()
+    org_id = uuid.uuid4()
+    kb_ids = [uuid.uuid4()]
+    payload = await execute_internal_kb_tool_call(
+        session_id=session_id,
+        app_org_id=org_id,
+        assigned_kb_ids=kb_ids,
+        arguments={"query": "how to reset password", "top_k": 2},
+        kb_vision_mode="multimodal",
+    )
+
+    assert payload["query"] == "how to reset password"
+    search_mock.assert_awaited_once_with(
+        org_id=org_id,
+        actor_id=f"session:{session_id}",
+        actor_role="system",
+        kb_ids=kb_ids,
+        query="how to reset password",
+        limit=2,
+        exclude_modalities=[],
     )
 
 

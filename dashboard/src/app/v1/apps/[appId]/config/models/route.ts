@@ -36,7 +36,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ app
     const result = await listModelsForProvider(lookup.provider, lookup.apiKey, lookup.apiBase);
     return NextResponse.json({
       provider: lookup.provider,
-      models: result.models,
+      models: result.models.map((model) => ({
+        id: model.id,
+        name: model.name,
+        capabilities: model.capabilities,
+      })),
       is_dynamic: result.is_dynamic,
       error: result.error,
     });
@@ -69,7 +73,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ap
     const result = await listModelsForProvider(lookup.provider, lookup.apiKey, lookup.apiBase);
     return NextResponse.json({
       provider: lookup.provider,
-      models: result.models,
+      models: result.models.map((model) => ({
+        id: model.id,
+        name: model.name,
+        capabilities: model.capabilities,
+      })),
       is_dynamic: result.is_dynamic,
       error: result.error,
     });

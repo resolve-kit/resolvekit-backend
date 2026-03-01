@@ -101,3 +101,14 @@ def test_openapi_export_includes_dashboard_api_artifact() -> None:
     assert export_script.exists()
     text = export_script.read_text(encoding="utf-8")
     assert "dashboard.openapi.json" in text
+
+
+def test_dashboard_llm_model_routes_expose_capabilities_metadata() -> None:
+    provider_text = Path("dashboard/src/lib/server/provider.ts").read_text(encoding="utf-8")
+    org_models_text = Path("dashboard/src/app/v1/organizations/llm-models/route.ts").read_text(encoding="utf-8")
+    app_models_text = Path("dashboard/src/app/v1/apps/[appId]/config/models/route.ts").read_text(encoding="utf-8")
+
+    assert "ocr_compatible" in provider_text
+    assert "multimodal_vision" in provider_text
+    assert "capabilities" in org_models_text
+    assert "capabilities" in app_models_text

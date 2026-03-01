@@ -43,6 +43,7 @@ class AgentConfig(Base, UUIDMixin):
     session_ttl_minutes: Mapped[int] = mapped_column(Integer, default=60)
     max_context_messages: Mapped[int] = mapped_column(Integer, default=100)
     scope_mode: Mapped[str] = mapped_column(String(20), default="strict")
+    kb_vision_mode: Mapped[str] = mapped_column(String(20), default="ocr_safe")
 
     app: Mapped["App"] = relationship(back_populates="agent_config")
     llm_profile: Mapped["OrganizationLLMProviderProfile | None"] = relationship(back_populates="agent_configs")

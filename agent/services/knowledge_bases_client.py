@@ -472,14 +472,16 @@ async def search_multiple_knowledge_bases(
     kb_ids: list[uuid.UUID],
     query: str,
     limit: int,
+    exclude_modalities: list[str] | None = None,
 ) -> dict[str, Any]:
     return await _call_internal(
-        "/internal/search/multi-kb",
-        {
+        path="/internal/search/multi-kb",
+        payload={
             "organization_id": str(org_id),
             "kb_ids": [str(kb_id) for kb_id in kb_ids],
             "query": query,
             "limit": limit,
+            "exclude_modalities": exclude_modalities or [],
         },
         org_id=org_id,
         actor_id=actor_id,

@@ -16,3 +16,9 @@ def test_system_prompt_default_is_product_generic() -> None:
     assert "iOS device" not in default_prompt
     assert "Use available tools when an action or real-time check is required." not in default_prompt
     assert "Prefer grounded information from provided documentation and workflows over guessing." not in default_prompt
+
+
+def test_kb_vision_mode_column_default_is_ocr_safe() -> None:
+    column = AgentConfig.__table__.c.kb_vision_mode
+    assert column.default is not None
+    assert column.default.arg == "ocr_safe"

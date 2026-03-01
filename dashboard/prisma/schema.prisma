@@ -101,6 +101,7 @@ model AgentConfig {
   sessionTtlMinutes  Int      @default(60) @map("session_ttl_minutes")
   maxContextMessages Int      @default(100) @map("max_context_messages")
   scopeMode          String   @default("strict") @map("scope_mode") @db.VarChar(20)
+  kbVisionMode       String   @default("ocr_safe") @map("kb_vision_mode") @db.VarChar(20)
 
   app        App                            @relation(fields: [appId], references: [id], onDelete: Cascade)
   llmProfile OrganizationLlmProviderProfile? @relation(fields: [llmProfileId], references: [id], onDelete: SetNull)

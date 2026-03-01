@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -137,6 +137,10 @@ class KnowledgeDocument(Base, UUIDMixin, TimestampMixin):
         back_populates="document",
         cascade="all, delete-orphan",
     )
+    image_assets: Mapped[list["KnowledgeImageAsset"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+    )
 
 
 class KnowledgeChunk(Base, UUIDMixin, TimestampMixin):
@@ -154,6 +158,38 @@ class KnowledgeChunk(Base, UUIDMixin, TimestampMixin):
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
 
     document: Mapped["KnowledgeDocument"] = relationship(back_populates="chunks")
+
+
+class KnowledgeImageAsset(Base, UUIDMixin, TimestampMixin):
+    __tablename__ = "knowledge_image_assets"
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    knowledge_base_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    source_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("knowledge_sources.id", ondelete="CASCADE"),
+        index=True,
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("knowledge_documents.id", ondelete="CASCADE"),
+        index=True,
+    )
+    source_image_url: Mapped[str] = mapped_column(Text)
+    storage_path: Mapped[str] = mapped_column(Text)
+    content_hash: Mapped[str] = mapped_column(String(64), index=True)
+    mime_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    byte_size: Mapped[int] = mapped_column(Integer)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    dom_index: Mapped[int] = mapped_column(Integer)
+    relevance_score: Mapped[float] = mapped_column(Float, default=0.0)
+    parent_document_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ocr_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    caption_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="ready")
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+
+    document: Mapped["KnowledgeDocument"] = relationship(back_populates="image_assets")
 
 
 class KnowledgeIngestionJob(Base, UUIDMixin, TimestampMixin):

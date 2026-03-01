@@ -562,6 +562,7 @@ async def _prefetch_kb_context(
     platform_context: str = "",
     custom_context: str = "",
     top_k: int = KB_PREFETCH_MAX_ITEMS,
+    kb_vision_mode: str = "ocr_safe",
 ) -> str:
     """Pre-search KB and return a formatted documentation section for prompt enrichment."""
     if not app_org_id or not assigned_kb_ids:
@@ -578,6 +579,7 @@ async def _prefetch_kb_context(
         app_org_id=app_org_id,
         assigned_kb_ids=assigned_kb_ids,
         arguments={"query": search_query, "top_k": top_k},
+        kb_vision_mode=kb_vision_mode,
     )
     items = result.get("items", [])
     if not isinstance(items, list) or not items:
@@ -688,6 +690,7 @@ async def execute_internal_kb_tool_call(
     app_org_id: uuid.UUID | None,
     assigned_kb_ids: list[uuid.UUID],
     arguments: dict[str, Any],
+    kb_vision_mode: str = "ocr_safe",
 ) -> dict[str, Any]:
     query = str(arguments.get("query", "")).strip()
     top_k_raw = arguments.get("top_k", 5)
@@ -700,6 +703,8 @@ async def execute_internal_kb_tool_call(
         return {"error": "query is required"}
     if not assigned_kb_ids or app_org_id is None:
         return {"error": "No knowledge bases are assigned to this app"}
+    normalized_mode = kb_vision_mode.strip().lower()
+    exclude_modalities = ["image_caption"] if normalized_mode != "multimodal" else []
 
     try:
         search_result = await search_multiple_knowledge_bases(
@@ -709,6 +714,7 @@ async def execute_internal_kb_tool_call(
             kb_ids=assigned_kb_ids,
             query=query,
             limit=top_k,
+            exclude_modalities=exclude_modalities,
         )
         raw_items = search_result.get("items", [])
         items: list[dict[str, Any]] = []
@@ -860,6 +866,7 @@ async def run_agent_loop(
         and app_org_id is not None
         and assigned_kb_ids
     )
+    kb_vision_mode = str(getattr(config, "kb_vision_mode", "ocr_safe") or "ocr_safe")
     playbook_prompt, kb_context = await asyncio.gather(
         build_playbook_prompt(db, session.app_id, session),
         _prefetch_kb_context(
@@ -869,6 +876,7 @@ async def run_agent_loop(
             query=(router_result.kb_query or user_text).strip(),
             platform_context=platform_context,
             custom_context=custom_context_query,
+            kb_vision_mode=kb_vision_mode,
         )
         if should_prefetch
         else _noop_str(),
@@ -1029,6 +1037,7 @@ async def run_agent_loop(
                     app_org_id=app_org_id,
                     assigned_kb_ids=assigned_kb_ids,
                     arguments=kb_arguments,
+                    kb_vision_mode=kb_vision_mode,
                 )
 
                 seq = await get_next_sequence(db, session.id)

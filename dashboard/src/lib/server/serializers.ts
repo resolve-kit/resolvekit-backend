@@ -173,6 +173,7 @@ export function configOut(
     scopeMode: string;
     llmProfileId: string | null;
     llmModel: string;
+    kbVisionMode: string;
     temperature: number;
     maxTokens: number;
     maxToolRounds: number;
@@ -195,6 +196,7 @@ export function configOut(
     llm_profile_name: profile?.name ?? null,
     llm_provider: profile?.provider ?? null,
     llm_model: cfg.llmModel,
+    kb_vision_mode: cfg.kbVisionMode,
     has_llm_api_key: Boolean(profile?.apiKeyEncrypted),
     llm_api_base: profile?.apiBase ?? null,
     temperature: cfg.temperature,

@@ -95,6 +95,7 @@ async def search_chunks(
     kb_ids: list[uuid.UUID],
     query: str,
     limit: int,
+    exclude_modalities: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     if not kb_ids:
         return []
@@ -133,8 +134,13 @@ async def search_chunks(
         query_embedding_cache[key] = vector
         return vector
 
+    excluded = {item.strip().lower() for item in (exclude_modalities or []) if item.strip()}
     scored: list[_ScoredChunk] = []
     for chunk in chunks:
+        metadata = chunk.metadata_json if isinstance(chunk.metadata_json, dict) else {}
+        modality = str(metadata.get("modality", "")).strip().lower()
+        if modality and modality in excluded:
+            continue
         kb = kb_by_id.get(chunk.knowledge_base_id)
         if kb is None:
             continue
@@ -208,6 +214,26 @@ async def search_chunks(
                 "title": doc.title,
                 "url": doc.canonical_url,
                 "snippet": item.chunk.content_text[:800],
+                "modality": (
+                    item.chunk.metadata_json.get("modality")
+                    if isinstance(item.chunk.metadata_json, dict)
+                    else None
+                ),
+                "image_source_url": (
+                    item.chunk.metadata_json.get("image_source_url")
+                    if isinstance(item.chunk.metadata_json, dict)
+                    else None
+                ),
+                "image_asset_path": (
+                    item.chunk.metadata_json.get("image_asset_path")
+                    if isinstance(item.chunk.metadata_json, dict)
+                    else None
+                ),
+                "section_heading": (
+                    item.chunk.metadata_json.get("section_heading")
+                    if isinstance(item.chunk.metadata_json, dict)
+                    else None
+                ),
                 "score": round(item.score, 6),
                 "semantic_score": round(item.semantic_score, 6),
                 "lexical_score": round(item.lexical_score, 6),

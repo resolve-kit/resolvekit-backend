@@ -3,8 +3,9 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "./prisma";
 import { decryptWithFernet } from "./fernet";
+import { inferModelCapabilities } from "./provider";
 
-const LLM_FIELDS = ["llmProfileId", "llmModel"] as const;
+const LLM_FIELDS = ["llmProfileId", "llmModel", "kbVisionMode"] as const;
 const PROMPT_FIELDS = ["systemPrompt", "scopeMode"] as const;
 const LIMITS_FIELDS = [
   "temperature",
@@ -30,6 +31,7 @@ type ConfigUpdateData = {
   scopeMode?: "open" | "strict";
   llmProfileId?: string | null;
   llmModel?: string;
+  kbVisionMode?: "ocr_safe" | "multimodal";
   temperature?: number;
   maxTokens?: number;
   maxToolRounds?: number;
@@ -91,6 +93,13 @@ export async function updateConfigWithAudit(params: {
   if (Object.prototype.hasOwnProperty.call(params.updates, "llmModel") && !params.updates.llmModel) {
     throw new Error("LLM model is required");
   }
+  if (
+    Object.prototype.hasOwnProperty.call(params.updates, "kbVisionMode")
+    && params.updates.kbVisionMode !== "ocr_safe"
+    && params.updates.kbVisionMode !== "multimodal"
+  ) {
+    throw new Error("KB vision mode must be one of: ocr_safe, multimodal");
+  }
 
   if (params.updates.llmProfileId) {
     const profile = await getProfileForOrganization(params.organizationId, params.updates.llmProfileId);
@@ -104,6 +113,7 @@ export async function updateConfigWithAudit(params: {
     scopeMode: cfg.scopeMode,
     llmProfileId: cfg.llmProfileId,
     llmModel: cfg.llmModel,
+    kbVisionMode: cfg.kbVisionMode,
     temperature: cfg.temperature,
     maxTokens: cfg.maxTokens,
     maxToolRounds: cfg.maxToolRounds,
@@ -115,6 +125,13 @@ export async function updateConfigWithAudit(params: {
     ...before,
     ...params.updates,
   };
+  const modelCapabilities = inferModelCapabilities(next.llmModel);
+  if (next.kbVisionMode === "multimodal" && !modelCapabilities.multimodal_vision) {
+    throw new Error(`Selected model '${next.llmModel}' does not support multimodal vision`);
+  }
+  if (next.kbVisionMode === "ocr_safe" && !modelCapabilities.ocr_compatible) {
+    throw new Error(`Selected model '${next.llmModel}' is not OCR compatible`);
+  }
 
   const llmDiff = buildDiff(LLM_FIELDS, before, next);
   const promptDiff = buildDiff(PROMPT_FIELDS, before, next);

@@ -54,12 +54,14 @@ class DocumentDeleteRequest(KBGetRequest):
 class SearchRequest(KBGetRequest):
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=10, ge=1, le=50)
+    exclude_modalities: list[str] = Field(default_factory=list, max_length=16)
 
 
 class MultiKBSearchRequest(OrganizationScopedRequest):
     kb_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=10, ge=1, le=50)
+    exclude_modalities: list[str] = Field(default_factory=list, max_length=16)
 
 
 class EmbeddingProfileGetRequest(OrganizationScopedRequest):

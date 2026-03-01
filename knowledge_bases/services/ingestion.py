@@ -10,12 +10,23 @@ from knowledge_bases.models import (
     KnowledgeBase,
     KnowledgeChunk,
     KnowledgeDocument,
+    KnowledgeImageAsset,
     KnowledgeIngestionJob,
     KnowledgeSource,
 )
 from knowledge_bases.services.crawling import CrawledPage, canonicalize_url, crawl_site
+from knowledge_bases.services.embedding import EmbeddingRuntimeConfig
 from knowledge_bases.services.embedding import embed_texts
 from knowledge_bases.services.embedding_runtime import runtime_from_kb_active, runtime_from_kb_pending
+from knowledge_bases.services.multimodal import (
+    download_image_bytes,
+    extract_ocr_text,
+    generate_caption_with_vision_model,
+    persist_image_asset,
+    remove_asset_file,
+    select_relevant_images,
+)
+from knowledge_bases.config import settings
 
 
 def chunk_text(text: str, *, chunk_size: int = 1100, overlap: int = 160) -> list[str]:
@@ -82,6 +93,138 @@ def deduplicate_pages_by_hash(
     return deduped_pages, skipped_duplicates
 
 
+async def build_image_assets_and_chunks(
+    *,
+    organization_id: uuid.UUID,
+    knowledge_base_id: uuid.UUID,
+    source_id: uuid.UUID,
+    document: KnowledgeDocument,
+    page: CrawledPage,
+    runtime: EmbeddingRuntimeConfig | None,
+    starting_chunk_index: int,
+) -> tuple[list[KnowledgeImageAsset], list[KnowledgeChunk]]:
+    selected = select_relevant_images(
+        page.images,
+        max_images=settings.multimodal_max_images_per_page,
+    )
+    assets: list[KnowledgeImageAsset] = []
+    chunks: list[KnowledgeChunk] = []
+    next_chunk_index = starting_chunk_index
+
+    for ranked in selected:
+        image = ranked.image
+        downloaded = await download_image_bytes(image.url)
+        if downloaded is None:
+            continue
+        image_bytes, content_type = downloaded
+        storage_path, content_hash, resolved_content_type = persist_image_asset(
+            organization_id=organization_id,
+            knowledge_base_id=knowledge_base_id,
+            source_url=image.url,
+            image_bytes=image_bytes,
+            content_type=content_type,
+        )
+        ocr_text = extract_ocr_text(image_bytes)
+        caption_text = await generate_caption_with_vision_model(
+            runtime=runtime,
+            image_bytes=image_bytes,
+            mime_type=resolved_content_type,
+            context_text=image.context_text,
+        )
+
+        asset = KnowledgeImageAsset(
+            organization_id=organization_id,
+            knowledge_base_id=knowledge_base_id,
+            source_id=source_id,
+            document_id=document.id,
+            source_image_url=image.url,
+            storage_path=storage_path,
+            content_hash=content_hash,
+            mime_type=resolved_content_type,
+            byte_size=len(image_bytes),
+            width=image.width,
+            height=image.height,
+            dom_index=image.dom_index,
+            relevance_score=ranked.score,
+            parent_document_url=page.url,
+            ocr_text=ocr_text or None,
+            caption_text=caption_text or None,
+            status="ready",
+            last_error=None,
+            metadata_json={
+                "section_heading": image.section_heading,
+                "context_text": image.context_text,
+                "in_chrome": image.in_chrome,
+            },
+        )
+        assets.append(asset)
+
+        chunk_specs: list[tuple[str, str]] = []
+        if ocr_text:
+            chunk_specs.append(("image_ocr", ocr_text))
+        if caption_text:
+            chunk_specs.append(("image_caption", caption_text))
+        if not chunk_specs:
+            continue
+        embeddings = await embed_texts([item[1] for item in chunk_specs], runtime)
+        for (modality, chunk_text_value), embedding in zip(chunk_specs, embeddings):
+            chunk = KnowledgeChunk(
+                document_id=document.id,
+                knowledge_base_id=knowledge_base_id,
+                chunk_index=next_chunk_index,
+                content_text=chunk_text_value,
+                token_count=max(1, len(chunk_text_value.split())),
+                embedding=embedding,
+                metadata_json={
+                    "canonical_url": page.url,
+                    "title": page.title[:255] if page.title else None,
+                    "modality": modality,
+                    "image_asset_path": storage_path,
+                    "image_source_url": image.url,
+                    "section_heading": image.section_heading,
+                    "dom_index": image.dom_index,
+                    "parent_document_id": str(document.id),
+                    "parent_canonical_url": page.url,
+                },
+            )
+            chunks.append(chunk)
+            next_chunk_index += 1
+
+    return assets, chunks
+
+
+async def cleanup_image_assets_for_source(
+    db: AsyncSession,
+    *,
+    source_id: uuid.UUID,
+) -> int:
+    existing_assets_result = await db.execute(
+        select(KnowledgeImageAsset).where(KnowledgeImageAsset.source_id == source_id)
+    )
+    existing_assets = existing_assets_result.scalars().all()
+    for asset in existing_assets:
+        remove_asset_file(asset.storage_path)
+    if existing_assets:
+        await db.execute(delete(KnowledgeImageAsset).where(KnowledgeImageAsset.source_id == source_id))
+    return len(existing_assets)
+
+
+async def cleanup_image_assets_for_document(
+    db: AsyncSession,
+    *,
+    document_id: uuid.UUID,
+) -> int:
+    existing_assets_result = await db.execute(
+        select(KnowledgeImageAsset).where(KnowledgeImageAsset.document_id == document_id)
+    )
+    existing_assets = existing_assets_result.scalars().all()
+    for asset in existing_assets:
+        remove_asset_file(asset.storage_path)
+    if existing_assets:
+        await db.execute(delete(KnowledgeImageAsset).where(KnowledgeImageAsset.document_id == document_id))
+    return len(existing_assets)
+
+
 async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) -> None:
     if not job.source_id:
         raise ValueError("Ingestion job missing source")
@@ -96,11 +239,12 @@ async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestio
 
     pages = await _materialize_source_documents(source)
 
-    # Remove previously ingested docs/chunks for this source to keep recrawl idempotent.
+    # Remove previously ingested docs/chunks/assets for this source to keep recrawl idempotent.
     existing_docs_result = await db.execute(
         select(KnowledgeDocument.id).where(KnowledgeDocument.source_id == source.id)
     )
     existing_doc_ids = [doc_id for doc_id in existing_docs_result.scalars().all()]
+    await cleanup_image_assets_for_source(db, source_id=source.id)
     if existing_doc_ids:
         await db.execute(delete(KnowledgeChunk).where(KnowledgeChunk.document_id.in_(existing_doc_ids)))
         await db.execute(delete(KnowledgeDocument).where(KnowledgeDocument.id.in_(existing_doc_ids)))
@@ -125,6 +269,7 @@ async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestio
 
     total_chunks = 0
     total_docs = 0
+    total_images = 0
     for page, content_hash in deduplicated_pages:
         markdown = page.content_markdown.strip()
         doc = KnowledgeDocument(
@@ -156,6 +301,22 @@ async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestio
             )
             db.add(chunk)
             total_chunks += 1
+
+        image_assets, image_chunks = await build_image_assets_and_chunks(
+            organization_id=job.organization_id,
+            knowledge_base_id=job.knowledge_base_id,
+            source_id=source.id,
+            document=doc,
+            page=page,
+            runtime=runtime,
+            starting_chunk_index=len(chunks),
+        )
+        for asset in image_assets:
+            db.add(asset)
+        for image_chunk in image_chunks:
+            db.add(image_chunk)
+            total_chunks += 1
+        total_images += len(image_assets)
         total_docs += 1
 
     source.status = "ready"
@@ -164,6 +325,7 @@ async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestio
     job.stats_json = {
         "documents": total_docs,
         "chunks": total_chunks,
+        "images": total_images,
         "duplicates_skipped": skipped_duplicates,
     }
 

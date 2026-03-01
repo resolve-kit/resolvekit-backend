@@ -35,7 +35,12 @@ from knowledge_bases.schemas import (
 )
 from knowledge_bases.services.crypto import encrypt_secret
 from knowledge_bases.services.document_conversion import DocumentConversionError, convert_uploaded_file_bytes
-from knowledge_bases.services.ingestion import enqueue_ingestion_job, serialize_job
+from knowledge_bases.services.ingestion import (
+    cleanup_image_assets_for_document,
+    cleanup_image_assets_for_source,
+    enqueue_ingestion_job,
+    serialize_job,
+)
 from knowledge_bases.services.search import search_chunks
 
 router = APIRouter(prefix="/internal", tags=["kb-internal"])
@@ -568,6 +573,7 @@ async def delete_source(
     source = await db.get(KnowledgeSource, body.source_id)
     if not source or source.knowledge_base_id != body.kb_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
+    await cleanup_image_assets_for_source(db, source_id=source.id)
     await db.delete(source)
     await db.commit()
     return {"status": "ok"}
@@ -628,6 +634,7 @@ async def delete_document_route(
     document = await db.get(KnowledgeDocument, body.document_id)
     if not document or document.knowledge_base_id != body.kb_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    await cleanup_image_assets_for_document(db, document_id=document.id)
     await db.delete(document)
     await db.commit()
     return {"status": "ok"}
@@ -647,6 +654,7 @@ async def search_route(
         kb_ids=[body.kb_id],
         query=body.query,
         limit=body.limit,
+        exclude_modalities=body.exclude_modalities,
     )
     return {"items": hits}
 
@@ -677,6 +685,7 @@ async def search_multi_route(
         kb_ids=kb_ids,
         query=body.query,
         limit=body.limit,
+        exclude_modalities=body.exclude_modalities,
     )
     return {"items": hits}
 

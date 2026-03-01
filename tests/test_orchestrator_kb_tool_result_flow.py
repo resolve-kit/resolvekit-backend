@@ -76,7 +76,12 @@ async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pyte
         metadata_={},
         llm_context={"location": {"city": "Vilnius", "country": "LT"}, "network_type": "wifi"},
     )
-    config = SimpleNamespace(system_prompt="You are support.", max_tool_rounds=3, max_context_messages=20)
+    config = SimpleNamespace(
+        system_prompt="You are support.",
+        max_tool_rounds=3,
+        max_context_messages=20,
+        kb_vision_mode="ocr_safe",
+    )
 
     org_id = uuid.uuid4()
     kb_id = uuid.uuid4()
@@ -126,6 +131,7 @@ async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pyte
     kb_search_mock.assert_awaited_once()
     kb_query = kb_search_mock.await_args.kwargs["query"]
     assert kb_query == "reset password"
+    assert kb_search_mock.await_args.kwargs["exclude_modalities"] == ["image_caption"]
     assert "Client platform context:" not in kb_query
     assert "Session custom context:" not in kb_query
     tool_results = [msg for msg in db.added if isinstance(msg, Message) and msg.role == "tool_result"]

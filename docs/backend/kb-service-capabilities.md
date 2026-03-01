@@ -57,14 +57,29 @@ Key model: `KnowledgeSource`.
 ## Document and Chunk Pipeline
 
 - Crawls/parses source content to markdown/text.
+- Extracts in-content image candidates from crawled HTML (including CDN-hosted assets).
 - Converts uploaded files (MarkItDown-first with parser fallbacks).
 - Deduplicates by canonical URL/content hash.
 - Splits documents into chunks and computes embeddings.
+- Downloads relevant page images (top 6 per page), stores local KB assets, and indexes:
+  - OCR-derived chunks (`modality=image_ocr`)
+  - Vision-caption chunks (`modality=image_caption`)
 - Stores chunk metadata for retrieval.
+
+### Multimodal Image Indexing
+
+- Relevance scoring prefers tutorial/screenshot-like images and downranks decorative UI chrome (logos/icons/nav).
+- Indexed image chunks include article linkage metadata:
+  - parent document/article URL
+  - image source URL
+  - local asset path
+  - section heading and DOM position
+- Asset files are cleaned up on recrawl/source delete/document delete (best effort).
 
 Key models:
 - `KnowledgeDocument`
 - `KnowledgeChunk`
+- `KnowledgeImageAsset`
 - `KnowledgeIngestionJob`
 
 Key services:
@@ -81,6 +96,11 @@ Key services:
   - Vector retrieval via chunk embeddings + cosine similarity
   - Weighted Reciprocal Rank Fusion (RRF) to combine lexical and semantic ranks
 - Returns title/content/metadata payload used by `agent` prompt enrichment.
+- Search hits may include multimodal metadata for image-derived chunks:
+  - `modality`
+  - `image_source_url`
+  - `image_asset_path`
+  - `section_heading`
 
 Key service: [`knowledge_bases/services/search.py`](../../knowledge_bases/services/search.py)
 

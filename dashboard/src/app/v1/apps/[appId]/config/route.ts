@@ -13,6 +13,7 @@ type AgentConfigUpdatePayload = {
   scope_mode?: "open" | "strict";
   llm_profile_id?: string | null;
   llm_model?: string | null;
+  kb_vision_mode?: "ocr_safe" | "multimodal";
   temperature?: number;
   max_tokens?: number;
   max_tool_rounds?: number;
@@ -54,6 +55,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ app
         ...(body.scope_mode === "open" || body.scope_mode === "strict" ? { scopeMode: body.scope_mode } : {}),
         ...(Object.prototype.hasOwnProperty.call(body, "llm_profile_id") ? { llmProfileId: body.llm_profile_id ?? null } : {}),
         ...(Object.prototype.hasOwnProperty.call(body, "llm_model") ? { llmModel: body.llm_model ?? undefined } : {}),
+        ...(Object.prototype.hasOwnProperty.call(body, "kb_vision_mode")
+          ? { kbVisionMode: body.kb_vision_mode as "ocr_safe" | "multimodal" | undefined }
+          : {}),
         ...(typeof body.temperature === "number" ? { temperature: body.temperature } : {}),
         ...(typeof body.max_tokens === "number" ? { maxTokens: body.max_tokens } : {}),
         ...(typeof body.max_tool_rounds === "number" ? { maxToolRounds: body.max_tool_rounds } : {}),
@@ -68,6 +72,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ app
     const message = error instanceof Error ? error.message : "Failed to update config";
     if (message === "LLM model is required") return detail(422, message);
     if (message === "LLM profile not found") return detail(404, message);
+    if (message === "KB vision mode must be one of: ocr_safe, multimodal") return detail(422, message);
+    if (message.includes("does not support multimodal vision")) return detail(422, message);
+    if (message.includes("is not OCR compatible")) return detail(422, message);
     return detail(400, message);
   }
 }

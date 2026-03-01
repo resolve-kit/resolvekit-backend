@@ -30,7 +30,11 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     llm_profile_id: profile.id,
     provider: profile.provider,
-    models: result.models,
+    models: result.models.map((model) => ({
+      id: model.id,
+      name: model.name,
+      capabilities: model.capabilities,
+    })),
     is_dynamic: result.is_dynamic,
     error: result.error,
   });

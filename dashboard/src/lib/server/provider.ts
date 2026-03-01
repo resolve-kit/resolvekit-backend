@@ -5,7 +5,9 @@ const PROVIDERS = [
   { id: "nexos", name: "Nexos AI", custom_base_url: true },
 ] as const;
 
-const FALLBACK_MODELS: Record<string, Array<{ id: string; name: string }>> = {
+type RawModelInfo = { id: string; name: string };
+
+const FALLBACK_MODELS: Record<string, RawModelInfo[]> = {
   openai: [
     { id: "gpt-4o", name: "GPT-4o" },
     { id: "gpt-4o-mini", name: "GPT-4o Mini" },
@@ -25,7 +27,7 @@ const FALLBACK_MODELS: Record<string, Array<{ id: string; name: string }>> = {
   nexos: [],
 };
 
-const FALLBACK_EMBEDDING_MODELS: Record<string, Array<{ id: string; name: string }>> = {
+const FALLBACK_EMBEDDING_MODELS: Record<string, RawModelInfo[]> = {
   openai: [
     { id: "text-embedding-3-large", name: "text-embedding-3-large" },
     { id: "text-embedding-3-small", name: "text-embedding-3-small" },
@@ -61,7 +63,18 @@ export type ProviderInfo = {
 export type ModelInfo = {
   id: string;
   name: string;
+  capabilities: {
+    ocr_compatible: boolean;
+    multimodal_vision: boolean;
+  };
 };
+
+function withCapabilities(models: RawModelInfo[]): ModelInfo[] {
+  return models.map((model) => ({
+    ...model,
+    capabilities: inferModelCapabilities(model.id, model.name),
+  }));
+}
 
 function normalizeApiToken(apiKey: string): string {
   const key = apiKey.trim();
@@ -80,7 +93,35 @@ function toModelInfo(raw: unknown): ModelInfo[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((m): m is { id: string; name?: string } => Boolean(m && typeof m === "object" && typeof (m as { id?: unknown }).id === "string"))
-    .map((m) => ({ id: m.id, name: typeof m.name === "string" ? m.name : m.id }));
+    .map((m) => ({
+      id: m.id,
+      name: typeof m.name === "string" ? m.name : m.id,
+      capabilities: inferModelCapabilities(m.id, typeof m.name === "string" ? m.name : m.id),
+    }));
+}
+
+export function inferModelCapabilities(
+  modelId: string,
+  modelName: string = modelId,
+): { ocr_compatible: boolean; multimodal_vision: boolean } {
+  const id = modelId.trim().toLowerCase();
+  const name = modelName.trim().toLowerCase();
+  const matchText = `${id} ${name}`;
+
+  const isEmbeddingModel = /(embed|embedding)/.test(matchText);
+  if (isEmbeddingModel) {
+    return {
+      ocr_compatible: false,
+      multimodal_vision: false,
+    };
+  }
+
+  const multimodalVision = /(vision|multimodal|gpt-4o|gpt-4\.1|gpt-4-turbo|gemini|claude[- ]?(3|4)|o1|o3)/.test(matchText);
+  return {
+    // OCR-safe mode reasons over text/OCR output; any non-embedding chat model is compatible.
+    ocr_compatible: true,
+    multimodal_vision: multimodalVision,
+  };
 }
 
 function filterOpenAiModels(raw: unknown): ModelInfo[] {
@@ -277,7 +318,7 @@ export async function listModelsForProvider(
       }
     } catch (error) {
       return {
-        models: FALLBACK_MODELS[providerId] ?? [],
+        models: withCapabilities(FALLBACK_MODELS[providerId] ?? []),
         is_dynamic: false,
         error: error instanceof Error ? error.message : "Failed to fetch provider models",
       };
@@ -285,7 +326,7 @@ export async function listModelsForProvider(
   }
 
   return {
-    models: FALLBACK_MODELS[providerId] ?? [],
+    models: withCapabilities(FALLBACK_MODELS[providerId] ?? []),
     is_dynamic: false,
     error: null,
   };
@@ -327,7 +368,7 @@ export async function listEmbeddingModelsForProvider(
       }
     } catch (error) {
       return {
-        models: FALLBACK_EMBEDDING_MODELS[providerId] ?? [],
+        models: withCapabilities(FALLBACK_EMBEDDING_MODELS[providerId] ?? []),
         is_dynamic: false,
         error: error instanceof Error ? error.message : "Failed to fetch embedding models",
       };
@@ -335,7 +376,7 @@ export async function listEmbeddingModelsForProvider(
   }
 
   return {
-    models: FALLBACK_EMBEDDING_MODELS[providerId] ?? [],
+    models: withCapabilities(FALLBACK_EMBEDDING_MODELS[providerId] ?? []),
     is_dynamic: false,
     error: null,
   };
