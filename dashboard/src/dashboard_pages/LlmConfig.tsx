@@ -185,7 +185,7 @@ export default function LlmConfig() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="glass-panel rounded-xl p-6 space-y-5">
+      <form data-playbook-id="llm-config-form" onSubmit={handleSubmit} className="glass-panel rounded-xl p-6 space-y-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-subtle">
             Provider keys are managed in Organization Admin. This page selects the model used by this app.
@@ -330,6 +330,7 @@ export default function LlmConfig() {
             type="submit"
             variant="primary"
             size="md"
+            data-playbook-id="save-llm-config-btn"
             loading={isSaving}
             disabled={!isDirty || !draftProfileId || !draftModel.trim() || Boolean(visionModeValidationError)}
           >

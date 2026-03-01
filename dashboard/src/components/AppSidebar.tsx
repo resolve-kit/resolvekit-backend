@@ -140,6 +140,7 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
       dirtyOverride?: boolean;
       missingOverride?: boolean;
       onClickOverride?: () => void;
+      playbookId?: string;
     },
   ) {
     const depth = options?.depth ?? 0;
@@ -147,11 +148,13 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
     const missing = options?.missingOverride ?? isRouteMissing(item.slug);
     const dirty = options?.dirtyOverride ?? isRouteDirty(item.slug);
     const status: "missing" | "dirty" | null = missing ? "missing" : dirty ? "dirty" : null;
+    const playbookId = options?.playbookId ?? `sidebar-${item.slug}`;
 
     return (
       <button
         key={`${item.slug}-${depth}-${item.label}`}
         type="button"
+        data-playbook-id={playbookId}
         onClick={options?.onClickOverride ?? (() => navigate(pathFor(item.slug)))}
         className={navButtonClass(active, depth)}
       >

@@ -15,6 +15,7 @@ import OrganizationAdmin from "./dashboard_pages/OrganizationAdmin";
 import Playbooks from "./dashboard_pages/Playbooks";
 import Sessions from "./dashboard_pages/Sessions";
 import ChatTheme from "./dashboard_pages/ChatTheme";
+import PlaybookCopilotProvider from "./components/PlaybookCopilotProvider";
 
 export function RootRedirect() {
   const token = localStorage.getItem("token");
@@ -24,27 +25,29 @@ export function RootRedirect() {
 export function DashboardApp() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<RootRedirect />} />
-        <Route path="/login" element={<Login />} />
-        <Route element={<Layout />}>
-          <Route path="/apps" element={<Apps />} />
-          <Route path="/knowledge-bases" element={<KnowledgeBases />} />
-          <Route path="/organization" element={<OrganizationAdmin />} />
-          <Route path="/apps/:appId/agent" element={<AgentPrompt />} />
-          <Route path="/apps/:appId/knowledge-bases" element={<AppKnowledgeBases />} />
-          <Route path="/apps/:appId/llm" element={<LlmConfig />} />
-          <Route path="/apps/:appId/chat-theme" element={<ChatTheme />} />
-          <Route path="/apps/:appId/limits" element={<LimitsConfig />} />
-          <Route path="/apps/:appId/functions" element={<Functions />} />
-          <Route path="/apps/:appId/sessions" element={<Sessions />} />
-          <Route path="/apps/:appId/api-keys" element={<ApiKeys />} />
-          <Route path="/apps/:appId/languages" element={<Languages />} />
-          <Route path="/apps/:appId/playbooks" element={<Playbooks />} />
-          <Route path="/apps/:appId/audit" element={<AuditLog />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+      <PlaybookCopilotProvider>
+        <Routes>
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="/login" element={<Login />} />
+          <Route element={<Layout />}>
+            <Route path="/apps" element={<Apps />} />
+            <Route path="/knowledge-bases" element={<KnowledgeBases />} />
+            <Route path="/organization" element={<OrganizationAdmin />} />
+            <Route path="/apps/:appId/agent" element={<AgentPrompt />} />
+            <Route path="/apps/:appId/knowledge-bases" element={<AppKnowledgeBases />} />
+            <Route path="/apps/:appId/llm" element={<LlmConfig />} />
+            <Route path="/apps/:appId/chat-theme" element={<ChatTheme />} />
+            <Route path="/apps/:appId/limits" element={<LimitsConfig />} />
+            <Route path="/apps/:appId/functions" element={<Functions />} />
+            <Route path="/apps/:appId/sessions" element={<Sessions />} />
+            <Route path="/apps/:appId/api-keys" element={<ApiKeys />} />
+            <Route path="/apps/:appId/languages" element={<Languages />} />
+            <Route path="/apps/:appId/playbooks" element={<Playbooks />} />
+            <Route path="/apps/:appId/audit" element={<AuditLog />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </PlaybookCopilotProvider>
     </BrowserRouter>
   );
 }

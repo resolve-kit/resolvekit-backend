@@ -9,6 +9,12 @@ This package now serves two roles:
 
 - `NEXT_PUBLIC_API_BASE_URL`
   - Browser-facing API base URL used by dashboard client code.
+- `NEXT_PUBLIC_PLAYBOOK_ENABLED`
+  - Enables dashboard copilot widget integration (`true`/`false`).
+- `NEXT_PUBLIC_PLAYBOOK_KEY`
+  - Playbook API key used by the web SDK provider. Required when copilot is enabled.
+- `NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL`
+  - Base URL for Playbook runtime endpoints consumed by the web SDK (normally `http://localhost:8000`).
 - `DATABASE_URL`
   - Prisma connection string for control-plane DB operations.
 - `IAA_JWT_SECRET`, `IAA_JWT_ALGORITHM`, `IAA_JWT_EXPIRE_MINUTES`
@@ -20,7 +26,6 @@ This package now serves two roles:
 - `IAA_CORS_ALLOWED_ORIGINS`
   - Comma-separated list of allowed browser origins for cross-origin `/v1/*` requests to the `api` origin.
   - Same-host origins are also allowed automatically (for example, `http://<host>:3000` -> `http://<host>:3002`).
-
 ## Commands
 
 - `npm run dev`

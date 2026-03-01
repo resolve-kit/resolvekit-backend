@@ -11,6 +11,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@playbook/sdk": "github:nedasvi/playbook-web-sdk",
     "@prisma/client": "^6.16.3",
     "bcryptjs": "^3.0.2",
     "jose": "^6.1.0",
