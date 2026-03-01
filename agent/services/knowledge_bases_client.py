@@ -516,6 +516,8 @@ async def search_multiple_knowledge_bases(
     query: str,
     limit: int,
     exclude_modalities: list[str] | None = None,
+    app_id: uuid.UUID | None = None,
+    session_id: uuid.UUID | None = None,
 ) -> dict[str, Any]:
     return await _call_internal(
         path="/internal/search/multi-kb",
@@ -525,6 +527,8 @@ async def search_multiple_knowledge_bases(
             "query": query,
             "limit": limit,
             "exclude_modalities": exclude_modalities or [],
+            "app_id": str(app_id) if app_id else None,
+            "session_id": str(session_id) if session_id else None,
         },
         org_id=org_id,
         actor_id=actor_id,

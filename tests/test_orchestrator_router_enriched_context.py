@@ -683,6 +683,7 @@ async def test_prefetch_kb_context_uses_snippet_and_truncates(monkeypatch: pytes
 
     result = await orchestrator._prefetch_kb_context(
         session_id=uuid.uuid4(),
+        app_id=uuid.uuid4(),
         app_org_id=uuid.uuid4(),
         assigned_kb_ids=[uuid.uuid4()],
         query="reset password",
@@ -717,6 +718,7 @@ async def test_prefetch_kb_context_removes_urls_and_markdown_links(monkeypatch: 
 
     result = await orchestrator._prefetch_kb_context(
         session_id=uuid.uuid4(),
+        app_id=uuid.uuid4(),
         app_org_id=uuid.uuid4(),
         assigned_kb_ids=[uuid.uuid4()],
         query="fix slow connection",

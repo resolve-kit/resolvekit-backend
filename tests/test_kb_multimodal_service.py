@@ -1,8 +1,13 @@
 import uuid
+from unittest.mock import AsyncMock
+
+import pytest
 
 from knowledge_bases.services.crawling import CrawledImage
+from knowledge_bases.services.embedding import EmbeddingRuntimeConfig
 from knowledge_bases.services.multimodal import (
     build_asset_relpath,
+    generate_caption_with_vision_model,
     score_image_candidate,
     select_relevant_images,
 )
@@ -94,3 +99,35 @@ def test_build_asset_relpath_is_hash_keyed_and_deterministic() -> None:
     assert str(org_id) in relpath_1
     assert str(kb_id) in relpath_1
     assert relpath_1.endswith("abc123.png")
+
+
+@pytest.mark.asyncio
+async def test_generate_caption_retries_without_temperature(monkeypatch: pytest.MonkeyPatch) -> None:
+    class UnsupportedParamsError(Exception):
+        pass
+
+    completion_mock = AsyncMock(
+        side_effect=[
+            UnsupportedParamsError("model does not support temperature"),
+            {"choices": [{"message": {"content": "Tap Settings, then Account to continue."}}]},
+        ]
+    )
+    monkeypatch.setattr("knowledge_bases.services.llm_compat.litellm.acompletion", completion_mock)
+
+    runtime = EmbeddingRuntimeConfig(
+        provider="openai",
+        model="text-embedding-3-small",
+        api_key="test-key",
+        api_base=None,
+    )
+    caption = await generate_caption_with_vision_model(
+        runtime=runtime,
+        image_bytes=b"\x89PNG",
+        mime_type="image/png",
+        context_text="Tutorial step for account settings.",
+    )
+
+    assert caption == "Tap Settings, then Account to continue."
+    assert completion_mock.await_count == 2
+    assert completion_mock.await_args_list[0].kwargs.get("temperature") == 0
+    assert "temperature" not in completion_mock.await_args_list[1].kwargs

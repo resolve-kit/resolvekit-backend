@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
@@ -12,6 +13,7 @@ from knowledge_bases.models import (
     KnowledgeChunk,
     KnowledgeDocument,
     KnowledgeIngestionJob,
+    LLMUsageEvent,
     KnowledgeSource,
     OrganizationEmbeddingProfile,
 )
@@ -33,6 +35,7 @@ from knowledge_bases.schemas import (
     SourceAddUploadRequest,
     SourceAddURLRequest,
     SourceMutateRequest,
+    UsageSummaryRequest,
 )
 from knowledge_bases.services.crypto import encrypt_secret
 from knowledge_bases.services.document_conversion import DocumentConversionError, convert_uploaded_file_bytes
@@ -43,6 +46,7 @@ from knowledge_bases.services.ingestion import (
     serialize_job,
 )
 from knowledge_bases.services.search import search_chunks
+from knowledge_bases.services.usage_tracking import estimate_tokens_from_text, record_usage_event
 
 router = APIRouter(prefix="/internal", tags=["kb-internal"])
 
@@ -849,6 +853,21 @@ async def search_route(
         limit=body.limit,
         exclude_modalities=body.exclude_modalities,
     )
+    kb = await _get_kb_or_404(db, body.organization_id, body.kb_id)
+    runtime_provider = kb.embedding_provider or "unknown"
+    runtime_model = kb.embedding_model or "unknown"
+    await record_usage_event(
+        db,
+        organization_id=body.organization_id,
+        knowledge_base_id=body.kb_id,
+        app_id=body.app_id,
+        provider=runtime_provider,
+        model=runtime_model,
+        operation="kb_search_embedding",
+        input_tokens=estimate_tokens_from_text(body.query),
+        output_tokens=None,
+        metadata={"limit": body.limit, "hits": len(hits), "session_id": str(body.session_id) if body.session_id else None},
+    )
     return {"items": hits}
 
 
@@ -880,7 +899,117 @@ async def search_multi_route(
         limit=body.limit,
         exclude_modalities=body.exclude_modalities,
     )
+    if kb_ids:
+        kbs_result = await db.execute(
+            select(KnowledgeBase.id, KnowledgeBase.embedding_provider, KnowledgeBase.embedding_model).where(
+                KnowledgeBase.id.in_(kb_ids),
+                KnowledgeBase.organization_id == body.organization_id,
+            )
+        )
+        kb_runtime = {
+            kb_id: (provider or "unknown", model or "unknown")
+            for kb_id, provider, model in kbs_result.all()
+        }
+        hits_by_kb: dict[uuid.UUID, int] = {kb_id: 0 for kb_id in kb_ids}
+        for hit in hits:
+            raw_kb_id = hit.get("knowledge_base_id")
+            try:
+                hit_kb_id = uuid.UUID(str(raw_kb_id))
+            except Exception:
+                continue
+            if hit_kb_id in hits_by_kb:
+                hits_by_kb[hit_kb_id] += 1
+        total_hits = sum(hits_by_kb.values())
+        base_tokens = max(estimate_tokens_from_text(body.query), 1)
+        for kb_id in kb_ids:
+            provider, model = kb_runtime.get(kb_id, ("unknown", "unknown"))
+            if total_hits > 0:
+                ratio = hits_by_kb.get(kb_id, 0) / float(total_hits)
+                allocated_tokens = int(round(base_tokens * ratio))
+            else:
+                allocated_tokens = int(round(base_tokens / max(len(kb_ids), 1)))
+            if allocated_tokens <= 0:
+                continue
+            await record_usage_event(
+                db,
+                organization_id=body.organization_id,
+                knowledge_base_id=kb_id,
+                app_id=body.app_id,
+                provider=provider,
+                model=model,
+                operation="kb_search_embedding",
+                input_tokens=allocated_tokens,
+                output_tokens=None,
+                metadata={
+                    "limit": body.limit,
+                    "hits_for_kb": hits_by_kb.get(kb_id, 0),
+                    "total_hits": total_hits,
+                    "session_id": str(body.session_id) if body.session_id else None,
+                },
+            )
     return {"items": hits}
+
+
+@router.post("/usage/summary")
+async def usage_summary_route(
+    body: UsageSummaryRequest,
+    principal: ServicePrincipal = Depends(get_service_principal),
+    db: AsyncSession = Depends(get_db),
+):
+    _ensure_org_scope(principal, body.organization_id)
+    from_ts = body.from_ts
+    to_ts = body.to_ts
+    if from_ts.tzinfo is None:
+        from_ts = from_ts.replace(tzinfo=timezone.utc)
+    if to_ts.tzinfo is None:
+        to_ts = to_ts.replace(tzinfo=timezone.utc)
+    if to_ts <= from_ts:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="to_ts must be after from_ts")
+
+    result = await db.execute(
+        select(
+            LLMUsageEvent.app_id,
+            LLMUsageEvent.knowledge_base_id,
+            LLMUsageEvent.provider,
+            LLMUsageEvent.model,
+            func.coalesce(func.sum(LLMUsageEvent.input_tokens), 0),
+            func.coalesce(func.sum(LLMUsageEvent.output_tokens), 0),
+            func.coalesce(func.sum(LLMUsageEvent.image_count), 0),
+            func.coalesce(func.count(), 0),
+        )
+        .where(
+            LLMUsageEvent.organization_id == body.organization_id,
+            LLMUsageEvent.created_at >= from_ts,
+            LLMUsageEvent.created_at < to_ts,
+        )
+        .group_by(
+            LLMUsageEvent.app_id,
+            LLMUsageEvent.knowledge_base_id,
+            LLMUsageEvent.provider,
+            LLMUsageEvent.model,
+        )
+    )
+
+    items = []
+    for app_id, kb_id, provider, model, input_sum, output_sum, image_sum, event_count in result.all():
+        items.append(
+            {
+                "app_id": str(app_id) if app_id else None,
+                "knowledge_base_id": str(kb_id) if kb_id else None,
+                "provider": provider,
+                "model": model,
+                "input_tokens": int(input_sum or 0),
+                "output_tokens": int(output_sum or 0),
+                "image_count": int(image_sum or 0),
+                "event_count": int(event_count or 0),
+            }
+        )
+
+    return {
+        "from_ts": from_ts.isoformat(),
+        "to_ts": to_ts.isoformat(),
+        "items": items,
+    }
 
 
 @router.post("/embedding-profiles/list")

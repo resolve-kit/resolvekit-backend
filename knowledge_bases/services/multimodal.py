@@ -9,11 +9,16 @@ import uuid
 from urllib.parse import urlparse
 
 import httpx
-import litellm
-
+from sqlalchemy.ext.asyncio import AsyncSession
 from knowledge_bases.config import settings
 from knowledge_bases.services.crawling import CrawledImage
 from knowledge_bases.services.embedding import EmbeddingRuntimeConfig
+from knowledge_bases.services.llm_compat import acompletion_with_temperature_fallback
+from knowledge_bases.services.usage_tracking import (
+    estimate_tokens_from_text,
+    record_usage_event,
+    usage_tokens_from_litellm_response,
+)
 
 _NEGATIVE_HINTS = ("logo", "icon", "sprite", "avatar", "badge", "favicon", "banner", "tracking")
 _POSITIVE_HINTS = ("screenshot", "step", "tutorial", "settings", "account", "click", "tap")
@@ -199,6 +204,9 @@ def _caption_model_for_provider(provider: str) -> str:
 
 async def generate_caption_with_vision_model(
     *,
+    db: AsyncSession | None = None,
+    organization_id: uuid.UUID | None = None,
+    knowledge_base_id: uuid.UUID | None = None,
     runtime: EmbeddingRuntimeConfig | None,
     image_bytes: bytes,
     mime_type: str,
@@ -218,7 +226,7 @@ async def generate_caption_with_vision_model(
         prompt = f"{prompt} Context: {prompt_context}"
 
     try:
-        response = await litellm.acompletion(
+        response = await acompletion_with_temperature_fallback(
             model=model,
             api_key=runtime.api_key,
             api_base=runtime.api_base,
@@ -234,6 +242,21 @@ async def generate_caption_with_vision_model(
                 }
             ],
         )
+        if db is not None and organization_id is not None and knowledge_base_id is not None:
+            input_tokens, output_tokens = usage_tokens_from_litellm_response(response)
+            if input_tokens is None:
+                input_tokens = estimate_tokens_from_text(prompt)
+            await record_usage_event(
+                db,
+                organization_id=organization_id,
+                knowledge_base_id=knowledge_base_id,
+                provider=runtime.provider,
+                model=model_name,
+                operation="kb_image_caption",
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                image_count=1,
+            )
     except Exception:
         return ""
 
@@ -270,4 +293,3 @@ def extract_ocr_text(image_bytes: bytes) -> str:
     except Exception:
         return ""
     return re.sub(r"\\s+", " ", text).strip()
-

@@ -63,6 +63,7 @@ model App {
   functions     RegisteredFunction[]
   playbooks     Playbook[]
   sessions      ChatSession[]
+  llmUsageEvents LlmUsageEvent[]
   auditEvents   AuditEvent[]
   knowledgeBaseAssignments AppKnowledgeBase[]
 
@@ -201,9 +202,34 @@ model ChatSession {
 
   app      App      @relation(fields: [appId], references: [id], onDelete: Cascade)
   messages Message[]
+  llmUsageEvents LlmUsageEvent[]
 
   @@index([appId], map: "ix_chat_sessions_app_id")
   @@map("chat_sessions")
+}
+
+model LlmUsageEvent {
+  id           String   @id @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  organizationId String @map("organization_id") @db.Uuid
+  appId        String?  @map("app_id") @db.Uuid
+  sessionId    String?  @map("session_id") @db.Uuid
+  provider     String   @db.VarChar(64)
+  model        String   @db.VarChar(200)
+  operation    String   @db.VarChar(64)
+  inputTokens  Int?     @map("input_tokens")
+  outputTokens Int?     @map("output_tokens")
+  imageCount   Int?     @map("image_count")
+  metadataJson Json     @default("{}") @map("metadata_json")
+
+  app     App?        @relation(fields: [appId], references: [id], onDelete: SetNull)
+  session ChatSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt], map: "ix_llm_usage_events_created_at")
+  @@index([organizationId], map: "ix_llm_usage_events_organization_id")
+  @@index([appId], map: "ix_llm_usage_events_app_id")
+  @@index([sessionId], map: "ix_llm_usage_events_session_id")
+  @@map("llm_usage_events")
 }
 
 model Message {

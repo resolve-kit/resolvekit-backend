@@ -365,6 +365,21 @@ export async function kbSearch(ctx: ActorContext, kbId: string, payload: { query
   );
 }
 
+export async function kbUsageSummary(
+  ctx: ActorContext,
+  payload: { from_ts: string; to_ts: string },
+) {
+  return callInternal(
+    "/internal/usage/summary",
+    {
+      organization_id: ctx.orgId,
+      from_ts: payload.from_ts,
+      to_ts: payload.to_ts,
+    },
+    ctx,
+  );
+}
+
 export async function embeddingProfilesList(ctx: ActorContext) {
   return callInternal("/internal/embedding-profiles/list", { organization_id: ctx.orgId }, ctx);
 }

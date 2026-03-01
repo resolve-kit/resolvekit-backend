@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -67,6 +68,8 @@ class SearchRequest(KBGetRequest):
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=10, ge=1, le=50)
     exclude_modalities: list[str] = Field(default_factory=list, max_length=16)
+    app_id: uuid.UUID | None = None
+    session_id: uuid.UUID | None = None
 
 
 class MultiKBSearchRequest(OrganizationScopedRequest):
@@ -74,6 +77,8 @@ class MultiKBSearchRequest(OrganizationScopedRequest):
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=10, ge=1, le=50)
     exclude_modalities: list[str] = Field(default_factory=list, max_length=16)
+    app_id: uuid.UUID | None = None
+    session_id: uuid.UUID | None = None
 
 
 class KBBriefsRequest(OrganizationScopedRequest):
@@ -110,3 +115,8 @@ class EmbeddingProfileChangeImpactRequest(EmbeddingProfileGetRequest):
     provider: str | None = Field(default=None, min_length=1, max_length=64)
     embedding_model: str | None = Field(default=None, min_length=1, max_length=128)
     api_base: str | None = Field(default=None, max_length=255)
+
+
+class UsageSummaryRequest(OrganizationScopedRequest):
+    from_ts: datetime
+    to_ts: datetime

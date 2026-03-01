@@ -40,6 +40,7 @@ def test_dashboard_next_has_remaining_control_plane_routes() -> None:
         "dashboard/src/app/v1/apps/[appId]/chat-theme/route.ts",
         "dashboard/src/app/v1/apps/[appId]/chat-localizations/route.ts",
         "dashboard/src/app/v1/organizations/me/route.ts",
+        "dashboard/src/app/v1/organizations/spend/route.ts",
         "dashboard/src/app/v1/organizations/onboarding/route.ts",
         "dashboard/src/app/v1/organizations/onboarding/reset/route.ts",
         "dashboard/src/app/v1/organizations/members/route.ts",
@@ -112,3 +113,10 @@ def test_dashboard_llm_model_routes_expose_capabilities_metadata() -> None:
     assert "multimodal_vision" in provider_text
     assert "capabilities" in org_models_text
     assert "capabilities" in app_models_text
+
+
+def test_dashboard_provider_catalog_includes_openrouter_and_pricing() -> None:
+    provider_text = Path("dashboard/src/lib/server/provider.ts").read_text(encoding="utf-8")
+
+    assert "openrouter" in provider_text
+    assert "pricing" in provider_text

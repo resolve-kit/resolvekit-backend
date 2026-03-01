@@ -217,3 +217,21 @@ class KnowledgeIngestionJob(Base, UUIDMixin, TimestampMixin):
     stats_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class LLMUsageEvent(Base, UUIDMixin):
+    __tablename__ = "llm_usage_events"
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    knowledge_base_id: Mapped[uuid.UUID | None] = mapped_column(index=True, nullable=True)
+    app_id: Mapped[uuid.UUID | None] = mapped_column(index=True, nullable=True)
+    provider: Mapped[str] = mapped_column(String(64))
+    model: Mapped[str] = mapped_column(String(200))
+    operation: Mapped[str] = mapped_column(String(64))
+    input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    image_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)

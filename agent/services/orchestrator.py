@@ -532,7 +532,20 @@ async def _run_router(
         },
     ]
     try:
-        response = await call_llm(config, router_messages, tools=None)
+        try:
+            response = await call_llm(
+                config,
+                router_messages,
+                tools=None,
+                operation="router_classification",
+                session_id=session_id,
+            )
+        except TypeError as exc:
+            # Keep compatibility with lightweight/mocked call_llm implementations
+            # that still expose the old signature.
+            if "unexpected keyword argument" not in str(exc):
+                raise
+            response = await call_llm(config, router_messages, tools=None)
         raw_content = response.choices[0].message.content if response.choices else ""
         raw = _strip_json_fence(str(raw_content or ""))
         data = json.loads(raw)
@@ -563,6 +576,7 @@ async def _run_router(
 async def _prefetch_kb_context(
     *,
     session_id: uuid.UUID,
+    app_id: uuid.UUID | None,
     app_org_id: uuid.UUID | None,
     assigned_kb_ids: list[uuid.UUID],
     query: str,
@@ -583,6 +597,7 @@ async def _prefetch_kb_context(
 
     result = await execute_internal_kb_tool_call(
         session_id=session_id,
+        app_id=app_id,
         app_org_id=app_org_id,
         assigned_kb_ids=assigned_kb_ids,
         arguments={"query": search_query, "top_k": top_k},
@@ -757,6 +772,7 @@ async def _load_kb_assignment_context(
 async def execute_internal_kb_tool_call(
     *,
     session_id: uuid.UUID,
+    app_id: uuid.UUID | None,
     app_org_id: uuid.UUID | None,
     assigned_kb_ids: list[uuid.UUID],
     arguments: dict[str, Any],
@@ -785,6 +801,8 @@ async def execute_internal_kb_tool_call(
             query=query,
             limit=top_k,
             exclude_modalities=exclude_modalities,
+            app_id=app_id,
+            session_id=session_id,
         )
         raw_items = search_result.get("items", [])
         items: list[dict[str, Any]] = []
@@ -941,6 +959,7 @@ async def run_agent_loop(
         build_playbook_prompt(db, session.app_id, session),
         _prefetch_kb_context(
             session_id=session.id,
+            app_id=session.app_id,
             app_org_id=app_org_id,
             assigned_kb_ids=assigned_kb_ids,
             query=(router_result.kb_query or user_text).strip(),
@@ -1005,7 +1024,13 @@ async def run_agent_loop(
 
         # 3. Call LLM (non-streaming)
         try:
-            response = await call_llm(config, llm_messages, tools_payload)
+            response = await call_llm(
+                config,
+                llm_messages,
+                tools_payload,
+                operation="assistant_completion",
+                session_id=session.id,
+            )
         except Exception as e:
             logger.exception("llm_call_failed session_id=%s app_id=%s", session.id, session.app_id)
             if is_chat_unavailable_provider_error(e):
@@ -1110,6 +1135,7 @@ async def run_agent_loop(
                 kb_arguments["query"] = str(kb_arguments.get("query", "")).strip()
                 kb_payload = await execute_internal_kb_tool_call(
                     session_id=session.id,
+                    app_id=session.app_id,
                     app_org_id=app_org_id,
                     assigned_kb_ids=assigned_kb_ids,
                     arguments=kb_arguments,
@@ -1129,7 +1155,11 @@ async def run_agent_loop(
 
             # 5b. Send SDK function tools to iOS
             sdk_tc_infos = [info for info in tc_infos if not info["is_kb_internal"]]
-            descriptions = await generate_tool_descriptions(config, sdk_tc_infos) if sdk_tc_infos else []
+            descriptions = (
+                await generate_tool_descriptions(config, sdk_tc_infos, session_id=session.id)
+                if sdk_tc_infos
+                else []
+            )
 
             for i, info in enumerate(sdk_tc_infos):
                 fn_name = info["name"]

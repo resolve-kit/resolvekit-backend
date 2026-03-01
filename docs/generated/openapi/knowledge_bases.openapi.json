@@ -681,6 +681,18 @@
       },
       "MultiKBSearchRequest": {
         "properties": {
+          "app_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id"
+          },
           "exclude_modalities": {
             "items": {
               "type": "string"
@@ -715,6 +727,18 @@
             "minLength": 1,
             "title": "Query",
             "type": "string"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
           }
         },
         "required": [
@@ -740,6 +764,18 @@
       },
       "SearchRequest": {
         "properties": {
+          "app_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id"
+          },
           "exclude_modalities": {
             "items": {
               "type": "string"
@@ -770,6 +806,18 @@
             "minLength": 1,
             "title": "Query",
             "type": "string"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
           }
         },
         "required": [
@@ -877,6 +925,32 @@
           "source_id"
         ],
         "title": "SourceMutateRequest",
+        "type": "object"
+      },
+      "UsageSummaryRequest": {
+        "properties": {
+          "from_ts": {
+            "format": "date-time",
+            "title": "From Ts",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "to_ts": {
+            "format": "date-time",
+            "title": "To Ts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "from_ts",
+          "to_ts"
+        ],
+        "title": "UsageSummaryRequest",
         "type": "object"
       },
       "ValidationError": {
@@ -2025,6 +2099,50 @@
           }
         ],
         "summary": "Recrawl",
+        "tags": [
+          "kb-internal"
+        ]
+      }
+    },
+    "/internal/usage/summary": {
+      "post": {
+        "operationId": "usage_summary_route_internal_usage_summary_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageSummaryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Usage Summary Route",
         "tags": [
           "kb-internal"
         ]

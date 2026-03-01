@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import AsyncMock
+from unittest.mock import ANY, AsyncMock
 
 import pytest
 
@@ -11,6 +11,7 @@ from agent.services.orchestrator import execute_internal_kb_tool_call
 async def test_execute_internal_kb_tool_call_requires_query() -> None:
     payload = await execute_internal_kb_tool_call(
         session_id=uuid.uuid4(),
+        app_id=uuid.uuid4(),
         app_org_id=uuid.uuid4(),
         assigned_kb_ids=[uuid.uuid4()],
         arguments={},
@@ -23,6 +24,7 @@ async def test_execute_internal_kb_tool_call_requires_query() -> None:
 async def test_execute_internal_kb_tool_call_requires_assigned_kbs() -> None:
     payload = await execute_internal_kb_tool_call(
         session_id=uuid.uuid4(),
+        app_id=uuid.uuid4(),
         app_org_id=None,
         assigned_kb_ids=[],
         arguments={"query": "reset password"},
@@ -41,6 +43,7 @@ async def test_execute_internal_kb_tool_call_searches_assigned_kbs(monkeypatch: 
     kb_ids = [uuid.uuid4(), uuid.uuid4()]
     payload = await execute_internal_kb_tool_call(
         session_id=session_id,
+        app_id=uuid.uuid4(),
         app_org_id=org_id,
         assigned_kb_ids=kb_ids,
         arguments={"query": "how to reset password", "top_k": 3},
@@ -58,6 +61,8 @@ async def test_execute_internal_kb_tool_call_searches_assigned_kbs(monkeypatch: 
         query="how to reset password",
         limit=3,
         exclude_modalities=["image_caption"],
+        app_id=ANY,
+        session_id=session_id,
     )
 
 
@@ -73,6 +78,7 @@ async def test_execute_internal_kb_tool_call_multimodal_mode_does_not_exclude_ca
     kb_ids = [uuid.uuid4()]
     payload = await execute_internal_kb_tool_call(
         session_id=session_id,
+        app_id=uuid.uuid4(),
         app_org_id=org_id,
         assigned_kb_ids=kb_ids,
         arguments={"query": "how to reset password", "top_k": 2},
@@ -88,6 +94,8 @@ async def test_execute_internal_kb_tool_call_multimodal_mode_does_not_exclude_ca
         query="how to reset password",
         limit=2,
         exclude_modalities=[],
+        app_id=ANY,
+        session_id=session_id,
     )
 
 
@@ -98,6 +106,7 @@ async def test_execute_internal_kb_tool_call_surfaces_search_errors(monkeypatch:
 
     payload = await execute_internal_kb_tool_call(
         session_id=uuid.uuid4(),
+        app_id=uuid.uuid4(),
         app_org_id=uuid.uuid4(),
         assigned_kb_ids=[uuid.uuid4()],
         arguments={"query": "billing"},
@@ -126,6 +135,7 @@ async def test_execute_internal_kb_tool_call_sanitizes_url_fields(monkeypatch: p
 
     payload = await execute_internal_kb_tool_call(
         session_id=uuid.uuid4(),
+        app_id=uuid.uuid4(),
         app_org_id=uuid.uuid4(),
         assigned_kb_ids=[uuid.uuid4()],
         arguments={"query": "slow internet"},

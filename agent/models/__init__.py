@@ -12,6 +12,7 @@ from agent.models.function_registry import RegisteredFunction
 from agent.models.knowledge_base_ref import KnowledgeBaseRef
 from agent.models.session import ChatSession
 from agent.models.message import Message
+from agent.models.llm_usage_event import LLMUsageEvent
 from agent.models.playbook import Playbook, PlaybookFunction
 from agent.models.ws_ticket import SessionWSTicket
 
@@ -30,6 +31,7 @@ __all__ = [
     "KnowledgeBaseRef",
     "ChatSession",
     "Message",
+    "LLMUsageEvent",
     "Playbook",
     "PlaybookFunction",
     "SessionWSTicket",

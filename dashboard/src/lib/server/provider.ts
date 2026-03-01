@@ -2,10 +2,28 @@ const PROVIDERS = [
   { id: "openai", name: "OpenAI", custom_base_url: false },
   { id: "anthropic", name: "Anthropic", custom_base_url: false },
   { id: "google", name: "Google", custom_base_url: false },
+  { id: "openrouter", name: "OpenRouter", custom_base_url: false },
   { id: "nexos", name: "Nexos AI", custom_base_url: true },
 ] as const;
 
-type RawModelInfo = { id: string; name: string };
+type RawModelInfo = {
+  id: string;
+  name: string;
+  capabilities?: ModelCapabilities;
+  pricing?: ModelPricing | null;
+};
+
+export type ModelPricing = {
+  input_per_million_usd: number | null;
+  output_per_million_usd: number | null;
+  image_per_thousand_usd: number | null;
+  source: string;
+};
+
+export type ModelCapabilities = {
+  ocr_compatible: boolean;
+  multimodal_vision: boolean;
+};
 
 const FALLBACK_MODELS: Record<string, RawModelInfo[]> = {
   openai: [
@@ -24,6 +42,11 @@ const FALLBACK_MODELS: Record<string, RawModelInfo[]> = {
     { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
     { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash" },
   ],
+  openrouter: [
+    { id: "openai/gpt-4o-mini", name: "OpenAI GPT-4o Mini" },
+    { id: "openai/gpt-4o", name: "OpenAI GPT-4o" },
+    { id: "anthropic/claude-3.5-sonnet", name: "Anthropic Claude 3.5 Sonnet" },
+  ],
   nexos: [],
 };
 
@@ -40,6 +63,7 @@ const FALLBACK_EMBEDDING_MODELS: Record<string, RawModelInfo[]> = {
     { id: "text-embedding-004", name: "text-embedding-004" },
     { id: "gemini-embedding-001", name: "gemini-embedding-001" },
   ],
+  openrouter: [],
   nexos: [],
 };
 
@@ -47,6 +71,7 @@ const PROVIDER_API_URLS: Record<string, string> = {
   openai: "https://api.openai.com/v1/models",
   anthropic: "https://api.anthropic.com/v1/models",
   google: "https://generativelanguage.googleapis.com/v1beta/models",
+  openrouter: "https://openrouter.ai/api/v1/models",
   nexos: "https://api.nexos.ai/v1/models",
 };
 
@@ -63,16 +88,15 @@ export type ProviderInfo = {
 export type ModelInfo = {
   id: string;
   name: string;
-  capabilities: {
-    ocr_compatible: boolean;
-    multimodal_vision: boolean;
-  };
+  capabilities: ModelCapabilities;
+  pricing: ModelPricing | null;
 };
 
 function withCapabilities(models: RawModelInfo[]): ModelInfo[] {
   return models.map((model) => ({
     ...model,
-    capabilities: inferModelCapabilities(model.id, model.name),
+    capabilities: model.capabilities ?? inferModelCapabilities(model.id, model.name),
+    pricing: model.pricing ?? null,
   }));
 }
 
@@ -97,13 +121,173 @@ function toModelInfo(raw: unknown): ModelInfo[] {
       id: m.id,
       name: typeof m.name === "string" ? m.name : m.id,
       capabilities: inferModelCapabilities(m.id, typeof m.name === "string" ? m.name : m.id),
+      pricing: null,
     }));
+}
+
+type OpenRouterCatalogModel = {
+  id: string;
+  name: string;
+  capabilities: ModelCapabilities;
+  pricing: ModelPricing | null;
+};
+
+let openRouterCatalogCache: { expiresAt: number; items: OpenRouterCatalogModel[] } | null = null;
+const OPENROUTER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function _parseOpenRouterPricing(raw: unknown): ModelPricing | null {
+  if (!raw || typeof raw !== "object") return null;
+  const payload = raw as Record<string, unknown>;
+  const promptRaw = payload.prompt;
+  const completionRaw = payload.completion;
+  const imageRaw = payload.image;
+
+  const prompt = typeof promptRaw === "string" || typeof promptRaw === "number" ? Number(promptRaw) : NaN;
+  const completion = typeof completionRaw === "string" || typeof completionRaw === "number" ? Number(completionRaw) : NaN;
+  const image = typeof imageRaw === "string" || typeof imageRaw === "number" ? Number(imageRaw) : NaN;
+
+  const promptRate = Number.isFinite(prompt) ? prompt * 1_000_000 : null;
+  const completionRate = Number.isFinite(completion) ? completion * 1_000_000 : null;
+  const imageRate = Number.isFinite(image) ? image * 1_000 : null;
+
+  if (promptRate === null && completionRate === null && imageRate === null) {
+    return null;
+  }
+  return {
+    input_per_million_usd: promptRate,
+    output_per_million_usd: completionRate,
+    image_per_thousand_usd: imageRate,
+    source: "openrouter",
+  };
+}
+
+function _extractModalities(record: Record<string, unknown>): string[] {
+  const fromArchitecture = record.architecture;
+  if (fromArchitecture && typeof fromArchitecture === "object") {
+    const architecture = fromArchitecture as Record<string, unknown>;
+    const input = architecture.input_modalities;
+    if (Array.isArray(input)) {
+      return input.filter((item): item is string => typeof item === "string").map((item) => item.trim().toLowerCase());
+    }
+  }
+  const direct = record.input_modalities;
+  if (Array.isArray(direct)) {
+    return direct.filter((item): item is string => typeof item === "string").map((item) => item.trim().toLowerCase());
+  }
+  return [];
+}
+
+function _parseOpenRouterCapabilities(record: Record<string, unknown>, modelId: string, modelName: string): ModelCapabilities {
+  const inferred = inferModelCapabilities(modelId, modelName);
+  const modalities = _extractModalities(record);
+  if (!modalities.length) return inferred;
+  const hasImageInput = modalities.includes("image");
+  return {
+    ocr_compatible: inferred.ocr_compatible,
+    multimodal_vision: inferred.multimodal_vision || hasImageInput,
+  };
+}
+
+async function fetchOpenRouterCatalog(apiKey: string | null = null): Promise<OpenRouterCatalogModel[]> {
+  const now = Date.now();
+  if (openRouterCatalogCache && openRouterCatalogCache.expiresAt > now) {
+    return openRouterCatalogCache.items;
+  }
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (apiKey?.trim()) {
+    headers.Authorization = `Bearer ${normalizeApiToken(apiKey)}`;
+  }
+
+  const response = await fetch(PROVIDER_API_URLS.openrouter, {
+    headers,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`OpenRouter model catalog request failed (${response.status})`);
+  }
+  const payload = await response.json().catch(() => ({})) as { data?: unknown };
+  const itemsRaw = Array.isArray(payload.data) ? payload.data : [];
+  const items: OpenRouterCatalogModel[] = [];
+  for (const raw of itemsRaw) {
+    if (!raw || typeof raw !== "object") continue;
+    const record = raw as Record<string, unknown>;
+    const id = typeof record.id === "string" ? record.id : null;
+    if (!id) continue;
+    const name = typeof record.name === "string" && record.name.trim() ? record.name : id;
+    items.push({
+      id,
+      name,
+      capabilities: _parseOpenRouterCapabilities(record, id, name),
+      pricing: _parseOpenRouterPricing(record.pricing),
+    });
+  }
+  openRouterCatalogCache = {
+    expiresAt: now + OPENROUTER_CACHE_TTL_MS,
+    items,
+  };
+  return items;
+}
+
+function _openRouterCapabilitiesForModel(
+  providerId: string,
+  modelId: string,
+  catalog: OpenRouterCatalogModel[],
+): ModelCapabilities | null {
+  const normalizedModelId = modelId.trim().toLowerCase();
+  const normalizedProvider = providerId.trim().toLowerCase();
+  const candidateIds = new Set<string>([
+    normalizedModelId,
+    `${normalizedProvider}/${normalizedModelId}`,
+  ]);
+
+  for (const item of catalog) {
+    const itemId = item.id.trim().toLowerCase();
+    if (candidateIds.has(itemId)) return item.capabilities;
+  }
+  return null;
+}
+
+function _openRouterPricingForModel(
+  providerId: string,
+  modelId: string,
+  catalog: OpenRouterCatalogModel[],
+): ModelPricing | null {
+  const normalizedModelId = modelId.trim().toLowerCase();
+  const normalizedProvider = providerId.trim().toLowerCase();
+  const candidateIds = new Set<string>([
+    normalizedModelId,
+    `${normalizedProvider}/${normalizedModelId}`,
+  ]);
+
+  for (const item of catalog) {
+    const itemId = item.id.trim().toLowerCase();
+    if (candidateIds.has(itemId) && item.pricing) return item.pricing;
+  }
+  return null;
+}
+
+async function enrichModelsWithOpenRouterPricing(
+  providerId: string,
+  models: ModelInfo[],
+  apiKey: string | null = null,
+): Promise<ModelInfo[]> {
+  try {
+    const catalog = await fetchOpenRouterCatalog(apiKey);
+    return models.map((model) => ({
+      ...model,
+      capabilities: _openRouterCapabilitiesForModel(providerId, model.id, catalog) ?? model.capabilities,
+      pricing: model.pricing ?? _openRouterPricingForModel(providerId, model.id, catalog),
+    }));
+  } catch {
+    return models;
+  }
 }
 
 export function inferModelCapabilities(
   modelId: string,
   modelName: string = modelId,
-): { ocr_compatible: boolean; multimodal_vision: boolean } {
+): ModelCapabilities {
   const id = modelId.trim().toLowerCase();
   const name = modelName.trim().toLowerCase();
   const matchText = `${id} ${name}`;
@@ -122,6 +306,18 @@ export function inferModelCapabilities(
     ocr_compatible: true,
     multimodal_vision: multimodalVision,
   };
+}
+
+export async function lookupModelPricing(providerId: string, modelId: string): Promise<ModelPricing | null> {
+  const normalizedProvider = providerId.trim().toLowerCase();
+  const normalizedModel = modelId.trim();
+  if (!normalizedProvider || !normalizedModel) return null;
+  try {
+    const catalog = await fetchOpenRouterCatalog();
+    return _openRouterPricingForModel(normalizedProvider, normalizedModel, catalog);
+  } catch {
+    return null;
+  }
 }
 
 function filterOpenAiModels(raw: unknown): ModelInfo[] {
@@ -253,6 +449,27 @@ async function fetchModels(
     throw lastError ?? new Error("Failed to authenticate with Nexos models endpoint");
   }
 
+  if (providerId === "openrouter") {
+    const response = await fetch(apiUrl, {
+      headers: {
+        ...(apiKey?.trim() ? { Authorization: `Bearer ${normalizeApiToken(apiKey)}` } : {}),
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(extractHttpErrorMessage(payload) ?? `Request failed (${response.status})`);
+    }
+    const payload = await response.json().catch(() => ({})) as { data?: unknown };
+    const models = mode === "embedding" ? filterEmbeddingModels(providerId, payload.data) : toModelInfo(payload.data);
+    const catalog = await fetchOpenRouterCatalog(apiKey).catch(() => []);
+    return models.map((model) => ({
+      ...model,
+      pricing: model.pricing ?? _openRouterPricingForModel(providerId, model.id, catalog),
+    }));
+  }
+
   const response = await fetch(apiUrl, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -313,8 +530,9 @@ export async function listModelsForProvider(
   if (apiUrl && apiKey) {
     try {
       const models = await fetchModels(providerId, apiUrl, apiKey, "chat");
+      const enrichedModels = await enrichModelsWithOpenRouterPricing(providerId, models, apiKey);
       if (models.length > 0) {
-        return { models, is_dynamic: true, error: null };
+        return { models: enrichedModels, is_dynamic: true, error: null };
       }
     } catch (error) {
       return {
@@ -326,7 +544,7 @@ export async function listModelsForProvider(
   }
 
   return {
-    models: withCapabilities(FALLBACK_MODELS[providerId] ?? []),
+    models: await enrichModelsWithOpenRouterPricing(providerId, withCapabilities(FALLBACK_MODELS[providerId] ?? []), apiKey),
     is_dynamic: false,
     error: null,
   };
@@ -349,8 +567,9 @@ export async function listEmbeddingModelsForProvider(
     const base = apiBase ? apiBase.replace(/\/$/, "") : "https://api.nexos.ai/v1";
     try {
       const models = await fetchNexosEmbeddingModels(`${base}/embeddings/models`, apiKey);
+      const enrichedModels = await enrichModelsWithOpenRouterPricing(providerId, models, apiKey);
       if (models.length > 0) {
-        return { models, is_dynamic: true, error: null };
+        return { models: enrichedModels, is_dynamic: true, error: null };
       }
       return { models: [], is_dynamic: true, error: "Nexos returned no embedding models for this API key" };
     } catch (error) {
@@ -363,8 +582,9 @@ export async function listEmbeddingModelsForProvider(
   if (apiUrl && apiKey) {
     try {
       const models = await fetchModels(providerId, apiUrl, apiKey, "embedding");
+      const enrichedModels = await enrichModelsWithOpenRouterPricing(providerId, models, apiKey);
       if (models.length > 0) {
-        return { models, is_dynamic: true, error: null };
+        return { models: enrichedModels, is_dynamic: true, error: null };
       }
     } catch (error) {
       return {
@@ -376,7 +596,11 @@ export async function listEmbeddingModelsForProvider(
   }
 
   return {
-    models: withCapabilities(FALLBACK_EMBEDDING_MODELS[providerId] ?? []),
+    models: await enrichModelsWithOpenRouterPricing(
+      providerId,
+      withCapabilities(FALLBACK_EMBEDDING_MODELS[providerId] ?? []),
+      apiKey,
+    ),
     is_dynamic: false,
     error: null,
   };

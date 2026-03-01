@@ -28,6 +28,7 @@ from knowledge_bases.services.multimodal import (
 )
 from knowledge_bases.config import settings
 from knowledge_bases.services.summary_index import refresh_kb_summary_index
+from knowledge_bases.services.usage_tracking import estimate_tokens_from_text, record_usage_event
 
 
 def chunk_text(text: str, *, chunk_size: int = 1100, overlap: int = 160) -> list[str]:
@@ -96,6 +97,7 @@ def deduplicate_pages_by_hash(
 
 async def build_image_assets_and_chunks(
     *,
+    db: AsyncSession,
     organization_id: uuid.UUID,
     knowledge_base_id: uuid.UUID,
     source_id: uuid.UUID,
@@ -127,6 +129,9 @@ async def build_image_assets_and_chunks(
         )
         ocr_text = extract_ocr_text(image_bytes)
         caption_text = await generate_caption_with_vision_model(
+            db=db,
+            organization_id=organization_id,
+            knowledge_base_id=knowledge_base_id,
             runtime=runtime,
             image_bytes=image_bytes,
             mime_type=resolved_content_type,
@@ -168,6 +173,19 @@ async def build_image_assets_and_chunks(
         if not chunk_specs:
             continue
         embeddings = await embed_texts([item[1] for item in chunk_specs], runtime)
+        if runtime and chunk_specs:
+            input_tokens = sum(estimate_tokens_from_text(item[1]) for item in chunk_specs)
+            await record_usage_event(
+                db,
+                organization_id=organization_id,
+                knowledge_base_id=knowledge_base_id,
+                provider=runtime.provider,
+                model=runtime.model,
+                operation="kb_ingest_embedding",
+                input_tokens=input_tokens,
+                output_tokens=None,
+                metadata={"source": "image_chunks", "count": len(chunk_specs)},
+            )
         for (modality, chunk_text_value), embedding in zip(chunk_specs, embeddings):
             chunk = KnowledgeChunk(
                 document_id=document.id,
@@ -287,6 +305,18 @@ async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestio
 
         chunks = chunk_text(markdown)
         embeddings = await embed_texts(chunks, runtime)
+        if runtime and chunks:
+            await record_usage_event(
+                db,
+                organization_id=job.organization_id,
+                knowledge_base_id=job.knowledge_base_id,
+                provider=runtime.provider,
+                model=runtime.model,
+                operation="kb_ingest_embedding",
+                input_tokens=sum(estimate_tokens_from_text(item) for item in chunks),
+                output_tokens=None,
+                metadata={"source": "document_chunks", "count": len(chunks)},
+            )
         for idx, (chunk_text_value, embedding) in enumerate(zip(chunks, embeddings)):
             chunk = KnowledgeChunk(
                 document_id=doc.id,
@@ -304,6 +334,7 @@ async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestio
             total_chunks += 1
 
         image_assets, image_chunks = await build_image_assets_and_chunks(
+            db=db,
             organization_id=job.organization_id,
             knowledge_base_id=job.knowledge_base_id,
             source_id=source.id,
@@ -351,6 +382,18 @@ async def _process_reembedding_job(db: AsyncSession, job: KnowledgeIngestionJob)
     if chunks:
         texts = [chunk.content_text for chunk in chunks]
         embeddings = await embed_texts(texts, runtime)
+        if texts:
+            await record_usage_event(
+                db,
+                organization_id=job.organization_id,
+                knowledge_base_id=job.knowledge_base_id,
+                provider=runtime.provider,
+                model=runtime.model,
+                operation="kb_reembed_embedding",
+                input_tokens=sum(estimate_tokens_from_text(item) for item in texts),
+                output_tokens=None,
+                metadata={"count": len(texts)},
+            )
         for chunk, embedding in zip(chunks, embeddings):
             chunk.embedding = embedding
 

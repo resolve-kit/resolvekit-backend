@@ -1554,6 +1554,27 @@
           "organizations"
         ]
       }
+    },
+    "/v1/organizations/spend": {
+      "get": {
+        "operationId": "get_v1_organizations_spend",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "organizations"
+        ]
+      }
     }
   }
 }

@@ -2,13 +2,18 @@ import json
 import logging
 from dataclasses import dataclass
 from typing import Any
+import uuid
 
-import litellm
 from openai import AsyncOpenAI
 
 from agent.models.agent_config import AgentConfig
 from agent.models.function_registry import RegisteredFunction
 from agent.services.encryption import decrypt
+from agent.services.llm_compat import (
+    acompletion_with_temperature_fallback,
+    is_unsupported_temperature_error,
+)
+from agent.services.usage_tracking import estimate_tokens_from_messages, record_llm_usage_event
 
 
 def build_tools(functions: list[RegisteredFunction]) -> list[dict[str, Any]]:
@@ -122,8 +127,13 @@ async def _call_nexos_chat_completions(
     try:
         response = await client.chat.completions.create(**kwargs)
     except Exception as exc:
-        logger.warning("nexos_openai_sdk_failed base_url=%s model=%s error=%s", api_base, model, str(exc))
-        raise
+        if "temperature" in kwargs and is_unsupported_temperature_error(exc):
+            retry_kwargs = dict(kwargs)
+            retry_kwargs.pop("temperature", None)
+            response = await client.chat.completions.create(**retry_kwargs)
+        else:
+            logger.warning("nexos_openai_sdk_failed base_url=%s model=%s error=%s", api_base, model, str(exc))
+            raise
 
     choices: list[_LLMChoice] = []
     for choice in (response.choices or []):
@@ -159,6 +169,9 @@ async def call_llm(
     config: AgentConfig,
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None = None,
+    *,
+    operation: str = "assistant_completion",
+    session_id: uuid.UUID | None = None,
 ) -> Any:
     api_key = None
     if config.llm_api_key_encrypted:
@@ -173,7 +186,17 @@ async def call_llm(
     if provider == "nexos":
         if not api_key:
             raise ValueError("Nexos provider requires an API key")
-        return await _call_nexos_chat_completions(config, model, messages, tools, api_key)
+        response = await _call_nexos_chat_completions(config, model, messages, tools, api_key)
+        await _record_usage_best_effort(
+            config=config,
+            session_id=session_id,
+            provider=provider or "nexos",
+            model=model,
+            operation=operation,
+            messages=messages,
+            response=response,
+        )
+        return response
 
     kwargs: dict[str, Any] = {
         "model": model,
@@ -187,17 +210,86 @@ async def call_llm(
 
     if config.llm_api_base:
         kwargs["api_base"] = config.llm_api_base
+    elif provider == "openrouter":
+        kwargs["api_base"] = "https://openrouter.ai/api/v1"
 
     if tools:
         kwargs["tools"] = tools
         kwargs["tool_choice"] = "auto"
 
-    return await litellm.acompletion(**kwargs)
+    response = await acompletion_with_temperature_fallback(**kwargs)
+    await _record_usage_best_effort(
+        config=config,
+        session_id=session_id,
+        provider=provider or "openai",
+        model=model,
+        operation=operation,
+        messages=messages,
+        response=response,
+    )
+    return response
+
+
+def _usage_tokens_from_response(response: Any) -> tuple[int | None, int | None]:
+    usage = getattr(response, "usage", None)
+    if usage is None and isinstance(response, dict):
+        usage = response.get("usage")
+    if usage is None:
+        return None, None
+
+    prompt_tokens = getattr(usage, "prompt_tokens", None)
+    completion_tokens = getattr(usage, "completion_tokens", None)
+    if isinstance(usage, dict):
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+    try:
+        parsed_prompt = int(prompt_tokens) if prompt_tokens is not None else None
+    except (TypeError, ValueError):
+        parsed_prompt = None
+    try:
+        parsed_completion = int(completion_tokens) if completion_tokens is not None else None
+    except (TypeError, ValueError):
+        parsed_completion = None
+    return parsed_prompt, parsed_completion
+
+
+async def _record_usage_best_effort(
+    *,
+    config: AgentConfig,
+    session_id: uuid.UUID | None,
+    provider: str,
+    model: str,
+    operation: str,
+    messages: list[dict[str, Any]],
+    response: Any,
+) -> None:
+    app_id = getattr(config, "app_id", None)
+    if not app_id:
+        return
+
+    input_tokens, output_tokens = _usage_tokens_from_response(response)
+    if input_tokens is None:
+        input_tokens = estimate_tokens_from_messages(messages)
+
+    try:
+        await record_llm_usage_event(
+            app_id=app_id,
+            session_id=session_id,
+            provider=(provider or "").strip().lower() or "unknown",
+            model=model,
+            operation=operation,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+        )
+    except Exception:
+        logger.debug("llm_usage_record_failed app_id=%s operation=%s", app_id, operation)
 
 
 async def generate_tool_descriptions(
     config: AgentConfig,
     tool_calls: list[dict[str, Any]],
+    *,
+    session_id: uuid.UUID | None = None,
 ) -> list[str]:
     """Generate short first-person descriptions for a batch of tool calls.
 
@@ -230,6 +322,8 @@ async def generate_tool_descriptions(
             config,
             [{"role": "user", "content": prompt}],
             tools=None,
+            operation="tool_description_generation",
+            session_id=session_id,
         )
         text = (response.choices[0].message.content or "").strip()
         descriptions: list[str] = []

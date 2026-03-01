@@ -1,4 +1,5 @@
 import uuid
+from types import SimpleNamespace
 
 import pytest
 
@@ -82,7 +83,9 @@ async def test_build_image_assets_and_chunks_links_metadata(monkeypatch: pytest.
         api_key="test-key",
         api_base=None,
     )
+    db = SimpleNamespace(add=lambda *_args, **_kwargs: None)
     assets, chunks = await build_image_assets_and_chunks(
+        db=db,
         organization_id=org_id,
         knowledge_base_id=kb_id,
         source_id=source_id,

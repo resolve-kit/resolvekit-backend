@@ -59,7 +59,58 @@ interface OrganizationLlmProfile {
   updated_at: string;
 }
 
-type OrganizationView = "llm-setup" | "team-management";
+interface ModelPricing {
+  input_per_million_usd: number | null;
+  output_per_million_usd: number | null;
+  image_per_thousand_usd: number | null;
+  source: string;
+}
+
+interface SpendBreakdownRow {
+  estimated_cost_usd: number;
+  input_tokens: number;
+  output_tokens: number;
+  image_count: number;
+  event_count: number;
+  unpriced_event_count: number;
+}
+
+interface SpendByAppRow extends SpendBreakdownRow {
+  app_id: string | null;
+  app_name: string;
+}
+
+interface SpendByModelRow extends SpendBreakdownRow {
+  provider: string;
+  model: string;
+  pricing: ModelPricing | null;
+}
+
+interface SpendByKnowledgeBaseRow extends SpendBreakdownRow {
+  knowledge_base_id: string | null;
+  knowledge_base_name: string;
+}
+
+interface OrganizationSpendResponse {
+  from_ts: string;
+  to_ts: string;
+  currency: string;
+  totals: {
+    estimated_cost_usd: number;
+    input_tokens: number;
+    output_tokens: number;
+    image_count: number;
+    event_count: number;
+    unpriced_event_count: number;
+  };
+  by_app: SpendByAppRow[];
+  by_model: SpendByModelRow[];
+  by_knowledge_base: SpendByKnowledgeBaseRow[];
+  warnings: string[];
+}
+
+type SpendWindowDays = "7" | "30" | "90";
+type OrganizationView = "llm-setup" | "team-management" | "spend";
 
 export default function OrganizationAdmin() {
   const [inviteEmail, setInviteEmail] = useState("");
@@ -82,6 +133,9 @@ export default function OrganizationAdmin() {
   const [creatingLlmProfile, setCreatingLlmProfile] = useState(false);
   const [deletingLlmProfileId, setDeletingLlmProfileId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<OrganizationView>("team-management");
+  const [spendWindowDays, setSpendWindowDays] = useState<SpendWindowDays>("30");
+  const [spendData, setSpendData] = useState<OrganizationSpendResponse | null>(null);
+  const [spendLoading, setSpendLoading] = useState(false);
   const hasInitializedDefaultView = useRef(false);
   const { toast } = useToast();
   const { refresh } = useOnboarding();
@@ -120,11 +174,36 @@ export default function OrganizationAdmin() {
     void loadData();
   }, [loadData]);
 
+  const loadSpendData = useCallback(async () => {
+    const now = new Date();
+    const windowMs = Number(spendWindowDays) * 24 * 60 * 60 * 1000;
+    const from = new Date(now.getTime() - windowMs);
+
+    setSpendLoading(true);
+    try {
+      const params = new URLSearchParams({
+        from_ts: from.toISOString(),
+        to_ts: now.toISOString(),
+      });
+      const payload = await api<OrganizationSpendResponse>(`/v1/organizations/spend?${params.toString()}`);
+      setSpendData(payload);
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to load spend analytics", "error");
+    } finally {
+      setSpendLoading(false);
+    }
+  }, [spendWindowDays, toast]);
+
   useEffect(() => {
     if (loading || hasInitializedDefaultView.current) return;
     setActiveView(llmProfiles.length === 0 ? "llm-setup" : "team-management");
     hasInitializedDefaultView.current = true;
   }, [loading, llmProfiles.length]);
+
+  useEffect(() => {
+    if (activeView !== "spend") return;
+    void loadSpendData();
+  }, [activeView, loadSpendData]);
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
@@ -255,6 +334,16 @@ export default function OrganizationAdmin() {
     : "Manage team access and shared LLM provider credentials.";
   const llmViewActive = activeView === "llm-setup";
   const teamViewActive = activeView === "team-management";
+  const spendViewActive = activeView === "spend";
+  const spendTotals = spendData?.totals;
+  const spendWarnings = spendData?.warnings ?? [];
+
+  function formatUsd(value: number): string {
+    if (value >= 0.01) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
+    }
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 5 }).format(value);
+  }
 
   return (
     <div className="space-y-6">
@@ -298,11 +387,23 @@ export default function OrganizationAdmin() {
             Team Management
             {teamViewActive && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-accent" />}
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveView("spend")}
+            className={`relative whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors ${
+              spendViewActive ? "text-strong" : "text-subtle hover:text-body"
+            }`}
+          >
+            Spend
+            {spendViewActive && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-accent" />}
+          </button>
         </div>
         <p className="mt-2 text-xs text-subtle">
           {llmViewActive
             ? "Configure provider credentials once, then use them across apps and knowledge bases."
-            : "Invite teammates, set roles, and manage pending invitations."}
+            : teamViewActive
+              ? "Invite teammates, set roles, and manage pending invitations."
+              : "Track estimated spend by app, model, and knowledge base based on recorded token usage."}
         </p>
       </section>
 
@@ -566,6 +667,138 @@ export default function OrganizationAdmin() {
           </DataPanel>
         </div>
       </SectionCard>
+      )}
+
+      {spendViewActive && (
+        <SectionCard
+          title="Organization Spend"
+          subtitle="Estimated usage cost is computed from tracked token/image usage and live model pricing when available."
+          className="animate-fade-in-up delay-150"
+        >
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MetricTile
+              label="Estimated Spend"
+              value={spendTotals ? formatUsd(spendTotals.estimated_cost_usd) : "..."}
+              hint={`Last ${spendWindowDays} days`}
+            />
+            <MetricTile
+              label="Input Tokens"
+              value={spendTotals ? spendTotals.input_tokens.toLocaleString() : "..."}
+            />
+            <MetricTile
+              label="Output Tokens"
+              value={spendTotals ? spendTotals.output_tokens.toLocaleString() : "..."}
+            />
+            <MetricTile
+              label="Usage Events"
+              value={spendTotals ? spendTotals.event_count.toLocaleString() : "..."}
+              hint={spendTotals ? `${spendTotals.unpriced_event_count.toLocaleString()} missing rates` : undefined}
+            />
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <Select
+              label="Time Window"
+              value={spendWindowDays}
+              onChange={(e) => setSpendWindowDays(e.target.value as SpendWindowDays)}
+              className="min-w-[180px]"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </Select>
+            <Button
+              variant="outline"
+              loading={spendLoading}
+              onClick={() => {
+                void loadSpendData();
+              }}
+            >
+              Refresh
+            </Button>
+          </div>
+
+          {spendWarnings.length > 0 && (
+            <div className="mt-3 rounded-lg border border-warning-dim bg-warning-subtle px-3 py-2">
+              {spendWarnings.map((warning) => (
+                <p key={warning} className="text-xs text-warning">{warning}</p>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <DataPanel title="By App" subtitle="Estimated spend per app">
+              {spendLoading ? (
+                <p className="text-xs text-subtle">Loading spend by app...</p>
+              ) : !spendData || spendData.by_app.length === 0 ? (
+                <p className="text-xs text-subtle">No usage data for this period.</p>
+              ) : (
+                <div className="space-y-2">
+                  {spendData.by_app.map((row) => (
+                    <div key={row.app_id ?? "unassigned"} className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm text-strong">{row.app_name}</p>
+                        <p className="text-sm font-semibold text-strong">{formatUsd(row.estimated_cost_usd)}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-subtle">
+                        {row.input_tokens.toLocaleString()} in · {row.output_tokens.toLocaleString()} out · {row.event_count.toLocaleString()} events
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DataPanel>
+
+            <DataPanel title="By Model" subtitle="Estimated spend per provider/model">
+              {spendLoading ? (
+                <p className="text-xs text-subtle">Loading spend by model...</p>
+              ) : !spendData || spendData.by_model.length === 0 ? (
+                <p className="text-xs text-subtle">No usage data for this period.</p>
+              ) : (
+                <div className="space-y-2">
+                  {spendData.by_model.map((row) => (
+                    <div key={`${row.provider}:${row.model}`} className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm text-strong">{row.provider} / {row.model}</p>
+                        <p className="text-sm font-semibold text-strong">{formatUsd(row.estimated_cost_usd)}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-subtle">
+                        {row.input_tokens.toLocaleString()} in · {row.output_tokens.toLocaleString()} out · {row.event_count.toLocaleString()} events
+                      </p>
+                      <p className="mt-1 text-xs text-dim">
+                        {row.pricing
+                          ? `Rates: in $${row.pricing.input_per_million_usd ?? "?"}/M, out $${row.pricing.output_per_million_usd ?? "?"}/M, img $${row.pricing.image_per_thousand_usd ?? "?"}/K`
+                          : "Rates unavailable"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DataPanel>
+
+            <DataPanel title="By Knowledge Base" subtitle="Estimated spend attributed to KB operations">
+              {spendLoading ? (
+                <p className="text-xs text-subtle">Loading spend by knowledge base...</p>
+              ) : !spendData || spendData.by_knowledge_base.length === 0 ? (
+                <p className="text-xs text-subtle">No KB-attributed usage for this period.</p>
+              ) : (
+                <div className="space-y-2">
+                  {spendData.by_knowledge_base.map((row) => (
+                    <div key={row.knowledge_base_id ?? row.knowledge_base_name} className="rounded-lg border border-border bg-canvas/40 px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm text-strong">{row.knowledge_base_name}</p>
+                        <p className="text-sm font-semibold text-strong">{formatUsd(row.estimated_cost_usd)}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-subtle">
+                        {row.input_tokens.toLocaleString()} in · {row.output_tokens.toLocaleString()} out · {row.event_count.toLocaleString()} events
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DataPanel>
+          </div>
+        </SectionCard>
       )}
     </div>
   );

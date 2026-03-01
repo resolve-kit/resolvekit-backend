@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       id: model.id,
       name: model.name,
       capabilities: model.capabilities,
+      pricing: model.pricing,
     })),
     is_dynamic: result.is_dynamic,
     error: result.error,
