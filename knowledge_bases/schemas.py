@@ -15,12 +15,24 @@ class KBCreateRequest(OrganizationScopedRequest):
     name: str = Field(min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
     embedding_profile_id: uuid.UUID
+    summary_llm_profile_id: uuid.UUID
+    summary_llm_profile_name: str = Field(min_length=1, max_length=120)
+    summary_provider: str = Field(min_length=1, max_length=64)
+    summary_model: str = Field(min_length=1, max_length=128)
+    summary_api_key: str = Field(min_length=1, max_length=4096)
+    summary_api_base: str | None = Field(default=None, max_length=255)
 
 
 class KBUpdateRequest(KBGetRequest):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=2000)
     embedding_profile_id: uuid.UUID | None = None
+    summary_llm_profile_id: uuid.UUID | None = None
+    summary_llm_profile_name: str | None = Field(default=None, min_length=1, max_length=120)
+    summary_provider: str | None = Field(default=None, min_length=1, max_length=64)
+    summary_model: str | None = Field(default=None, min_length=1, max_length=128)
+    summary_api_key: str | None = Field(default=None, min_length=1, max_length=4096)
+    summary_api_base: str | None = Field(default=None, max_length=255)
     confirm_regeneration: bool = False
 
 
@@ -62,6 +74,10 @@ class MultiKBSearchRequest(OrganizationScopedRequest):
     query: str = Field(min_length=1, max_length=2000)
     limit: int = Field(default=10, ge=1, le=50)
     exclude_modalities: list[str] = Field(default_factory=list, max_length=16)
+
+
+class KBBriefsRequest(OrganizationScopedRequest):
+    kb_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
 
 
 class EmbeddingProfileGetRequest(OrganizationScopedRequest):

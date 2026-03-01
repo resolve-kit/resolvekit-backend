@@ -36,6 +36,7 @@ export default function HomePage() {
             understands the app, including screen layout and flow from docs, guide images, and submitted screenshots,
             explains fixes clearly, and can invoke approved on-device functions to resolve issues.
           </p>
+          <p className="mt-3 text-sm text-muted-foreground">Free (for now). Pay us in feedback.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href={dashboardRegisterUrl}>
               <Button>Start Free</Button>

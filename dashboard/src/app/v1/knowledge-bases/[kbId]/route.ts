@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { ORG_ADMIN_ROLES } from "@/lib/server/authorization";
 import { getDeveloperFromRequest } from "@/lib/server/auth";
+import { decryptWithFernet } from "@/lib/server/fernet";
 import { detail, readJson } from "@/lib/server/http";
 import { KBServiceError, kbDelete, kbGet, kbUpdate } from "@/lib/server/kb-service";
+import { inferModelCapabilities } from "@/lib/server/provider";
 import { prisma } from "@/lib/server/prisma";
 import { upsertKbRef } from "@/lib/server/kb-refs";
 
@@ -13,6 +15,8 @@ type KnowledgeBaseUpdatePayload = {
   name?: string | null;
   description?: string | null;
   embedding_profile_id?: string | null;
+  summary_llm_profile_id?: string | null;
+  summary_model?: string | null;
   confirm_regeneration?: boolean;
 };
 
@@ -56,6 +60,23 @@ export async function PATCH(
   const body = await readJson<KnowledgeBaseUpdatePayload>(request);
   if (!body) return detail(422, "Invalid knowledge base update payload");
 
+  let summaryProfile: Awaited<ReturnType<typeof prisma.organizationLlmProviderProfile.findUnique>> | null = null;
+  if (typeof body.summary_llm_profile_id === "string") {
+    summaryProfile = await prisma.organizationLlmProviderProfile.findUnique({
+      where: { id: body.summary_llm_profile_id },
+    });
+    if (!summaryProfile || summaryProfile.organizationId !== developer.organizationId) {
+      return detail(404, "LLM profile not found");
+    }
+  }
+  if (typeof body.summary_model === "string") {
+    const summaryModel = body.summary_model.trim();
+    if (!summaryModel) return detail(422, "Summary model is required");
+    if (!inferModelCapabilities(summaryModel).ocr_compatible) {
+      return detail(422, "Summary model must be chat-capable");
+    }
+  }
+
   const { kbId } = await context.params;
 
   try {
@@ -63,6 +84,24 @@ export async function PATCH(
       ...(Object.prototype.hasOwnProperty.call(body, "name") ? { name: body.name ?? null } : {}),
       ...(Object.prototype.hasOwnProperty.call(body, "description") ? { description: body.description ?? null } : {}),
       ...(Object.prototype.hasOwnProperty.call(body, "embedding_profile_id") ? { embedding_profile_id: body.embedding_profile_id ?? null } : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "summary_llm_profile_id")
+        ? { summary_llm_profile_id: summaryProfile?.id ?? null }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "summary_llm_profile_id")
+        ? { summary_llm_profile_name: summaryProfile?.name ?? null }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "summary_llm_profile_id")
+        ? { summary_provider: summaryProfile?.provider ?? null }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "summary_model")
+        ? { summary_model: body.summary_model ?? null }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "summary_llm_profile_id")
+        ? { summary_api_key: summaryProfile ? decryptWithFernet(summaryProfile.apiKeyEncrypted) : null }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, "summary_llm_profile_id")
+        ? { summary_api_base: summaryProfile?.apiBase ?? null }
+        : {}),
       confirm_regeneration: body.confirm_regeneration ?? false,
     });
 

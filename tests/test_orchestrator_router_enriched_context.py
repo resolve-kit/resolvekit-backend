@@ -760,6 +760,22 @@ def test_assemble_system_prompt_scope_section_only_for_strict() -> None:
     assert "## Scope" not in open_prompt
 
 
+def test_assemble_system_prompt_includes_assigned_kb_index_section() -> None:
+    prompt = orchestrator._assemble_system_prompt(
+        dev_prompt="Acme support app.",
+        scope_mode="open",
+        platform_context="",
+        language_context="Locale: en",
+        custom_context="",
+        kb_context="",
+        kb_index_context="\n\n## Assigned Knowledge Base Index\n- Support KB: login, billing",
+        playbook_prompt="",
+    )
+
+    assert "## Assigned Knowledge Base Index" in prompt
+    assert "Support KB: login, billing" in prompt
+
+
 @pytest.mark.asyncio
 async def test_run_router_fails_open_when_router_llm_call_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     config = SimpleNamespace(system_prompt="App context", app_id=uuid.uuid4())

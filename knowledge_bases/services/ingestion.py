@@ -27,6 +27,7 @@ from knowledge_bases.services.multimodal import (
     select_relevant_images,
 )
 from knowledge_bases.config import settings
+from knowledge_bases.services.summary_index import refresh_kb_summary_index
 
 
 def chunk_text(text: str, *, chunk_size: int = 1100, overlap: int = 160) -> list[str]:
@@ -322,11 +323,13 @@ async def _process_source_ingestion_job(db: AsyncSession, job: KnowledgeIngestio
     source.status = "ready"
     source.last_crawled_at = datetime.now(timezone.utc)
     source.last_error = None
+    await refresh_kb_summary_index(db, kb=kb)
     job.stats_json = {
         "documents": total_docs,
         "chunks": total_chunks,
         "images": total_images,
         "duplicates_skipped": skipped_duplicates,
+        "summary_status": kb.summary_status,
     }
 
 
@@ -377,9 +380,23 @@ async def _process_reembedding_job(db: AsyncSession, job: KnowledgeIngestionJob)
     }
 
 
+async def _process_refresh_kb_index_job(db: AsyncSession, job: KnowledgeIngestionJob) -> None:
+    kb = await db.get(KnowledgeBase, job.knowledge_base_id)
+    if kb is None or kb.organization_id != job.organization_id:
+        raise ValueError("Knowledge base not found")
+    await refresh_kb_summary_index(db, kb=kb)
+    job.stats_json = {
+        "summary_status": kb.summary_status,
+        "summary_updated_at": kb.summary_updated_at.isoformat() if kb.summary_updated_at else None,
+    }
+
+
 async def process_ingestion_job(db: AsyncSession, job: KnowledgeIngestionJob) -> None:
     if job.job_type == "reembed_kb":
         await _process_reembedding_job(db, job)
+        return
+    if job.job_type == "refresh_kb_index":
+        await _process_refresh_kb_index_job(db, job)
         return
     await _process_source_ingestion_job(db, job)
 

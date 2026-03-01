@@ -387,6 +387,29 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "KBBriefsRequest": {
+        "properties": {
+          "kb_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Kb Ids",
+            "type": "array"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id"
+        ],
+        "title": "KBBriefsRequest",
+        "type": "object"
+      },
       "KBCreateRequest": {
         "properties": {
           "description": {
@@ -416,12 +439,58 @@
             "format": "uuid",
             "title": "Organization Id",
             "type": "string"
+          },
+          "summary_api_base": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Api Base"
+          },
+          "summary_api_key": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Summary Api Key",
+            "type": "string"
+          },
+          "summary_llm_profile_id": {
+            "format": "uuid",
+            "title": "Summary Llm Profile Id",
+            "type": "string"
+          },
+          "summary_llm_profile_name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Summary Llm Profile Name",
+            "type": "string"
+          },
+          "summary_model": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Summary Model",
+            "type": "string"
+          },
+          "summary_provider": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Summary Provider",
+            "type": "string"
           }
         },
         "required": [
           "organization_id",
           "name",
-          "embedding_profile_id"
+          "embedding_profile_id",
+          "summary_llm_profile_id",
+          "summary_llm_profile_name",
+          "summary_provider",
+          "summary_model",
+          "summary_api_key"
         ],
         "title": "KBCreateRequest",
         "type": "object"
@@ -525,6 +594,82 @@
             "format": "uuid",
             "title": "Organization Id",
             "type": "string"
+          },
+          "summary_api_base": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Api Base"
+          },
+          "summary_api_key": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Api Key"
+          },
+          "summary_llm_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Llm Profile Id"
+          },
+          "summary_llm_profile_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Llm Profile Name"
+          },
+          "summary_model": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Model"
+          },
+          "summary_provider": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Provider"
           }
         },
         "required": [
@@ -536,6 +681,14 @@
       },
       "MultiKBSearchRequest": {
         "properties": {
+          "exclude_modalities": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Exclude Modalities",
+            "type": "array"
+          },
           "kb_ids": {
             "items": {
               "format": "uuid",
@@ -587,6 +740,14 @@
       },
       "SearchRequest": {
         "properties": {
+          "exclude_modalities": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Exclude Modalities",
+            "type": "array"
+          },
           "kb_id": {
             "format": "uuid",
             "title": "Kb Id",
@@ -1165,6 +1326,50 @@
         ]
       }
     },
+    "/internal/kbs/briefs": {
+      "post": {
+        "operationId": "kb_briefs_internal_kbs_briefs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KBBriefsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Kb Briefs",
+        "tags": [
+          "kb-internal"
+        ]
+      }
+    },
     "/internal/kbs/create": {
       "post": {
         "operationId": "create_kb_internal_kbs_create_post",
@@ -1380,6 +1585,50 @@
           }
         ],
         "summary": "List Kbs",
+        "tags": [
+          "kb-internal"
+        ]
+      }
+    },
+    "/internal/kbs/refresh-index": {
+      "post": {
+        "operationId": "refresh_kb_index_internal_kbs_refresh_index_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KBGetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Refresh Kb Index",
         "tags": [
           "kb-internal"
         ]

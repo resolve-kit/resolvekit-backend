@@ -16,6 +16,7 @@ from knowledge_bases.models import (
     OrganizationEmbeddingProfile,
 )
 from knowledge_bases.schemas import (
+    KBBriefsRequest,
     DocumentDeleteRequest,
     DocumentsListRequest,
     EmbeddingProfileChangeImpactRequest,
@@ -82,8 +83,28 @@ def _serialize_kb(kb: KnowledgeBase, profile_name: str | None = None) -> dict[st
         ),
         "embedding_regeneration_status": kb.embedding_regeneration_status,
         "embedding_regeneration_error": kb.embedding_regeneration_error,
+        "summary_llm_profile_id": str(kb.summary_llm_profile_id) if kb.summary_llm_profile_id else None,
+        "summary_llm_profile_name": kb.summary_llm_profile_name,
+        "summary_provider": kb.summary_provider,
+        "summary_model": kb.summary_model,
+        "summary_text": kb.summary_text,
+        "summary_topics": kb.summary_topics_json or [],
+        "summary_status": kb.summary_status,
+        "summary_last_error": kb.summary_last_error,
+        "summary_updated_at": kb.summary_updated_at.isoformat() if kb.summary_updated_at else None,
         "created_at": kb.created_at.isoformat(),
         "updated_at": kb.updated_at.isoformat(),
+    }
+
+
+def _serialize_kb_brief(kb: KnowledgeBase) -> dict[str, Any]:
+    return {
+        "id": str(kb.id),
+        "name": kb.name,
+        "summary_text": kb.summary_text,
+        "summary_topics": kb.summary_topics_json or [],
+        "summary_status": kb.summary_status,
+        "summary_updated_at": kb.summary_updated_at.isoformat() if kb.summary_updated_at else None,
     }
 
 
@@ -163,6 +184,34 @@ def _apply_pending_profile_to_kb(kb: KnowledgeBase, profile: OrganizationEmbeddi
     kb.pending_embedding_api_base = profile.api_base
     kb.embedding_regeneration_status = "pending"
     kb.embedding_regeneration_error = None
+
+
+def _summary_model_is_valid(model: str | None) -> bool:
+    if not model:
+        return False
+    return "embed" not in model.strip().lower()
+
+
+def _apply_summary_profile_to_kb(
+    kb: KnowledgeBase,
+    *,
+    llm_profile_id: uuid.UUID,
+    llm_profile_name: str,
+    provider: str,
+    model: str,
+    api_key: str,
+    api_base: str | None,
+) -> None:
+    if not _summary_model_is_valid(model):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Summary model must be chat-capable")
+    kb.summary_llm_profile_id = llm_profile_id
+    kb.summary_llm_profile_name = llm_profile_name.strip()
+    kb.summary_provider = provider.strip()
+    kb.summary_model = model.strip()
+    kb.summary_api_key_encrypted = encrypt_secret(api_key)
+    kb.summary_api_base = api_base.strip() if api_base else None
+    kb.summary_status = "pending"
+    kb.summary_last_error = None
 
 
 async def _kb_counts(db: AsyncSession, kb_ids: list[uuid.UUID]) -> tuple[int, int, int]:
@@ -283,6 +332,15 @@ async def create_kb(
         description=body.description,
     )
     _apply_active_profile_to_kb(kb, profile)
+    _apply_summary_profile_to_kb(
+        kb,
+        llm_profile_id=body.summary_llm_profile_id,
+        llm_profile_name=body.summary_llm_profile_name,
+        provider=body.summary_provider,
+        model=body.summary_model,
+        api_key=body.summary_api_key,
+        api_base=body.summary_api_base,
+    )
     db.add(kb)
     try:
         await db.commit()
@@ -323,6 +381,7 @@ async def update_kb(
     if body.description is not None:
         kb.description = body.description
 
+    updates = body.model_dump(exclude_unset=True)
     queued_job: dict[str, Any] | None = None
     if body.embedding_profile_id is not None and body.embedding_profile_id != kb.embedding_profile_id:
         if kb.embedding_regeneration_status in _REGEN_BUSY_STATUSES:
@@ -357,6 +416,86 @@ async def update_kb(
             queued_job = serialize_job(job)
         else:
             _apply_active_profile_to_kb(kb, target_profile)
+
+    summary_field_names = {
+        "summary_llm_profile_id",
+        "summary_llm_profile_name",
+        "summary_provider",
+        "summary_model",
+        "summary_api_key",
+        "summary_api_base",
+    }
+    summary_fields_updated = any(name in updates for name in summary_field_names)
+    if summary_fields_updated:
+        # Explicit null disables summary indexing; useful for legacy KBs.
+        if "summary_llm_profile_id" in updates and body.summary_llm_profile_id is None:
+            kb.summary_llm_profile_id = None
+            kb.summary_llm_profile_name = None
+            kb.summary_provider = None
+            kb.summary_model = None
+            kb.summary_api_key_encrypted = None
+            kb.summary_api_base = None
+            kb.summary_status = "disabled"
+            kb.summary_text = None
+            kb.summary_topics_json = []
+            kb.summary_last_error = None
+            kb.summary_updated_at = None
+            kb.summary_content_fingerprint = None
+        else:
+            next_profile_id = (
+                body.summary_llm_profile_id
+                if "summary_llm_profile_id" in updates
+                else kb.summary_llm_profile_id
+            )
+            next_profile_name = (
+                body.summary_llm_profile_name
+                if "summary_llm_profile_name" in updates
+                else kb.summary_llm_profile_name
+            )
+            next_provider = body.summary_provider if "summary_provider" in updates else kb.summary_provider
+            next_model = body.summary_model if "summary_model" in updates else kb.summary_model
+            next_api_base = (
+                body.summary_api_base if "summary_api_base" in updates else kb.summary_api_base
+            )
+            if "summary_api_key" in updates:
+                next_api_key_encrypted = (
+                    encrypt_secret(body.summary_api_key)
+                    if body.summary_api_key is not None
+                    else None
+                )
+            else:
+                next_api_key_encrypted = kb.summary_api_key_encrypted
+
+            if not all([next_profile_id, next_profile_name, next_provider, next_model, next_api_key_encrypted]):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Summary profile and model configuration must be complete",
+                )
+            if not _summary_model_is_valid(next_model):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Summary model must be chat-capable",
+                )
+
+            kb.summary_llm_profile_id = next_profile_id
+            kb.summary_llm_profile_name = str(next_profile_name).strip()
+            kb.summary_provider = str(next_provider).strip()
+            kb.summary_model = str(next_model).strip()
+            kb.summary_api_key_encrypted = next_api_key_encrypted
+            kb.summary_api_base = next_api_base.strip() if isinstance(next_api_base, str) and next_api_base.strip() else None
+            kb.summary_status = "pending"
+            kb.summary_last_error = None
+            kb.summary_updated_at = None
+            kb.summary_content_fingerprint = None
+
+            job = await enqueue_ingestion_job(
+                db,
+                organization_id=kb.organization_id,
+                knowledge_base_id=kb.id,
+                source_id=None,
+                job_type="refresh_kb_index",
+            )
+            queued_job = serialize_job(job)
 
     try:
         await db.commit()
@@ -575,6 +714,13 @@ async def delete_source(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source not found")
     await cleanup_image_assets_for_source(db, source_id=source.id)
     await db.delete(source)
+    await enqueue_ingestion_job(
+        db,
+        organization_id=body.organization_id,
+        knowledge_base_id=body.kb_id,
+        source_id=None,
+        job_type="refresh_kb_index",
+    )
     await db.commit()
     return {"status": "ok"}
 
@@ -636,8 +782,55 @@ async def delete_document_route(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     await cleanup_image_assets_for_document(db, document_id=document.id)
     await db.delete(document)
+    await enqueue_ingestion_job(
+        db,
+        organization_id=body.organization_id,
+        knowledge_base_id=body.kb_id,
+        source_id=None,
+        job_type="refresh_kb_index",
+    )
     await db.commit()
     return {"status": "ok"}
+
+
+@router.post("/kbs/briefs")
+async def kb_briefs(
+    body: KBBriefsRequest,
+    principal: ServicePrincipal = Depends(get_service_principal),
+    db: AsyncSession = Depends(get_db),
+):
+    _ensure_org_scope(principal, body.organization_id)
+    if not body.kb_ids:
+        return {"items": []}
+    result = await db.execute(
+        select(KnowledgeBase).where(
+            KnowledgeBase.organization_id == body.organization_id,
+            KnowledgeBase.id.in_(body.kb_ids),
+        )
+    )
+    kb_by_id = {kb.id: kb for kb in result.scalars().all()}
+    ordered = [kb_by_id[kb_id] for kb_id in body.kb_ids if kb_id in kb_by_id]
+    return {"items": [_serialize_kb_brief(kb) for kb in ordered]}
+
+
+@router.post("/kbs/refresh-index")
+async def refresh_kb_index(
+    body: KBGetRequest,
+    principal: ServicePrincipal = Depends(get_service_principal),
+    db: AsyncSession = Depends(get_db),
+):
+    _ensure_org_scope(principal, body.organization_id)
+    kb = await _get_kb_or_404(db, body.organization_id, body.kb_id)
+    job = await enqueue_ingestion_job(
+        db,
+        organization_id=kb.organization_id,
+        knowledge_base_id=kb.id,
+        source_id=None,
+        job_type="refresh_kb_index",
+    )
+    await db.commit()
+    await db.refresh(job)
+    return {"job": serialize_job(job)}
 
 
 @router.post("/search")

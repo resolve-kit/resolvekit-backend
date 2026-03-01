@@ -60,7 +60,7 @@ export function HeroChatPreview() {
         <div className="flex justify-end">
           <div className="max-w-[87%] rounded-xl border border-primary/35 bg-primary/10 px-3 py-2 text-sm animate-fade-up">
             <p className="text-[10px] uppercase tracking-widest text-primary">user</p>
-            <p className="mt-1 leading-relaxed">The app keeps saying sync failed. Can you fix this without reinstalling?</p>
+            <p className="mt-1 leading-relaxed">I opened the assistant chat and the timeline is still loading forever.</p>
           </div>
         </div>
 
@@ -68,7 +68,7 @@ export function HeroChatPreview() {
           <div className="max-w-[87%] rounded-xl border border-border bg-white/70 px-3 py-2 text-sm animate-fade-up">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">agent</p>
             <p className="mt-1 leading-relaxed text-muted-foreground">
-              I checked app context: iOS 17.4, offline queue backlog, and stale sync cursor from last failed batch.
+              I checked app context: iOS 17.4, timeline index drift, and recent sync lag in activity history.
             </p>
           </div>
         </div>
@@ -78,7 +78,7 @@ export function HeroChatPreview() {
             <div className="max-w-[87%] rounded-xl border border-border bg-white/70 px-3 py-2 text-sm animate-fade-up">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">agent</p>
               <p className="mt-1 leading-relaxed">
-                I can run <span className="font-mono text-[12px]">reset_sync_cursor</span> on-device and retry the queue.
+                I can run <span className="font-mono text-[12px]">reindex_activity_timeline</span> on-device and refresh your timeline index.
               </p>
             </div>
           </div>
@@ -87,12 +87,12 @@ export function HeroChatPreview() {
         {(step === "approval" || step === "running" || step === "result" || step === "followup") && (
           <div className="rounded-xl border-2 border-[#e3bc78] bg-[#fff7ea] px-3 py-3 text-xs animate-fade-up">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[#8f6020]">Function approval</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-[#8f6020]">Function call approval</p>
               <span className="rounded-full bg-[#f4dfbb] px-2 py-0.5 text-[10px] text-[#8f6020]">
                 {step === "approval" ? "Awaiting user" : "Approved"}
               </span>
             </div>
-            <p className="mt-1 font-mono text-[12px] text-[#53370f]">reset_sync_cursor({`{scope:"pending_only"}`})</p>
+            <p className="mt-1 font-mono text-[12px] text-[#53370f]">reindex_activity_timeline({`{window:"last_14_days"}`})</p>
             <div className="mt-2 flex gap-2">
               <span className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground">Approve</span>
               <span className="rounded-md border border-[#d7bd93] px-2 py-1 text-[11px] text-[#744f1a]">Deny</span>
@@ -119,7 +119,7 @@ export function HeroChatPreview() {
           <div className="flex justify-start">
             <div className="max-w-[87%] rounded-xl border border-border bg-white/70 px-3 py-2 text-sm animate-fade-up">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">agent</p>
-              <p className="mt-1 leading-relaxed">Done. Sync queue was replayed and should recover now. Want me to keep watch for the next 5 minutes?</p>
+              <p className="mt-1 leading-relaxed">Done. Timeline index refresh finished. Is timeline loading in the app now?</p>
             </div>
           </div>
         )}

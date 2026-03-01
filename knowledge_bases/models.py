@@ -51,6 +51,18 @@ class KnowledgeBase(Base, UUIDMixin, TimestampMixin):
     organization_id: Mapped[uuid.UUID] = mapped_column(index=True)
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
+    summary_llm_profile_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
+    summary_llm_profile_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    summary_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    summary_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    summary_api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    summary_api_base: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    summary_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    summary_topics_json: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    summary_status: Mapped[str] = mapped_column(String(32), default="disabled")
+    summary_last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    summary_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    summary_content_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
     # Active embedding runtime for this knowledge base.
     embedding_profile_id: Mapped[uuid.UUID | None] = mapped_column(

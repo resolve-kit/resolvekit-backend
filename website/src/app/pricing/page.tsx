@@ -45,6 +45,7 @@ export default function PricingPage() {
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">
             One plan for now: full product access while we harden reliability and ship fast with partner feedback.
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">Free (for now). Pay us in feedback.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <span className="rounded-full border border-border bg-white/65 px-3 py-1 text-xs font-semibold text-muted-foreground">
               Full platform unlocked

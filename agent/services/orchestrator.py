@@ -25,7 +25,11 @@ from agent.services.chat_access_service import (
 )
 from agent.services.compatibility_service import function_is_eligible
 from agent.services.function_service import get_function_timeout, validate_function_exists
-from agent.services.knowledge_bases_client import KBServiceError, search_multiple_knowledge_bases
+from agent.services.knowledge_bases_client import (
+    KBServiceError,
+    get_knowledge_base_briefs,
+    search_multiple_knowledge_bases,
+)
 from agent.services.llm_service import build_tools, call_llm, generate_tool_descriptions
 from agent.services.session_service import get_next_sequence, load_context_messages, update_activity
 
@@ -34,6 +38,9 @@ logger = logging.getLogger(__name__)
 KB_SEARCH_TOOL_NAME = "kb_search"
 KB_PREFETCH_MAX_ITEMS = 5
 KB_PREFETCH_MAX_CHARS = 1200
+KB_INDEX_MAX_ITEMS = 8
+KB_INDEX_SUMMARY_MAX_CHARS = 260
+KB_INDEX_MAX_TOPICS = 10
 STRICT_SCOPE_REJECTION_TEXT = "I can only help with questions related to the app you are using."
 INTENT_ACTION_TOKENS = {
     "add",
@@ -611,7 +618,8 @@ def _assemble_system_prompt(
     language_context: str,
     custom_context: str,
     kb_context: str,
-    playbook_prompt: str,
+    kb_index_context: str = "",
+    playbook_prompt: str = "",
 ) -> str:
     """Assemble the complete system prompt in stable section order."""
     sections = [BASE_PROMPT]
@@ -631,9 +639,71 @@ def _assemble_system_prompt(
         )
     if kb_context:
         sections.append(kb_context)
+    if kb_index_context:
+        sections.append(kb_index_context)
     if playbook_prompt:
         sections.append(playbook_prompt)
     return "".join(sections)
+
+
+def _format_kb_assignment_index_context(raw_items: list[dict[str, Any]]) -> str:
+    if not raw_items:
+        return ""
+
+    lines = ["\n\n## Assigned Knowledge Base Index"]
+    added = 0
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "Knowledge Base").strip()
+        summary = str(item.get("summary_text") or "").strip()
+        status = str(item.get("summary_status") or "").strip().lower()
+        topics_raw = item.get("summary_topics")
+        topics: list[str] = []
+        if isinstance(topics_raw, list):
+            for topic in topics_raw:
+                if isinstance(topic, str) and topic.strip():
+                    topics.append(topic.strip())
+                if len(topics) >= KB_INDEX_MAX_TOPICS:
+                    break
+        if not summary:
+            if status in {"pending", "processing"}:
+                lines.append(f"- {name}: summary refresh in progress.")
+                added += 1
+            continue
+        clean_summary = _sanitize_doc_content(summary)
+        if len(clean_summary) > KB_INDEX_SUMMARY_MAX_CHARS:
+            clean_summary = f"{clean_summary[:KB_INDEX_SUMMARY_MAX_CHARS].rstrip()}..."
+        topic_suffix = f" Topics: {', '.join(topics[:KB_INDEX_MAX_TOPICS])}." if topics else ""
+        lines.append(f"- {name}: {clean_summary}{topic_suffix}")
+        added += 1
+        if added >= KB_INDEX_MAX_ITEMS:
+            break
+
+    return "\n".join(lines) if added > 0 else ""
+
+
+async def _load_kb_assignment_index_context(
+    *,
+    session_id: uuid.UUID,
+    app_org_id: uuid.UUID | None,
+    assigned_kb_ids: list[uuid.UUID],
+) -> str:
+    if app_org_id is None or not assigned_kb_ids:
+        return ""
+    try:
+        payload = await get_knowledge_base_briefs(
+            org_id=app_org_id,
+            actor_id=f"session:{session_id}",
+            actor_role="system",
+            kb_ids=assigned_kb_ids,
+        )
+    except KBServiceError:
+        return ""
+    items = payload.get("items", [])
+    if not isinstance(items, list):
+        return ""
+    return _format_kb_assignment_index_context(items)
 
 
 async def _noop_str() -> str:
@@ -867,7 +937,7 @@ async def run_agent_loop(
         and assigned_kb_ids
     )
     kb_vision_mode = str(getattr(config, "kb_vision_mode", "ocr_safe") or "ocr_safe")
-    playbook_prompt, kb_context = await asyncio.gather(
+    playbook_prompt, kb_context, kb_index_context = await asyncio.gather(
         build_playbook_prompt(db, session.app_id, session),
         _prefetch_kb_context(
             session_id=session.id,
@@ -880,6 +950,11 @@ async def run_agent_loop(
         )
         if should_prefetch
         else _noop_str(),
+        _load_kb_assignment_index_context(
+            session_id=session.id,
+            app_org_id=app_org_id,
+            assigned_kb_ids=assigned_kb_ids,
+        ),
     )
 
     tools = list(sdk_tools)
@@ -901,6 +976,7 @@ async def run_agent_loop(
             language_context=language_context,
             custom_context=custom_context_prompt,
             kb_context=kb_context,
+            kb_index_context=kb_index_context,
             playbook_prompt=playbook_prompt,
         )
         llm_messages = [{"role": "system", "content": system_prompt}]

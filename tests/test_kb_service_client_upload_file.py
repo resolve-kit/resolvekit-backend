@@ -63,3 +63,27 @@ async def test_search_multiple_knowledge_bases_sends_modality_exclusions(
     assert payload["organization_id"] == str(org_id)
     assert payload["kb_ids"] == [str(kb_id)]
     assert payload["exclude_modalities"] == ["image_caption"]
+
+
+@pytest.mark.asyncio
+async def test_get_knowledge_base_briefs_calls_internal_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    org_id = uuid.uuid4()
+    kb_id = uuid.uuid4()
+
+    call_mock = AsyncMock(return_value={"items": []})
+    monkeypatch.setattr(knowledge_bases_client, "_call_internal", call_mock)
+
+    await knowledge_bases_client.get_knowledge_base_briefs(
+        org_id=org_id,
+        actor_id="dev-1",
+        actor_role="owner",
+        kb_ids=[kb_id],
+    )
+
+    kwargs = call_mock.await_args.kwargs
+    assert kwargs["path"] == "/internal/kbs/briefs"
+    payload = kwargs["payload"]
+    assert payload["organization_id"] == str(org_id)
+    assert payload["kb_ids"] == [str(kb_id)]

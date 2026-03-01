@@ -148,6 +148,12 @@ async def create_knowledge_base(
     name: str,
     description: str | None,
     embedding_profile_id: uuid.UUID,
+    summary_llm_profile_id: uuid.UUID,
+    summary_llm_profile_name: str,
+    summary_provider: str,
+    summary_model: str,
+    summary_api_key: str,
+    summary_api_base: str | None,
 ) -> dict[str, Any]:
     return await _call_internal(
         "/internal/kbs/create",
@@ -156,6 +162,12 @@ async def create_knowledge_base(
             "name": name,
             "description": description,
             "embedding_profile_id": str(embedding_profile_id),
+            "summary_llm_profile_id": str(summary_llm_profile_id),
+            "summary_llm_profile_name": summary_llm_profile_name,
+            "summary_provider": summary_provider,
+            "summary_model": summary_model,
+            "summary_api_key": summary_api_key,
+            "summary_api_base": summary_api_base,
         },
         org_id=org_id,
         actor_id=actor_id,
@@ -188,6 +200,12 @@ async def update_knowledge_base(
     name: str | None,
     description: str | None,
     embedding_profile_id: uuid.UUID | None,
+    summary_llm_profile_id: uuid.UUID | None,
+    summary_llm_profile_name: str | None,
+    summary_provider: str | None,
+    summary_model: str | None,
+    summary_api_key: str | None,
+    summary_api_base: str | None,
     confirm_regeneration: bool,
 ) -> dict[str, Any]:
     return await _call_internal(
@@ -198,7 +216,32 @@ async def update_knowledge_base(
             "name": name,
             "description": description,
             "embedding_profile_id": str(embedding_profile_id) if embedding_profile_id else None,
+            "summary_llm_profile_id": str(summary_llm_profile_id) if summary_llm_profile_id else None,
+            "summary_llm_profile_name": summary_llm_profile_name,
+            "summary_provider": summary_provider,
+            "summary_model": summary_model,
+            "summary_api_key": summary_api_key,
+            "summary_api_base": summary_api_base,
             "confirm_regeneration": confirm_regeneration,
+        },
+        org_id=org_id,
+        actor_id=actor_id,
+        actor_role=actor_role,
+    )
+
+
+async def get_knowledge_base_briefs(
+    *,
+    org_id: uuid.UUID,
+    actor_id: str,
+    actor_role: str,
+    kb_ids: list[uuid.UUID],
+) -> dict[str, Any]:
+    return await _call_internal(
+        path="/internal/kbs/briefs",
+        payload={
+            "organization_id": str(org_id),
+            "kb_ids": [str(kb_id) for kb_id in kb_ids],
         },
         org_id=org_id,
         actor_id=actor_id,

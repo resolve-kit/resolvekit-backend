@@ -912,6 +912,27 @@
         ]
       }
     },
+    "/v1/knowledge-bases/kbId/index/refresh": {
+      "post": {
+        "operationId": "post_v1_knowledge-bases_kbId_index_refresh",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "knowledge-bases"
+        ]
+      }
+    },
     "/v1/knowledge-bases/kbId/jobs": {
       "get": {
         "operationId": "get_v1_knowledge-bases_kbId_jobs",

@@ -165,7 +165,17 @@ export async function kbList(ctx: ActorContext) {
 
 export async function kbCreate(
   ctx: ActorContext,
-  payload: { name: string; description: string | null; embedding_profile_id: string },
+  payload: {
+    name: string;
+    description: string | null;
+    embedding_profile_id: string;
+    summary_llm_profile_id: string;
+    summary_llm_profile_name: string;
+    summary_provider: string;
+    summary_model: string;
+    summary_api_key: string;
+    summary_api_base: string | null;
+  },
 ) {
   return callInternal(
     "/internal/kbs/create",
@@ -184,7 +194,18 @@ export async function kbGet(ctx: ActorContext, kbId: string) {
 export async function kbUpdate(
   ctx: ActorContext,
   kbId: string,
-  payload: { name?: string | null; description?: string | null; embedding_profile_id?: string | null; confirm_regeneration?: boolean },
+  payload: {
+    name?: string | null;
+    description?: string | null;
+    embedding_profile_id?: string | null;
+    summary_llm_profile_id?: string | null;
+    summary_llm_profile_name?: string | null;
+    summary_provider?: string | null;
+    summary_model?: string | null;
+    summary_api_key?: string | null;
+    summary_api_base?: string | null;
+    confirm_regeneration?: boolean;
+  },
 ) {
   return callInternal(
     "/internal/kbs/update",
@@ -192,6 +213,17 @@ export async function kbUpdate(
       organization_id: ctx.orgId,
       kb_id: kbId,
       ...payload,
+    },
+    ctx,
+  );
+}
+
+export async function kbRefreshIndex(ctx: ActorContext, kbId: string) {
+  return callInternal(
+    "/internal/kbs/refresh-index",
+    {
+      organization_id: ctx.orgId,
+      kb_id: kbId,
     },
     ctx,
   );

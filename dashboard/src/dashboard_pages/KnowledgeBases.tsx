@@ -21,6 +21,15 @@ interface KnowledgeBaseItem {
   pending_embedding_profile_id: string | null;
   embedding_regeneration_status: string;
   embedding_regeneration_error: string | null;
+  summary_llm_profile_id: string | null;
+  summary_llm_profile_name: string | null;
+  summary_provider: string | null;
+  summary_model: string | null;
+  summary_text: string | null;
+  summary_topics: string[];
+  summary_status: string;
+  summary_last_error: string | null;
+  summary_updated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +64,23 @@ interface EmbeddingModelsResponse {
   llm_profile_id: string;
   provider: string;
   models: EmbeddingModelItem[];
+  is_dynamic: boolean;
+  error: string | null;
+}
+
+interface ChatModelItem {
+  id: string;
+  name: string;
+  capabilities: {
+    ocr_compatible: boolean;
+    multimodal_vision: boolean;
+  };
+}
+
+interface ChatModelsResponse {
+  llm_profile_id: string;
+  provider: string;
+  models: ChatModelItem[];
   is_dynamic: boolean;
   error: string | null;
 }
@@ -237,10 +263,22 @@ export default function KnowledgeBases() {
   const [newKbName, setNewKbName] = useState("");
   const [newKbDescription, setNewKbDescription] = useState("");
   const [newKbEmbeddingProfileId, setNewKbEmbeddingProfileId] = useState("");
+  const [newKbSummaryLlmProfileId, setNewKbSummaryLlmProfileId] = useState("");
+  const [newKbSummaryModel, setNewKbSummaryModel] = useState("");
+  const [newKbSummaryModels, setNewKbSummaryModels] = useState<ChatModelItem[]>([]);
+  const [newKbSummaryModelsLoading, setNewKbSummaryModelsLoading] = useState(false);
+  const [newKbSummaryModelsError, setNewKbSummaryModelsError] = useState<string | null>(null);
   const [isCreatingKb, setIsCreatingKb] = useState(false);
 
   const [kbEmbeddingDraftId, setKbEmbeddingDraftId] = useState("");
   const [isUpdatingKbEmbedding, setIsUpdatingKbEmbedding] = useState(false);
+  const [kbSummaryDraftProfileId, setKbSummaryDraftProfileId] = useState("");
+  const [kbSummaryDraftModel, setKbSummaryDraftModel] = useState("");
+  const [kbSummaryModels, setKbSummaryModels] = useState<ChatModelItem[]>([]);
+  const [kbSummaryModelsLoading, setKbSummaryModelsLoading] = useState(false);
+  const [kbSummaryModelsError, setKbSummaryModelsError] = useState<string | null>(null);
+  const [isSavingKbSummary, setIsSavingKbSummary] = useState(false);
+  const [isRefreshingKbIndex, setIsRefreshingKbIndex] = useState(false);
 
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [jobs, setJobs] = useState<KnowledgeJob[]>([]);
@@ -303,8 +341,69 @@ export default function KnowledgeBases() {
       const profiles = await api<OrganizationLlmProfile[]>("/v1/organizations/llm-profiles");
       setOrganizationLlmProfiles(profiles);
       setNewProfileLlmProfileId((prev) => prev || profiles[0]?.id || "");
+      setNewKbSummaryLlmProfileId((prev) => prev || profiles[0]?.id || "");
     } catch (err: unknown) {
       toast(err instanceof ApiError ? err.detail : "Failed to load organization LLM profiles", "error");
+    }
+  }, [toast]);
+
+  const loadChatModelsForLlmProfile = useCallback(async (
+    llmProfileId: string,
+    target: "new-kb" | "selected-kb",
+  ) => {
+    if (!llmProfileId) {
+      if (target === "new-kb") {
+        setNewKbSummaryModels([]);
+        setNewKbSummaryModel("");
+        setNewKbSummaryModelsError(null);
+      } else {
+        setKbSummaryModels([]);
+        setKbSummaryDraftModel("");
+        setKbSummaryModelsError(null);
+      }
+      return;
+    }
+
+    if (target === "new-kb") {
+      setNewKbSummaryModelsLoading(true);
+      setNewKbSummaryModelsError(null);
+    } else {
+      setKbSummaryModelsLoading(true);
+      setKbSummaryModelsError(null);
+    }
+    try {
+      const payload = await api<ChatModelsResponse>(
+        `/v1/organizations/llm-models?llm_profile_id=${encodeURIComponent(llmProfileId)}`
+      );
+      const models = (payload.models ?? []).filter((model) => model.capabilities.ocr_compatible);
+      if (target === "new-kb") {
+        setNewKbSummaryModels(models);
+        setNewKbSummaryModel((prev) =>
+          prev && models.some((model) => model.id === prev) ? prev : (models[0]?.id ?? "")
+        );
+        setNewKbSummaryModelsError(payload.error ?? null);
+      } else {
+        setKbSummaryModels(models);
+        setKbSummaryDraftModel((prev) =>
+          prev && models.some((model) => model.id === prev) ? prev : (models[0]?.id ?? "")
+        );
+        setKbSummaryModelsError(payload.error ?? null);
+      }
+    } catch (err: unknown) {
+      const detail = err instanceof ApiError ? err.detail : "Failed to load summary models";
+      toast(detail, "error");
+      if (target === "new-kb") {
+        setNewKbSummaryModels([]);
+        setNewKbSummaryModel("");
+        setNewKbSummaryModelsError(detail);
+      } else {
+        setKbSummaryModels([]);
+        setKbSummaryDraftModel("");
+        setKbSummaryModelsError(detail);
+      }
+    } finally {
+      if (target === "new-kb") setNewKbSummaryModelsLoading(false);
+      else setKbSummaryModelsLoading(false);
     }
   }, [toast]);
 
@@ -420,6 +519,15 @@ export default function KnowledgeBases() {
   }, [editProfileLlmProfileId, loadEmbeddingModelsForLlmProfile]);
 
   useEffect(() => {
+    if (!newKbSummaryLlmProfileId) {
+      setNewKbSummaryModels([]);
+      setNewKbSummaryModel("");
+      return;
+    }
+    void loadChatModelsForLlmProfile(newKbSummaryLlmProfileId, "new-kb");
+  }, [newKbSummaryLlmProfileId, loadChatModelsForLlmProfile]);
+
+  useEffect(() => {
     if (!selectedId) {
       setSources([]);
       setJobs([]);
@@ -441,10 +549,22 @@ export default function KnowledgeBases() {
   useEffect(() => {
     if (!selectedKb) {
       setKbEmbeddingDraftId("");
+      setKbSummaryDraftProfileId("");
+      setKbSummaryDraftModel("");
       return;
     }
     setKbEmbeddingDraftId(selectedKb.embedding_profile_id || "");
+    setKbSummaryDraftProfileId(selectedKb.summary_llm_profile_id || "");
+    setKbSummaryDraftModel(selectedKb.summary_model || "");
   }, [selectedKb]);
+
+  useEffect(() => {
+    if (!kbSummaryDraftProfileId) {
+      setKbSummaryModels([]);
+      return;
+    }
+    void loadChatModelsForLlmProfile(kbSummaryDraftProfileId, "selected-kb");
+  }, [kbSummaryDraftProfileId, loadChatModelsForLlmProfile]);
 
   async function createEmbeddingProfile() {
     if (!newProfileName.trim() || !newProfileLlmProfileId || !newProfileEmbeddingModel.trim()) {
@@ -569,7 +689,7 @@ export default function KnowledgeBases() {
   }
 
   async function createKnowledgeBase() {
-    if (!newKbName.trim() || !newKbEmbeddingProfileId) return false;
+    if (!newKbName.trim() || !newKbEmbeddingProfileId || !newKbSummaryLlmProfileId || !newKbSummaryModel.trim()) return false;
     setIsCreatingKb(true);
     try {
       await api("/v1/knowledge-bases", {
@@ -578,10 +698,13 @@ export default function KnowledgeBases() {
           name: newKbName.trim(),
           description: newKbDescription.trim() || null,
           embedding_profile_id: newKbEmbeddingProfileId,
+          summary_llm_profile_id: newKbSummaryLlmProfileId,
+          summary_model: newKbSummaryModel.trim(),
         }),
       });
       setNewKbName("");
       setNewKbDescription("");
+      setNewKbSummaryModel("");
       toast("Knowledge base created", "success");
       await loadKnowledgeBases();
       return true;
@@ -652,6 +775,42 @@ export default function KnowledgeBases() {
       toast(err instanceof ApiError ? err.detail : "Failed to update embedding profile", "error");
     } finally {
       setIsUpdatingKbEmbedding(false);
+    }
+  }
+
+  async function saveKbSummaryConfig() {
+    if (!selectedKb || !kbSummaryDraftProfileId || !kbSummaryDraftModel.trim()) return;
+    setIsSavingKbSummary(true);
+    try {
+      await api(`/v1/knowledge-bases/${selectedKb.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          summary_llm_profile_id: kbSummaryDraftProfileId,
+          summary_model: kbSummaryDraftModel.trim(),
+        }),
+      });
+      toast("KB summary model updated", "success");
+      await Promise.all([loadKnowledgeBases(), loadKbDetails(selectedKb.id)]);
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to update KB summary model", "error");
+    } finally {
+      setIsSavingKbSummary(false);
+    }
+  }
+
+  async function refreshKbIndex() {
+    if (!selectedKb) return;
+    setIsRefreshingKbIndex(true);
+    try {
+      await api(`/v1/knowledge-bases/${selectedKb.id}/index/refresh`, {
+        method: "POST",
+      });
+      toast("KB index refresh job queued", "success");
+      await loadKbDetails(selectedKb.id);
+    } catch (err: unknown) {
+      toast(err instanceof ApiError ? err.detail : "Failed to refresh KB index", "error");
+    } finally {
+      setIsRefreshingKbIndex(false);
     }
   }
 
@@ -938,6 +1097,108 @@ export default function KnowledgeBases() {
                     Active target profile: {selectedEmbeddingProfile.provider}/{selectedEmbeddingProfile.embedding_model}
                   </p>
                 )}
+
+                <div className="rounded-lg border border-border bg-surface p-3 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-strong">KB Summary Index</p>
+                    <Badge
+                      variant={
+                        selectedKb.summary_status === "ready"
+                          ? "active"
+                          : selectedKb.summary_status === "failed"
+                          ? "revoked"
+                          : "default"
+                      }
+                    >
+                      {selectedKb.summary_status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Select
+                      label="Summary LLM Profile"
+                      value={kbSummaryDraftProfileId}
+                      onChange={(e) => setKbSummaryDraftProfileId(e.target.value)}
+                    >
+                      <option value="">Select LLM profile</option>
+                      {organizationLlmProfiles.map((profile) => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.name} · {profile.provider}
+                        </option>
+                      ))}
+                    </Select>
+                    <Select
+                      label="Summary Model"
+                      value={kbSummaryDraftModel}
+                      onChange={(e) => setKbSummaryDraftModel(e.target.value)}
+                      disabled={!kbSummaryDraftProfileId || kbSummaryModelsLoading}
+                    >
+                      <option value="">
+                        {kbSummaryModelsLoading
+                          ? "Loading models..."
+                          : kbSummaryModels.length === 0
+                            ? "No chat models available"
+                            : "Select summary model"}
+                      </option>
+                      {kbSummaryModels.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <div className="flex flex-col md:items-end justify-end gap-2">
+                      <Button
+                        className="w-full md:w-auto"
+                        loading={isSavingKbSummary}
+                        onClick={() => {
+                          void saveKbSummaryConfig();
+                        }}
+                        disabled={
+                          !kbSummaryDraftProfileId
+                          || !kbSummaryDraftModel.trim()
+                          || (
+                            kbSummaryDraftProfileId === (selectedKb.summary_llm_profile_id || "")
+                            && kbSummaryDraftModel === (selectedKb.summary_model || "")
+                          )
+                        }
+                      >
+                        Save Summary Model
+                      </Button>
+                      <Button
+                        className="w-full md:w-auto"
+                        variant="outline"
+                        loading={isRefreshingKbIndex}
+                        onClick={() => {
+                          void refreshKbIndex();
+                        }}
+                        disabled={!selectedKb.summary_llm_profile_id || !selectedKb.summary_model}
+                      >
+                        Refresh KB Index
+                      </Button>
+                    </div>
+                  </div>
+                  {kbSummaryModelsError && (
+                    <p className="text-xs text-warning">Model catalog note: {kbSummaryModelsError}</p>
+                  )}
+                  {selectedKb.summary_last_error && (
+                    <p className="text-xs text-danger">{selectedKb.summary_last_error}</p>
+                  )}
+                  {selectedKb.summary_text ? (
+                    <div className="rounded-md border border-border bg-canvas/40 p-2">
+                      <p className="text-xs text-subtle">{selectedKb.summary_text}</p>
+                      {(selectedKb.summary_topics ?? []).length > 0 && (
+                        <p className="text-xs text-dim mt-2">
+                          Topics: {(selectedKb.summary_topics ?? []).join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-subtle">
+                      {selectedKb.summary_status === "disabled"
+                        ? "Summary index disabled until a summary profile/model is configured."
+                        : "Summary index not generated yet."}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up space-y-4">
@@ -1159,7 +1420,7 @@ export default function KnowledgeBases() {
         open={isCreateKbModalOpen}
         onClose={() => setIsCreateKbModalOpen(false)}
         title="Create Knowledge Base"
-        subtitle="Name the KB, add an optional description, and choose an embedding profile."
+        subtitle="Name the KB, add optional description, and choose embedding + summary model settings."
         maxWidthClass="max-w-3xl"
       >
         <div className="space-y-4">
@@ -1180,7 +1441,7 @@ export default function KnowledgeBases() {
               </button>
             </div>
           )}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Input
               label="Name"
               placeholder="iOS Support Docs"
@@ -1212,7 +1473,46 @@ export default function KnowledgeBases() {
                 </option>
               ))}
             </Select>
+            <Select
+              label="Summary LLM Profile"
+              value={newKbSummaryLlmProfileId}
+              onChange={(e) => setNewKbSummaryLlmProfileId(e.target.value)}
+              disabled={organizationLlmProfiles.length === 0}
+            >
+              <option value="">
+                {organizationLlmProfiles.length === 0
+                  ? "No LLM profiles configured"
+                  : "Select LLM profile"}
+              </option>
+              {organizationLlmProfiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.name} · {profile.provider}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label="Summary Model"
+              value={newKbSummaryModel}
+              onChange={(e) => setNewKbSummaryModel(e.target.value)}
+              disabled={!newKbSummaryLlmProfileId || newKbSummaryModelsLoading}
+            >
+              <option value="">
+                {newKbSummaryModelsLoading
+                  ? "Loading models..."
+                  : newKbSummaryModels.length === 0
+                    ? "No chat models available"
+                    : "Select summary model"}
+              </option>
+              {newKbSummaryModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </Select>
           </div>
+          {newKbSummaryModelsError && (
+            <p className="text-xs text-warning">Model catalog note: {newKbSummaryModelsError}</p>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setIsCreateKbModalOpen(false)} disabled={isCreatingKb}>
               Cancel
@@ -1222,7 +1522,14 @@ export default function KnowledgeBases() {
               onClick={() => {
                 void handleCreateKbFromModal();
               }}
-              disabled={embeddingLoading || embeddingProfiles.length === 0 || !newKbName.trim() || !newKbEmbeddingProfileId}
+              disabled={
+                embeddingLoading
+                || embeddingProfiles.length === 0
+                || !newKbName.trim()
+                || !newKbEmbeddingProfileId
+                || !newKbSummaryLlmProfileId
+                || !newKbSummaryModel.trim()
+              }
             >
               Create Knowledge Base
             </Button>
