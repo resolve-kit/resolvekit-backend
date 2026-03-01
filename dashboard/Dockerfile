@@ -8,7 +8,7 @@ RUN git config --global url."https://github.com/".insteadOf ssh://git@github.com
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
-RUN npm ci
+RUN npm install --no-audit --no-fund
 
 FROM node:22-alpine AS build
 
