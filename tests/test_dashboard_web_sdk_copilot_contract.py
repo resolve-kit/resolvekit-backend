@@ -7,7 +7,7 @@ def test_dashboard_copilot_provider_component_exists() -> None:
 
     text = provider.read_text(encoding="utf-8")
     assert "PlaybookProvider" in text
-    assert "PlaybookApprovalWidget" in text
+    assert "PlaybookApprovalWidget" not in text
     assert "NEXT_PUBLIC_PLAYBOOK_KEY" in text
     assert "apiKey={PLAYBOOK_API_KEY}" in text
     assert "appId={boundAppId ?? undefined}" in text

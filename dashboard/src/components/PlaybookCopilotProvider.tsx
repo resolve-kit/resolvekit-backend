@@ -174,8 +174,6 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
   }
 
   const PlaybookProvider = sdkModules.react.PlaybookProvider;
-  const PlaybookApprovalWidget = sdkModules.react.PlaybookApprovalWidget;
-
   return (
     <PlaybookProvider
       apiKey={PLAYBOOK_API_KEY}
@@ -187,7 +185,6 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
     >
       {children}
       <span data-playbook-id="copilot-widget-anchor" className="hidden" />
-      <PlaybookApprovalWidget />
     </PlaybookProvider>
   );
 }

@@ -28,9 +28,9 @@ Every SDK client must accept these configuration fields:
 | `client` | No | `POST /v1/sessions` → `client` (platform/os/app/sdk versions) |
 | `functions` | No | `PUT /v1/functions/bulk` after session start |
 
-- **Client context** (`platform`, `os_name`, `os_version`, `app_version`, `sdk_name`, `sdk_version`): iOS ✅ · Web ❌
-- **Preferred locales** (ordered fallback list from system): iOS ✅ · Web ❌
-- **Metadata forwarded to backend**: iOS ✅ · Web ❌ (field exists in config but is not sent)
+- **Client context** (`platform`, `os_name`, `os_version`, `app_version`, `sdk_name`, `sdk_version`): iOS ✅ · Web ✅
+- **Preferred locales** (ordered fallback list from system): iOS ✅ · Web ✅
+- **Metadata forwarded to backend**: iOS ✅ · Web ✅
 
 ---
 
@@ -93,6 +93,11 @@ Functions can be grouped into packs and conditionally registered based on platfo
 
 ## 4. Session Management
 
+**Requirement (all SDKs):**
+- Session persistence across widget/view reopen is mandatory.
+- Reconnection to an existing active session is mandatory (same `session_id` when reusable).
+- On reused sessions, the SDK must restore message history before resuming live transport.
+
 **Start a session:** `POST /v1/sessions`
 
 Key request fields: `device_id`, `llm_context`, `entitlements`, `capabilities`, `locale`, `preferred_locales`, `metadata`, `client`, `reuse_active_session: true`
@@ -108,9 +113,11 @@ Key request fields: `device_id`, `llm_context`, `entitlements`, `capabilities`, 
 | `message_placeholder` | Locale-aware composer placeholder |
 | `initial_message` | Greeting message to display on first open |
 
-- **Initial message rendering**: iOS ✅ · Web ⚠️ (field received, widget does not render it)
-- **Session metadata sent to backend**: iOS ✅ · Web ❌
-- **Client context** (platform/OS/app/SDK versions): iOS ✅ · Web ❌
+- **Initial message rendering**: iOS ✅ · Web ✅
+- **Session metadata sent to backend**: iOS ✅ · Web ✅
+- **Client context** (platform/OS/app/SDK versions): iOS ✅ · Web ✅
+- **Session reuse + history restore on reopen**: iOS ✅ · Web ✅
+- **Persistent device identity (for reuse lookup)**: iOS ✅ · Web ✅
 
 ---
 
@@ -152,8 +159,8 @@ A complete SDK implements these states:
 | `failed` | Unrecoverable error |
 
 - iOS implements all 8 states ✅
-- Web implements 5 states (missing: `registering`, `reconnected`, `blocked`) ⚠️
-- **Auto-reconnect** before falling back to SSE: iOS ✅ · Web ❌
+- Web implements all 8 states ✅
+- **Auto-reconnect** before falling back to SSE: iOS ✅ · Web ✅
 
 ---
 
@@ -183,6 +190,8 @@ When `reused_active_session: true` in the session response, load prior messages:
 
 Both SDKs ✅
 
+- **Reopen behavior requirement**: reopening chat must reuse active session when available and must not silently start a new session for the same persisted device context.
+
 ---
 
 ## 8. Chat UI
@@ -202,8 +211,8 @@ Both SDKs ✅
 
 - iOS: SwiftUI `PlaybookChatView` — streaming message bubbles, tool checklist, appearance override (`setAppearance(.light/.dark/.system)`) ✅
 - Web: Web Component `<playbook-chat>` — Shadow DOM, responsive (full-screen < 480px), `bottom-right`/`bottom-left` position, ARIA accessibility ✅
-- **Appearance override API**: iOS ✅ · Web ⚠️ (CSS custom properties only, no programmatic API)
-- **Localization strings endpoint**: iOS ✅ · Web ❌
+- **Appearance override API**: iOS ✅ · Web ✅ (`setAppearance(.light/.dark/.system)` equivalent)
+- **Localization strings endpoint**: iOS ✅ · Web ✅
 
 ---
 
@@ -225,12 +234,12 @@ The server sends a `tool_call_request` event with `requires_approval` (boolean, 
 Multiple `tool_call_request` events within a 250ms window should be coalesced into a single batch presented to the user as one checklist ("Approve All / Decline All"). Each item tracks its own status independently: `pending_approval → running → completed | failed | cancelled`.
 
 - iOS: 250ms coalescing window, `ToolCallChecklistBatch`, per-item status ✅
-- Web: per-call approval (no coalescing) ❌
+- Web: 250ms coalescing window with batch approvals ✅
 
 ### Execution log
 
 An ordered log of tool outcomes (success / error / declined / cancelled) for developer observability:
-- iOS ✅ · Web ❌
+- iOS ✅ · Web ✅
 
 ---
 
@@ -258,9 +267,9 @@ Clients must expose a way to react to state changes, new messages, and tool call
 | State change | `@Published` properties ✅ | `statechange` via `.on()` ✅ |
 | New / updated message | `@Published messages` ✅ | `message` event ✅ |
 | Tool call lifecycle (started/completed/failed) | `@Published toolCallBatches` ✅ | `toolcall` event ✅ |
-| Approval request | Checklist batch state ✅ | `toolapproval` emitted ⚠️ (not exposed via `.on()`) |
-| Per-tool execution log | `executionLog` ✅ | ❌ |
-| Structured per-subsystem logging | `[Playbook][WS]` etc. ✅ | ❌ (console.error only) |
+| Approval request | Checklist batch state ✅ | `toolapproval` via `.on()` ✅ |
+| Per-tool execution log | `executionLog` ✅ | ✅ |
+| Structured per-subsystem logging | `[Playbook][WS]` etc. ✅ | ✅ |
 
 ---
 
@@ -278,7 +287,7 @@ Supported codes include: `ar`, `bg`, `bn`, `bs`, `ca`, `cs`, `da`, `de`, `el`, `
 See [`Sources/PlaybookUI/PlaybookLocaleResolver.swift`](../../playbook-ios-sdk/Sources/PlaybookUI/PlaybookLocaleResolver.swift) for the canonical mapping and alias table.
 
 - iOS: full resolver, 45+ locales, fallback chain, `preferred_locales` ✅
-- Web: single locale passthrough, no resolver, no fallback ⚠️
+- Web: locale resolver + preferred locales fallback chain ✅
 
 ---
 
@@ -289,19 +298,6 @@ See [`Sources/PlaybookUI/PlaybookLocaleResolver.swift`](../../playbook-ios-sdk/S
 | Feature | Web status |
 |---------|-----------|
 | Function packs (platform/version gating) | ❌ |
-| Client context sent to session (platform/OS/app/SDK) | ❌ |
-| Session metadata forwarded to backend | ❌ |
-| Preferred locales fallback list | ❌ |
-| Client-side locale resolution (45+ codes, fallback chain) | ❌ |
-| Localization strings endpoint | ❌ |
-| Connection states: `registering`, `reconnected`, `blocked` | ❌ |
-| Auto-reconnect before SSE fallback | ❌ |
-| Tool call batch coalescing (250ms window) | ❌ |
-| Per-tool execution log | ❌ |
-| Structured per-subsystem logging | ❌ |
-| Programmatic appearance override (light/dark/system) | ⚠️ CSS only |
-| Initial message rendered in chat | ⚠️ Received, not shown |
-| `toolapproval` event exposed via `.on()` | ⚠️ Emitted, not subscribed |
 
 ### Web has, iOS lacks
 
