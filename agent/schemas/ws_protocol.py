@@ -36,6 +36,7 @@ class ToolCallRequestPayload(BaseModel):
     arguments: dict[str, Any]
     timeout_seconds: int
     human_description: str = ""
+    requires_approval: bool = True
 
 
 class TurnCompletePayload(BaseModel):

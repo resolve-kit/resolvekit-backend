@@ -18,6 +18,7 @@ class FunctionRegister(BaseModel):
     required_capabilities: list[str] = Field(default_factory=list, max_length=64)
     source: FunctionSource = "app_inline"
     pack_name: str | None = None
+    requires_approval: bool = True
 
 
 class FunctionBulkSync(BaseModel):
@@ -35,6 +36,7 @@ class FunctionUpdate(BaseModel):
     required_capabilities: list[str] | None = None
     source: FunctionSource | None = None
     pack_name: str | None = None
+    requires_approval: bool | None = None
 
 
 class FunctionOut(BaseModel):
@@ -51,6 +53,7 @@ class FunctionOut(BaseModel):
     required_capabilities: list[str]
     source: str
     pack_name: str | None = None
+    requires_approval: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

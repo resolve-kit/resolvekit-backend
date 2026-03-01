@@ -44,6 +44,7 @@ async def bulk_sync_functions(
             fn.required_capabilities = f.required_capabilities
             fn.source = f.source
             fn.pack_name = f.pack_name
+            fn.requires_approval = f.requires_approval
             fn.is_active = True
         else:
             fn = RegisteredFunction(
@@ -57,6 +58,7 @@ async def bulk_sync_functions(
                 required_capabilities=f.required_capabilities,
                 source=f.source,
                 pack_name=f.pack_name,
+                requires_approval=f.requires_approval,
             )
             db.add(fn)
         output.append(fn)

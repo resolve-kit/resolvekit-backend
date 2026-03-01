@@ -226,6 +226,10 @@
             "title": "Required Entitlements",
             "type": "array"
           },
+          "requires_approval": {
+            "title": "Requires Approval",
+            "type": "boolean"
+          },
           "source": {
             "title": "Source",
             "type": "string"
@@ -247,6 +251,7 @@
           "required_entitlements",
           "required_capabilities",
           "source",
+          "requires_approval",
           "created_at"
         ],
         "title": "FunctionOut",
@@ -302,6 +307,11 @@
             "maxItems": 64,
             "title": "Required Entitlements",
             "type": "array"
+          },
+          "requires_approval": {
+            "default": true,
+            "title": "Requires Approval",
+            "type": "boolean"
           },
           "source": {
             "default": "app_inline",

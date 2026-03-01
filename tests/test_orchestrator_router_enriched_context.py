@@ -29,7 +29,7 @@ class _DummySender(orchestrator.MessageSender):
         return None
 
     async def send_tool_call_request(
-        self, call_id: str, function_name: str, arguments: dict, timeout_seconds: int, human_description: str = ""
+        self, call_id: str, function_name: str, arguments: dict, timeout_seconds: int, human_description: str = "", requires_approval: bool = True
     ) -> None:
         return None
 

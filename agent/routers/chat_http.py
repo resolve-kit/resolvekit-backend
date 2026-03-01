@@ -55,7 +55,13 @@ class SSESender(MessageSender):
         await self._push("assistant_text_delta", {"delta": delta, "accumulated": accumulated})
 
     async def send_tool_call_request(
-        self, call_id: str, function_name: str, arguments: dict, timeout_seconds: int, human_description: str = ""
+        self,
+        call_id: str,
+        function_name: str,
+        arguments: dict,
+        timeout_seconds: int,
+        human_description: str = "",
+        requires_approval: bool = True,
     ) -> None:
         fut: asyncio.Future = asyncio.get_event_loop().create_future()
         self._pending[call_id] = fut
@@ -66,6 +72,7 @@ class SSESender(MessageSender):
             "arguments": arguments,
             "timeout_seconds": timeout_seconds,
             "human_description": human_description,
+            "requires_approval": requires_approval,
         })
 
     async def send_turn_complete(self, full_text: str, usage: dict | None) -> None:

@@ -37,3 +37,10 @@ def get_function_timeout(functions: list[RegisteredFunction], name: str) -> int:
 
 def validate_function_exists(functions: list[RegisteredFunction], name: str) -> bool:
     return any(fn.name == name and fn.is_active for fn in functions)
+
+
+def get_function_requires_approval(functions: list[RegisteredFunction], name: str) -> bool:
+    for fn in functions:
+        if fn.name == name:
+            return fn.requires_approval
+    return True

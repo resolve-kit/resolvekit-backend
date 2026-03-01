@@ -24,7 +24,7 @@ from agent.services.chat_access_service import (
     is_chat_unavailable_provider_error,
 )
 from agent.services.compatibility_service import function_is_eligible
-from agent.services.function_service import get_function_timeout, validate_function_exists
+from agent.services.function_service import get_function_requires_approval, get_function_timeout, validate_function_exists
 from agent.services.knowledge_bases_client import (
     KBServiceError,
     get_knowledge_base_briefs,
@@ -825,7 +825,13 @@ class MessageSender:
         raise NotImplementedError
 
     async def send_tool_call_request(
-        self, call_id: str, function_name: str, arguments: dict, timeout_seconds: int, human_description: str = ""
+        self,
+        call_id: str,
+        function_name: str,
+        arguments: dict,
+        timeout_seconds: int,
+        human_description: str = "",
+        requires_approval: bool = True,
     ) -> None:
         raise NotImplementedError
 
@@ -1181,7 +1187,8 @@ async def run_agent_loop(
                     continue
 
                 timeout = get_function_timeout(functions, fn_name)
-                await sender.send_tool_call_request(info["id"], fn_name, arguments, timeout, human_description)
+                requires_approval = get_function_requires_approval(functions, fn_name)
+                await sender.send_tool_call_request(info["id"], fn_name, arguments, timeout, human_description, requires_approval)
 
             # Wait for all SDK tool results
             for info in sdk_tc_infos:

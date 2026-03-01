@@ -27,5 +27,6 @@ class RegisteredFunction(Base, UUIDMixin, TimestampMixin):
     required_capabilities: Mapped[list[str]] = mapped_column(JSONB, default=list)
     source: Mapped[str] = mapped_column(String(32), default="app_inline")
     pack_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    requires_approval: Mapped[bool] = mapped_column(Boolean, default=True)
 
     app: Mapped["App"] = relationship(back_populates="functions")
