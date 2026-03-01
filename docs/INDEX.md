@@ -11,6 +11,7 @@ This index is optimized for both engineers and LLM-based coding agents.
 
 ## API and Capabilities
 
+- [SDK Capabilities Reference](backend/sdk-capabilities-reference.md)
 - [iOS App Agent Capabilities](backend/ios-app-agent-capabilities.md)
 - [KB Service Capabilities](backend/kb-service-capabilities.md)
 - [Router Map](backend/router-map.md)
