@@ -23,7 +23,7 @@ This document maps runtime capabilities to concrete implementation modules in `a
   - Bulk function sync from SDK.
   - Runtime filtering by platform/version/entitlements/capabilities.
 
-Playbook records are read by runtime for prompt enrichment, but CRUD ownership is in dashboard `api`.
+ResolveKit records are read by runtime for prompt enrichment, but CRUD ownership is in dashboard `api`.
 
 ## Session Management and Context Ingestion
 
@@ -62,7 +62,7 @@ Playbook records are read by runtime for prompt enrichment, but CRUD ownership i
   - Router + enriched context architecture.
   - Scope mode enforcement (`open`/`strict`).
   - KB prefetch and fallback `kb_search` tool flow.
-  - Playbook prompt enrichment.
+  - ResolveKit prompt enrichment.
   - Multi-round tool loop, usage tracking, message persistence.
 
 ## Knowledge Base Bridge

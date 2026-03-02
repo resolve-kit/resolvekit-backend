@@ -316,7 +316,7 @@ export default function ChatTheme() {
               }}
             >
               <p className="text-sm font-semibold" style={{ color: palette.titleText }}>
-                Playbook
+                ResolveKit
               </p>
               <p className="text-xs" style={{ color: palette.statusText }}>
                 State: active

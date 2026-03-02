@@ -1,6 +1,6 @@
 # SDK Capabilities Reference
 
-Definitive reference for every feature offered by the Playbook SDK platform. Use this when building a new client SDK, auditing feature parity, or understanding the backend contract for a specific feature.
+Definitive reference for every feature offered by the ResolveKit SDK platform. Use this when building a new client SDK, auditing feature parity, or understanding the backend contract for a specific feature.
 
 **Status legend:** ✅ Implemented · ⚠️ Partial · ❌ Missing · N/A Not applicable to this platform
 
@@ -58,7 +58,7 @@ Functions let the AI execute actions in the host app. Registered via `PUT /v1/fu
 - `requires_approval` default is `true`; set `false` for read-only / non-destructive functions
 
 **SDK implementations:**
-- iOS: `@Playbook` macro (generates schema + dispatch) + `AnyPlaybookFunction` protocol ✅
+- iOS: `@ResolveKit` macro (generates schema + dispatch) + `AnyPlaybookFunction` protocol ✅
 - Web: `fn()` helper with camelCase → snake_case name inference ✅
 
 ---
@@ -269,7 +269,7 @@ Clients must expose a way to react to state changes, new messages, and tool call
 | Tool call lifecycle (started/completed/failed) | `@Published toolCallBatches` ✅ | `toolcall` event ✅ |
 | Approval request | Checklist batch state ✅ | `toolapproval` via `.on()` ✅ |
 | Per-tool execution log | `executionLog` ✅ | ✅ |
-| Structured per-subsystem logging | `[Playbook][WS]` etc. ✅ | ✅ |
+| Structured per-subsystem logging | `[ResolveKit][WS]` etc. ✅ | ✅ |
 
 ---
 

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Playbook Dashboard",
-  description: "Playbook control plane",
+  title: "ResolveKit Dashboard",
+  description: "ResolveKit control plane",
 };
 
 export default function RootLayout({

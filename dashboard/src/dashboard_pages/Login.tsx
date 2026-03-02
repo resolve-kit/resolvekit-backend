@@ -118,7 +118,7 @@ export default function Login() {
 
       <div className="relative mx-auto grid w-full max-w-6xl items-start gap-8 lg:grid-cols-[1fr_420px]">
         <section className="order-2 glass-panel rounded-[2rem] border border-border/70 p-6 shadow-card md:p-9 lg:order-1">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-accent">Playbook Command Center</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-accent">ResolveKit Command Center</p>
           <h1 className="mt-2 font-display text-3xl font-semibold leading-tight text-strong md:text-4xl">
             Embedded LLM support that can explain, guide, and act inside your app
           </h1>

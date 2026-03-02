@@ -866,8 +866,8 @@
     }
   },
   "info": {
-    "description": "Runtime service for Playbook SDK chat, sessions, and function execution",
-    "title": "Playbook Agent Runtime API",
+    "description": "Runtime service for ResolveKit SDK chat, sessions, and function execution",
+    "title": "ResolveKit Agent Runtime API",
     "version": "0.1.0"
   },
   "openapi": "3.1.0",

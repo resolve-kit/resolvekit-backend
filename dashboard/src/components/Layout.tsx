@@ -36,7 +36,7 @@ export default function Layout() {
             <div className="mx-auto flex h-[var(--nav-height)] max-w-[1400px] items-center justify-between px-4 md:px-6">
               <Link to="/apps" className="flex items-center gap-2">
                 <div>
-                  <p className="font-display text-base font-semibold tracking-tight text-strong">Playbook</p>
+                  <p className="font-display text-base font-semibold tracking-tight text-strong">ResolveKit</p>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-subtle">Operator Console</p>
                 </div>
               </Link>

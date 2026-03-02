@@ -21,9 +21,9 @@ const INTEGRATION_STEPS: IntegrationStep[] = [
   {
     id: "define-functions",
     label: "Step 1",
-    title: "Define your tool functions with @Playbook",
+    title: "Define your tool functions with @ResolveKit",
     summary:
-      "Author typed app actions as Playbook functions. The macro generates schema and invocation glue used by the backend and runtime.",
+      "Author typed app actions as ResolveKit functions. The macro generates schema and invocation glue used by the backend and runtime.",
     lifecyclePhase: "Function Source",
     lifecycleDetails: [
       "Runtime resolves inline functions + function packs.",
@@ -31,7 +31,7 @@ const INTEGRATION_STEPS: IntegrationStep[] = [
     ],
     code: `import PlaybookCore
 
-@Playbook(name: "set_lights", description: "Turn lights on or off in a room", timeout: 30)
+@ResolveKit(name: "set_lights", description: "Turn lights on or off in a room", timeout: 30)
 struct SetLights: PlaybookFunction {
     func perform(room: String, on: Bool) async throws -> String {
         let brightness = on ? 100 : 0
@@ -39,7 +39,7 @@ struct SetLights: PlaybookFunction {
     }
 }
 
-@Playbook(name: "get_weather", description: "Get current weather for a city", timeout: 10)
+@ResolveKit(name: "get_weather", description: "Get current weather for a city", timeout: 10)
 struct GetWeather: PlaybookFunction {
     func perform(city: String) async throws -> String {
         "\\(city): sunny, 22°C"
@@ -137,7 +137,7 @@ export function SdkFlow() {
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">How To Integrate</p>
-            <h3 className="mt-2 text-2xl font-semibold leading-tight">Integrate Playbook iOS SDK in 3 steps</h3>
+            <h3 className="mt-2 text-2xl font-semibold leading-tight">Integrate ResolveKit iOS SDK in 3 steps</h3>
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-xl">
               This walkthrough is based on the real `playbook-ios-sdk` APIs and runtime lifecycle.
             </p>

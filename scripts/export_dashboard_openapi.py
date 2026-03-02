@@ -57,7 +57,7 @@ def render_dashboard_openapi() -> str:
     spec = {
         "openapi": "3.1.0",
         "info": {
-            "title": "Playbook Dashboard API",
+            "title": "ResolveKit Dashboard API",
             "version": "0.1.0",
             "description": "Generated from Next.js dashboard route handlers under dashboard/src/app/v1.",
         },

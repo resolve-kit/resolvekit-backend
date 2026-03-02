@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "agent"
 version = "0.1.0"
-description = "Backend service for Playbook agent runtime"
+description = "Backend service for ResolveKit agent runtime"
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [

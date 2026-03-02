@@ -52,8 +52,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Playbook Agent Runtime API",
-    description="Runtime service for Playbook SDK chat, sessions, and function execution",
+    title="ResolveKit Agent Runtime API",
+    description="Runtime service for ResolveKit SDK chat, sessions, and function execution",
     version="0.1.0",
     lifespan=lifespan,
 )

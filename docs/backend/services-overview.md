@@ -2,7 +2,7 @@
 
 ## Topology
 
-Playbook is split into four service roles:
+ResolveKit is split into four service roles:
 
 - `www` (`website/`, Next.js)
   - Public marketing site.

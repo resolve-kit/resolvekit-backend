@@ -64,7 +64,7 @@ function SDKChecklist() {
       <ul className="mt-1.5 space-y-1 text-[11px] text-subtle">
         <li>1. Add `playbook-ios-sdk` package to your iOS app.</li>
         <li>2. Configure backend base URL + app API key provider.</li>
-        <li>3. Register `@Playbook` functions in runtime configuration.</li>
+        <li>3. Register `@ResolveKit` functions in runtime configuration.</li>
         <li>4. Validate active functions in dashboard.</li>
       </ul>
       <div className="mt-2 flex flex-wrap gap-2">

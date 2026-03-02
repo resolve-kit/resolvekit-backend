@@ -1,4 +1,4 @@
-Playbook Backend: API/orchestrator + knowledge-base services for embedded app assistants.
+ResolveKit Backend: API/orchestrator + knowledge-base services for embedded app assistants.
 
 Start here:
 - README.md

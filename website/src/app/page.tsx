@@ -13,8 +13,12 @@ export default function HomePage() {
   return (
     <main className="mx-auto max-w-6xl px-6 pb-20 pt-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/" className="text-sm uppercase tracking-[0.22em] text-muted-foreground">
-          Playbook
+        <Link
+          href="/"
+          className="font-display text-lg md:text-xl tracking-[0.18em] leading-none text-foreground"
+        >
+          <span className="font-semibold uppercase">RESOLVE</span>
+          <span className="font-normal normal-case tracking-normal">kit</span>
         </Link>
         <div className="flex flex-wrap gap-3">
           <Link href="/pricing">
@@ -32,7 +36,7 @@ export default function HomePage() {
             Embedded Chat Support Powered by an LLM Agent That Can Actually Act
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-            Developers integrate the Playbook SDK into mobile or web apps. Users get embedded chat. Your LLM agent
+            Developers integrate the ResolveKit SDK into mobile or web apps. Users get embedded chat. Your LLM agent
             understands the app, including screen layout and flow from docs, guide images, and submitted screenshots,
             explains fixes clearly, and can invoke approved on-device functions to resolve issues.
           </p>

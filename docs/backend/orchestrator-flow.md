@@ -62,7 +62,7 @@ Inputs:
 - Knowledge context:
   - assigned KB IDs for app
   - prefetch search results
-- Playbook context:
+- ResolveKit context:
   - active playbooks and ordered function steps
 
 ## Tool Dispatch Paths

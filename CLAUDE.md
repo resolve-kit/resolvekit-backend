@@ -1,4 +1,4 @@
-# Playbook Backend
+# ResolveKit Backend
 
 This repository is split into runtime services (Python) and control-plane services (Next.js).
 

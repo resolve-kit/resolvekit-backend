@@ -1,8 +1,8 @@
-# Technical Spec: Dynamic Function Dispatcher SDK (Playbook)
+# Technical Spec: Dynamic Function Dispatcher SDK (ResolveKit)
 
 ## 1. Concept Overview
 
-The **Playbook SDK** is a runtime discovery and execution engine. It allows developers to "tag" any function with the `@Playbook` attribute. At runtime, the SDK "scans" the app binary, registers these functions in a central lookup table, and allows a backend command (JSON) to trigger these functions with automatic type-casting of arguments.
+The **ResolveKit SDK** is a runtime discovery and execution engine. It allows developers to "tag" any function with the `@ResolveKit` attribute. At runtime, the SDK "scans" the app binary, registers these functions in a central lookup table, and allows a backend command (JSON) to trigger these functions with automatic type-casting of arguments.
 
 ### Architectural Layers
 
@@ -17,12 +17,12 @@ The **Playbook SDK** is a runtime discovery and execution engine. It allows deve
 
 ### A. The Attribute Definition
 
-We define `@Playbook` using the built-in `reflectionMetadata` attribute. This forces the compiler to keep the function's metadata even in release builds.
+We define `@ResolveKit` using the built-in `reflectionMetadata` attribute. This forces the compiler to keep the function's metadata even in release builds.
 
 Swift
 
 `@reflectionMetadata
-public struct Playbook {
+public struct ResolveKit {
     public let name: String
     
     // This initializer is called by the Swift runtime during metadata discovery
@@ -90,7 +90,7 @@ The developer simply tags their function. No manual registration boilerplate is 
 Swift
 
 `class GameEngine {
-    @Playbook(name: "set_difficulty")
+    @ResolveKit(name: "set_difficulty")
     func updateDifficulty(level: Int) -> Bool {
         print("Difficulty set to \(level)")
         return true

@@ -116,7 +116,7 @@ SDK provides:
 Backend uses:
 
 - Function eligibility filtering in `get_eligible_functions`.
-- Playbook step context in prompt enrichment.
+- ResolveKit step context in prompt enrichment.
 
 ## Source Files
 

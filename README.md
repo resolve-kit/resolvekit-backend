@@ -1,6 +1,6 @@
-# Playbook Backend
+# ResolveKit Backend
 
-Playbook Backend provides the server-side runtime for embedded app assistants. It includes:
+ResolveKit Backend provides the server-side runtime for embedded app assistants. It includes:
 
 - `agent`: runtime API and orchestrator for SDK sessions/chat/tool execution.
 - `knowledge_bases`: internal knowledge-base ingestion and semantic search service.

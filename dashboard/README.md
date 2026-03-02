@@ -12,9 +12,9 @@ This package now serves two roles:
 - `NEXT_PUBLIC_PLAYBOOK_ENABLED`
   - Enables dashboard copilot widget integration (`true`/`false`).
 - `NEXT_PUBLIC_PLAYBOOK_KEY`
-  - Playbook API key used by the web SDK provider. Required when copilot is enabled.
+  - ResolveKit API key used by the web SDK provider. Required when copilot is enabled.
 - `NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL`
-  - Base URL for Playbook runtime endpoints consumed by the web SDK (normally `http://localhost:8000`).
+  - Base URL for ResolveKit runtime endpoints consumed by the web SDK (normally `http://localhost:8000`).
 - `DATABASE_URL`
   - Prisma connection string for control-plane DB operations.
 - `IAA_JWT_SECRET`, `IAA_JWT_ALGORITHM`, `IAA_JWT_EXPIRE_MINUTES`

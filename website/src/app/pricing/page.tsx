@@ -25,8 +25,12 @@ export default function PricingPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 pb-20 pt-10 md:pb-24">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/" className="text-sm uppercase tracking-[0.22em] text-muted-foreground">
-          Playbook
+        <Link
+          href="/"
+          className="font-display text-lg md:text-xl tracking-[0.18em] leading-none text-foreground"
+        >
+          <span className="font-semibold uppercase">RESOLVE</span>
+          <span className="font-normal normal-case tracking-normal">kit</span>
         </Link>
         <div className="flex flex-wrap gap-3">
           <Link href="/">
