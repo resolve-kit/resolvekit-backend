@@ -1,6 +1,9 @@
+name: resolvekit
+
 services:
   db:
     image: postgres:17-alpine
+    container_name: resolvekit_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-agent}
@@ -9,15 +12,18 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:15432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - resolvekit
 
   kb-db:
     image: postgres:17-alpine
+    container_name: resolvekit_kb_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-agent}
@@ -26,17 +32,20 @@ services:
     volumes:
       - ./data/kb-postgres:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "127.0.0.1:15433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - resolvekit
 
   kb-service:
     build:
       context: .
       dockerfile: knowledge_bases/Dockerfile
+    container_name: resolvekit_kb_service
     restart: unless-stopped
     depends_on:
       kb-db:
@@ -47,11 +56,12 @@ services:
       KBS_SERVICE_JWT_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       KBS_SERVICE_JWT_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       KBS_ENCRYPTION_KEY: ${KBS_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
-    expose:
-      - "8100"
+    networks:
+      - resolvekit
 
   backend:
     build: .
+    container_name: resolvekit_backend
     restart: unless-stopped
     depends_on:
       db:
@@ -64,8 +74,10 @@ services:
       IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
+    networks:
+      - resolvekit
 
   dashboard:
     build:
@@ -75,6 +87,7 @@ services:
         NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_PLAYBOOK_ENABLED:-false}
         NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_PLAYBOOK_KEY:-}
         NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL:-http://localhost:8000}
+    container_name: resolvekit_dashboard
     restart: unless-stopped
     depends_on:
       - api
@@ -91,8 +104,10 @@ services:
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+    networks:
+      - resolvekit
 
   api:
     build:
@@ -102,6 +117,7 @@ services:
         NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_PLAYBOOK_ENABLED:-false}
         NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_PLAYBOOK_KEY:-}
         NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL:-http://localhost:8000}
+    container_name: resolvekit_api
     restart: unless-stopped
     depends_on:
       - backend
@@ -118,11 +134,25 @@ services:
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
-    ports:
-      - "3002:3000"
+      IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-https://console.resolvekit.app}
+    expose:
+      - "3000"
+    networks:
+      - resolvekit
 
   website:
-    build: ./website
+    build:
+      context: ./website
+      args:
+        NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-http://localhost:3000}
+    container_name: resolvekit_website
     restart: unless-stopped
-    ports:
-      - "3001:3000"
+    expose:
+      - "3000"
+    networks:
+      - resolvekit
+
+networks:
+  resolvekit:
+    name: resolvekit_default
+    driver: bridge
