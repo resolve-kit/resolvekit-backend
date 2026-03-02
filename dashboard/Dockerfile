@@ -7,7 +7,6 @@ RUN git config --global url."https://github.com/".insteadOf ssh://git@github.com
   && git config --global url."https://github.com/".insteadOf git@github.com:
 
 COPY package.json ./
-COPY vendor ./vendor
 COPY prisma ./prisma
 RUN npm install --no-audit --no-fund
 

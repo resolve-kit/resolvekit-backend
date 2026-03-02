@@ -229,7 +229,7 @@ export default function Apps() {
           <Button
             variant="primary"
             size="md"
-            data-playbook-id="create-app-btn"
+            data-resolvekit-id="create-app-btn"
             className="w-full sm:w-auto"
             onClick={() => setShowCreate(!showCreate)}
             icon={
@@ -288,11 +288,11 @@ export default function Apps() {
       )}
 
       {/* App grid */}
-      <div data-playbook-id="apps-list" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-resolvekit-id="apps-list" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {apps.map((app, i) => (
           <div
             key={app.id}
-            data-playbook-id={`app-card-${app.id}`}
+            data-resolvekit-id={`app-card-${app.id}`}
             className={`group relative glass-panel rounded-xl border border-border/70 p-4 transition-all hover:-translate-y-0.5 hover:border-border-2 hover:shadow-card animate-fade-in-up ${
               i === 0 ? "" : i === 1 ? "delay-50" : i === 2 ? "delay-100" : "delay-150"
             }`}

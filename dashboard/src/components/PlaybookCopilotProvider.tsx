@@ -5,10 +5,10 @@ import { useLocation, useMatch, useNavigate } from "react-router-dom";
 
 import { api } from "../api/client";
 
-type SDKModule = typeof import("@playbook/sdk");
-type SDKReactModule = typeof import("@playbook/sdk/react");
-type SDKRouterModule = typeof import("@playbook/sdk/react-router");
-type SDKStarterModule = typeof import("@playbook/sdk/starter");
+type SDKModule = typeof import("@resolvekit/sdk");
+type SDKReactModule = typeof import("@resolvekit/sdk/react");
+type SDKRouterModule = typeof import("@resolvekit/sdk/react-router");
+type SDKStarterModule = typeof import("@resolvekit/sdk/starter");
 
 type LoadedModules = {
   sdk: SDKModule;
@@ -51,10 +51,10 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
 
     let cancelled = false;
     Promise.all([
-      import("@playbook/sdk"),
-      import("@playbook/sdk/react"),
-      import("@playbook/sdk/react-router"),
-      import("@playbook/sdk/starter"),
+      import("@resolvekit/sdk"),
+      import("@resolvekit/sdk/react"),
+      import("@resolvekit/sdk/react-router"),
+      import("@resolvekit/sdk/starter"),
     ])
       .then(([sdk, react, router, starter]) => {
         if (!cancelled) {
@@ -173,7 +173,7 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
     return <>{children}</>;
   }
 
-  const PlaybookProvider = sdkModules.react.PlaybookProvider;
+  const PlaybookProvider = sdkModules.react.ResolveKitProvider;
   return (
     <PlaybookProvider
       apiKey={PLAYBOOK_API_KEY}
@@ -184,7 +184,7 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
       llmContext={boundAppId ? { dashboard_app_id: boundAppId } : undefined}
     >
       {children}
-      <span data-playbook-id="copilot-widget-anchor" className="hidden" />
+      <span data-resolvekit-id="copilot-widget-anchor" className="hidden" />
     </PlaybookProvider>
   );
 }
