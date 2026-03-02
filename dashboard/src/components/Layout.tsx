@@ -6,6 +6,7 @@ import { DirtyStateProvider } from "../context/DirtyStateContext";
 import { OnboardingProvider } from "../context/OnboardingContext";
 import AppSidebar from "./AppSidebar";
 import OnboardingGuideRail from "./OnboardingGuideRail";
+import ResolveKitWordmark from "./ResolveKitWordmark";
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -34,11 +35,11 @@ export default function Layout() {
         <div className="min-h-screen bg-canvas">
           <nav className="fixed left-0 right-0 top-0 z-40 border-b border-border bg-canvas/85 backdrop-blur-md">
             <div className="mx-auto flex h-[var(--nav-height)] max-w-[1400px] items-center justify-between px-4 md:px-6">
-              <Link to="/apps" className="flex items-center gap-2">
-                <div>
-                  <p className="font-display text-base font-semibold tracking-tight text-strong">ResolveKit</p>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-subtle">Operator Console</p>
-                </div>
+              <Link to="/apps" className="inline-flex items-end gap-2">
+                <ResolveKitWordmark />
+                <span className="pb-[1px] text-[12px] md:text-[13px] font-semibold tracking-[0.16em] text-subtle">
+                  | console
+                </span>
               </Link>
 
               <div className="hidden items-center gap-1 md:flex">

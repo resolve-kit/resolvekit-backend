@@ -27,10 +27,12 @@ export default function PricingPage() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/"
-          className="font-display text-lg md:text-xl tracking-[0.18em] leading-none text-foreground"
+          className="inline-flex items-end leading-none"
+          aria-label="RESOLVEkit"
+          style={{ fontFamily: "Inter, 'Mona Sans', 'Avenir Next', 'Segoe UI', sans-serif" }}
         >
-          <span className="font-semibold uppercase">RESOLVE</span>
-          <span className="font-normal normal-case tracking-normal">kit</span>
+          <span className="text-[20px] font-normal uppercase tracking-[0.2em] text-[#0d2f57]">RESOLVE</span>
+          <span className="ml-[0.12em] text-[10px] font-normal tracking-[0.2em] text-black">kit</span>
         </Link>
         <div className="flex flex-wrap gap-3">
           <Link href="/">
