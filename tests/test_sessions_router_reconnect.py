@@ -44,7 +44,6 @@ async def test_create_session_reuses_latest_active_session() -> None:
         id=uuid.uuid4(),
         app_id=app.id,
         device_id="device-1",
-        metadata_={"old": "value"},
         client_context={"platform": "old"},
         llm_context={"location": "old"},
         entitlements=["basic"],
@@ -56,7 +55,6 @@ async def test_create_session_reuses_latest_active_session() -> None:
     db = _FakeDB()
     body = SessionCreate(
         device_id="device-1",
-        metadata={"fresh": "value"},
         client=SessionClientInfo(platform="ios"),
         llm_context={"location": "vilnius"},
         entitlements=["pro"],
@@ -78,7 +76,6 @@ async def test_create_session_reuses_latest_active_session() -> None:
     assert response.chat_title == "Support Chat"
     assert response.message_placeholder == "Message"
     assert response.initial_message == "Hello! How can I help you today?"
-    assert existing.metadata_ == {"fresh": "value"}
     assert existing.client_context == {"platform": "ios"}
     assert existing.llm_context == {"location": "vilnius"}
     assert existing.entitlements == ["pro"]
@@ -99,7 +96,6 @@ async def test_create_session_creates_new_when_reuse_is_disabled() -> None:
     db = _FakeDB()
     body = SessionCreate(
         device_id="device-1",
-        metadata={"fresh": "value"},
         client=SessionClientInfo(platform="ios"),
         llm_context={"location": "vilnius"},
         entitlements=["pro"],

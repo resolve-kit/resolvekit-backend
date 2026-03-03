@@ -59,7 +59,7 @@ struct GetWeather: PlaybookFunction {
     lifecyclePhase: "Session Startup",
     lifecycleDetails: [
       "start() checks SDK compatibility and syncs function definitions.",
-      "Then creates session payload with metadata/client/llm_context/capabilities.",
+      "Then creates session payload with client/llm_context/capabilities.",
     ],
     code: `import PlaybookUI
 
@@ -68,7 +68,6 @@ let runtime = PlaybookRuntime(
         baseURL: URL(string: "https://your-backend.example.com")!,
         apiKeyProvider: { tokenStore.playbookAPIKey },
         deviceIDProvider: { deviceService.stableID },
-        sessionMetadataProvider: { ["tenant_id": session.tenantID] },
         llmContextProvider: {
             [
                 "location": .string(session.cityName),
@@ -83,10 +82,10 @@ let runtime = PlaybookRuntime(
         functionPacks: [SupportPack.self],
         functions: [SetLights.self, GetWeather.self]
     )
-)`,
+    )`,
     notes: [
       "Use llmContextProvider for context that should directly shape LLM behavior.",
-      "Use sessionMetadataProvider for operational diagnostics shown in dashboard.",
+      "The SDK sends platform/app/SDK diagnostics automatically in client context.",
     ],
   },
   {

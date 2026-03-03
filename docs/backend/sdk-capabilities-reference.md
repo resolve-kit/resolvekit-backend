@@ -20,7 +20,6 @@ Every SDK client must accept these configuration fields:
 | `base_url` | No (default: localhost:8000) | Root for all API calls |
 | `device_id` | No | `POST /v1/sessions` → `device_id` |
 | `llm_context` | No | `POST /v1/sessions` → `llm_context` |
-| `metadata` | No | `POST /v1/sessions` → `metadata` |
 | `entitlements` | No | `POST /v1/sessions` → `entitlements` |
 | `capabilities` | No | `POST /v1/sessions` → `capabilities` |
 | `locale` | No | `POST /v1/sessions` → `locale` |
@@ -30,8 +29,6 @@ Every SDK client must accept these configuration fields:
 
 - **Client context** (`platform`, `os_name`, `os_version`, `app_version`, `sdk_name`, `sdk_version`): iOS ✅ · Web ✅
 - **Preferred locales** (ordered fallback list from system): iOS ✅ · Web ✅
-- **Metadata forwarded to backend**: iOS ✅ · Web ✅
-
 ---
 
 ## 2. Function Authoring
@@ -100,7 +97,7 @@ Functions can be grouped into packs and conditionally registered based on platfo
 
 **Start a session:** `POST /v1/sessions`
 
-Key request fields: `device_id`, `llm_context`, `entitlements`, `capabilities`, `locale`, `preferred_locales`, `metadata`, `client`, `reuse_active_session: true`
+Key request fields: `device_id`, `llm_context`, `entitlements`, `capabilities`, `locale`, `preferred_locales`, `client`, `reuse_active_session: true`
 
 **Response fields:**
 
@@ -114,7 +111,6 @@ Key request fields: `device_id`, `llm_context`, `entitlements`, `capabilities`, 
 | `initial_message` | Greeting message to display on first open |
 
 - **Initial message rendering**: iOS ✅ · Web ✅
-- **Session metadata sent to backend**: iOS ✅ · Web ✅
 - **Client context** (platform/OS/app/SDK versions): iOS ✅ · Web ✅
 - **Session reuse + history restore on reopen**: iOS ✅ · Web ✅
 - **Persistent device identity (for reuse lookup)**: iOS ✅ · Web ✅

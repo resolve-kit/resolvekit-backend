@@ -34,7 +34,6 @@ ResolveKit records are read by runtime for prompt enrichment, but CRUD ownership
 - Key features:
   - Session creation and ws-ticket issuance.
   - Per-session context fields:
-    - `metadata`
     - `client_context`
     - `llm_context`
     - `entitlements`

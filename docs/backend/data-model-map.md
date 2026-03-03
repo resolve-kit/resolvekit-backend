@@ -41,7 +41,6 @@ This map covers the primary entities used across runtime, governance, and KB int
 
 - `ChatSession`
   - Session lifecycle and context payloads:
-    - `metadata`
     - `client_context`
     - `llm_context`
     - `entitlements`
@@ -90,4 +89,3 @@ This map covers the primary entities used across runtime, governance, and KB int
 
 - `agent` models: [`agent/models`](../../agent/models)
 - `knowledge_bases` models: [`knowledge_bases/models.py`](../../knowledge_bases/models.py)
-

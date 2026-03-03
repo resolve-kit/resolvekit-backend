@@ -22,7 +22,6 @@ class ChatSession(Base, UUIDMixin, TimestampMixin):
     last_activity_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
-    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, default=dict)
     client_context: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     llm_context: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     entitlements: Mapped[list[str]] = mapped_column(JSONB, default=list)

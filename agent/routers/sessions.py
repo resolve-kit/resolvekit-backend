@@ -49,7 +49,6 @@ async def create_session(
 
     if session:
         session.device_id = body.device_id
-        session.metadata_ = body.metadata
         session.client_context = client_context
         session.llm_context = body.llm_context
         session.entitlements = body.entitlements
@@ -61,7 +60,6 @@ async def create_session(
         session = ChatSession(
             app_id=app.id,
             device_id=body.device_id,
-            metadata_=body.metadata,
             client_context=client_context,
             llm_context=body.llm_context,
             entitlements=body.entitlements,
