@@ -16,6 +16,8 @@ function hasValidFernetKey(value: string): boolean {
 
 export function assertDashboardSecurityConfig(): void {
   if (process.env.NODE_ENV === "test") return;
+  // Skip during `next build` — runtime secrets are not available at build time
+  if (process.env.NEXT_PHASE === "phase-production-build") return;
 
   const jwtSecret = (process.env.IAA_JWT_SECRET ?? "").trim();
   if (INSECURE_VALUES.has(jwtSecret)) {

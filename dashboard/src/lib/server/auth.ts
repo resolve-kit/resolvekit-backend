@@ -16,10 +16,17 @@ function resolveJwtSecret(): string {
   return value;
 }
 
-const JWT_SECRET = resolveJwtSecret();
+// Lazily resolved so `resolveJwtSecret()` runs at request time, not at
+// module evaluation (which would break `next build` where runtime secrets
+// are unavailable).
+let _jwtSecret: string | null = null;
+function getJwtSecret(): string {
+  if (_jwtSecret === null) _jwtSecret = resolveJwtSecret();
+  return _jwtSecret;
+}
+
 const JWT_ALGORITHM = process.env.IAA_JWT_ALGORITHM ?? "HS256";
 const JWT_EXPIRE_MINUTES = Number(process.env.IAA_JWT_EXPIRE_MINUTES ?? "1440");
-const JWT_SECRET_BYTES = new TextEncoder().encode(JWT_SECRET);
 
 export type AuthDeveloper = {
   id: string;
@@ -36,7 +43,7 @@ export async function createAccessToken(developerId: string): Promise<string> {
     .setSubject(developerId)
     .setProtectedHeader({ alg: JWT_ALGORITHM })
     .setExpirationTime(expSeconds)
-    .sign(JWT_SECRET_BYTES);
+    .sign(new TextEncoder().encode(getJwtSecret()));
 }
 
 export function attachDashboardSessionCookie(response: NextResponse, token: string): void {
@@ -63,7 +70,7 @@ function tokenFromRequest(request: NextRequest): string | null {
 
 async function verifyToken(token: string): Promise<string | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET_BYTES, {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(getJwtSecret()), {
       algorithms: [JWT_ALGORITHM],
     });
     const sub = payload.sub;
