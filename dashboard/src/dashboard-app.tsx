@@ -15,7 +15,7 @@ import OrganizationAdmin from "./dashboard_pages/OrganizationAdmin";
 import Playbooks from "./dashboard_pages/Playbooks";
 import Sessions from "./dashboard_pages/Sessions";
 import ChatTheme from "./dashboard_pages/ChatTheme";
-import PlaybookCopilotProvider from "./components/PlaybookCopilotProvider";
+import ResolveKitCopilotProvider from "./components/ResolveKitCopilotProvider";
 
 export function RootRedirect() {
   return <Navigate to="/apps" replace />;
@@ -24,7 +24,7 @@ export function RootRedirect() {
 export function DashboardApp() {
   return (
     <BrowserRouter>
-      <PlaybookCopilotProvider>
+      <ResolveKitCopilotProvider>
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
@@ -46,7 +46,7 @@ export function DashboardApp() {
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </PlaybookCopilotProvider>
+      </ResolveKitCopilotProvider>
     </BrowserRouter>
   );
 }

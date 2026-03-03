@@ -19,7 +19,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ app
 
   try {
     const rawTheme = app.chatTheme && typeof app.chatTheme === "object" ? app.chatTheme : defaultChatTheme();
-    const normalized = normalizeChatTheme(rawTheme);
+    let normalized: ReturnType<typeof normalizeChatTheme>;
+    try {
+      normalized = normalizeChatTheme(rawTheme);
+    } catch {
+      normalized = normalizeChatTheme(defaultChatTheme());
+    }
     if (JSON.stringify(rawTheme) !== JSON.stringify(normalized)) {
       await prisma.app.update({
         where: { id: app.id },

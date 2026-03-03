@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getDeveloperFromRequest } from "@/lib/server/auth";
+import { defaultChatTheme } from "@/lib/server/chat-theme";
 import { detail, readJson } from "@/lib/server/http";
 import {
   defaultOrganizationName,
@@ -91,6 +92,8 @@ export async function POST(request: NextRequest) {
         organizationId: orgId,
         name: body.name.trim(),
         bundleId: typeof body.bundle_id === "string" ? body.bundle_id : null,
+        chatTheme: defaultChatTheme() as object,
+        chatLocalizationOverrides: {},
       },
     });
     return NextResponse.json(appOut(app), { status: 201 });

@@ -27,16 +27,16 @@ type OnboardingState = {
   is_complete: boolean;
 };
 
-const PLAYBOOK_ENABLED = process.env.NEXT_PUBLIC_PLAYBOOK_ENABLED === "true";
-const PLAYBOOK_API_KEY = process.env.NEXT_PUBLIC_PLAYBOOK_KEY ?? "";
-const PLAYBOOK_AGENT_BASE_URL = process.env.NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL ?? "http://localhost:8000";
-const AUTO_OPEN_KEY = "playbook_copilot_auto_open_dismissed";
+const RESOLVEKIT_ENABLED = process.env.NEXT_PUBLIC_RESOLVEKIT_ENABLED === "true";
+const RESOLVEKIT_API_KEY = process.env.NEXT_PUBLIC_RESOLVEKIT_KEY ?? "";
+const RESOLVEKIT_AGENT_BASE_URL = process.env.NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL ?? "http://localhost:8000";
+const AUTO_OPEN_KEY = "resolvekit_copilot_auto_open_dismissed";
 
 function isAuthRoute(pathname: string): boolean {
   return pathname === "/login";
 }
 
-export default function PlaybookCopilotProvider({ children }: { children: ReactNode }) {
+export default function ResolveKitCopilotProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const appRoute = useMatch("/apps/:appId/*");
@@ -44,7 +44,7 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
   const [sdkModules, setSdkModules] = useState<LoadedModules | null>(null);
 
   useEffect(() => {
-    if (!PLAYBOOK_ENABLED || !PLAYBOOK_API_KEY || isAuthRoute(location.pathname)) {
+    if (!RESOLVEKIT_ENABLED || !RESOLVEKIT_API_KEY || isAuthRoute(location.pathname)) {
       setSdkModules(null);
       return;
     }
@@ -71,7 +71,7 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!PLAYBOOK_ENABLED || isAuthRoute(location.pathname)) {
+    if (!RESOLVEKIT_ENABLED || isAuthRoute(location.pathname)) {
       setBoundAppId(null);
       return;
     }
@@ -99,7 +99,7 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
   const functions = useMemo(
     () => {
       if (!sdkModules) return [];
-      const PlaybookSDK = sdkModules.sdk.default;
+      const ResolveKitSDK = sdkModules.sdk.default;
       const fn = sdkModules.sdk.fn;
       const createRouterFunctions = sdkModules.router.createRouterFunctions;
       const createOnboardingFunctions = sdkModules.starter.createOnboardingFunctions;
@@ -139,7 +139,7 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
         ),
         fn(
           async function setWidgetAppearance({ mode }: { mode: "light" | "dark" | "system" }) {
-            PlaybookSDK.setAppearance(mode);
+            ResolveKitSDK.setAppearance(mode);
             return { mode };
           },
           {
@@ -158,14 +158,14 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
 
   useEffect(() => {
     if (!sdkModules) return;
-    const PlaybookSDK = sdkModules.sdk.default;
-    if (!PLAYBOOK_ENABLED || !PLAYBOOK_API_KEY || isAuthRoute(location.pathname)) return;
+    const ResolveKitSDK = sdkModules.sdk.default;
+    if (!RESOLVEKIT_ENABLED || !RESOLVEKIT_API_KEY || isAuthRoute(location.pathname)) return;
     if (localStorage.getItem(AUTO_OPEN_KEY) === "1") return;
     localStorage.setItem(AUTO_OPEN_KEY, "1");
-    queueMicrotask(() => PlaybookSDK.open());
+    queueMicrotask(() => ResolveKitSDK.open());
   }, [location.pathname, sdkModules]);
 
-  if (!PLAYBOOK_ENABLED || !PLAYBOOK_API_KEY || isAuthRoute(location.pathname)) {
+  if (!RESOLVEKIT_ENABLED || !RESOLVEKIT_API_KEY || isAuthRoute(location.pathname)) {
     return <>{children}</>;
   }
 
@@ -173,18 +173,18 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
     return <>{children}</>;
   }
 
-  const PlaybookProvider = sdkModules.react.ResolveKitProvider;
+  const ResolveKitProvider = sdkModules.react.ResolveKitProvider;
   return (
-    <PlaybookProvider
-      apiKey={PLAYBOOK_API_KEY}
-      baseURL={PLAYBOOK_AGENT_BASE_URL}
+    <ResolveKitProvider
+      apiKey={RESOLVEKIT_API_KEY}
+      baseURL={RESOLVEKIT_AGENT_BASE_URL}
       functions={functions}
       position="bottom-right"
       appId={boundAppId ?? undefined}
       llmContext={boundAppId ? { dashboard_app_id: boundAppId } : undefined}
     >
       {children}
-      <span data-playbook-id="copilot-widget-anchor" data-resolvekit-id="copilot-widget-anchor" className="hidden" />
-    </PlaybookProvider>
+      <span data-resolvekit-id="copilot-widget-anchor" className="hidden" />
+    </ResolveKitProvider>
   );
 }
