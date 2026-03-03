@@ -16,6 +16,9 @@ wheels/
 node_modules/
 dashboard/dist/
 dashboard/.next/
+dashboard/.next-dashboard/
+dashboard/.next-api/
+dashboard/.resolvekit-web-sdk/
 website/.next/
 
 # IDE

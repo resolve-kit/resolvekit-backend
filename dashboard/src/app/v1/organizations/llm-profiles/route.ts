@@ -8,7 +8,7 @@ import { encryptWithFernet } from "@/lib/server/fernet";
 import { detail, readJson } from "@/lib/server/http";
 import { prisma } from "@/lib/server/prisma";
 import { llmProfileOut } from "@/lib/server/serializers";
-import { testProviderConnection } from "@/lib/server/provider";
+import { testProviderConnection, validateProviderApiBase } from "@/lib/server/provider";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,10 @@ export async function POST(request: NextRequest) {
   const provider = body.provider.trim().toLowerCase();
   const apiKey = body.api_key.trim();
   if (!apiKey) return detail(400, "API key required");
-  const apiBase = typeof body.api_base === "string" && body.api_base.trim() ? body.api_base.trim() : null;
+  const requestedApiBase = typeof body.api_base === "string" && body.api_base.trim() ? body.api_base.trim() : null;
+  const apiBaseValidation = validateProviderApiBase(provider, requestedApiBase);
+  if (!apiBaseValidation.ok) return detail(400, apiBaseValidation.error ?? "Invalid provider API base URL");
+  const apiBase = apiBaseValidation.normalized;
 
   const check = await testProviderConnection(provider, apiKey, apiBase);
   if (!check.ok) {

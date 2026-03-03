@@ -18,7 +18,7 @@ function StepList() {
       {state.required_steps.map((step, idx) => {
         const isActive = location.pathname === step.route;
         return (
-          <li key={step.id} data-playbook-id={`onboarding-step-${step.id}`} className="rounded-lg border border-border bg-surface-2 px-3 py-2">
+          <li key={step.id} data-resolvekit-id={`onboarding-step-${step.id}`} className="rounded-lg border border-border bg-surface-2 px-3 py-2">
             <div className="flex items-start gap-2">
               <span
                 className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
@@ -41,7 +41,7 @@ function StepList() {
                   ) : (
                     <Link
                       to={step.route}
-                      data-playbook-id={`onboarding-open-${step.id}`}
+                      data-resolvekit-id={`onboarding-open-${step.id}`}
                       className={`text-[11px] ${isActive ? "text-accent" : "text-subtle hover:text-body"}`}
                     >
                       Open step
@@ -59,7 +59,7 @@ function StepList() {
 
 function SDKChecklist() {
   return (
-    <div data-playbook-id="sdk-checklist" className="rounded-lg border border-border bg-surface-2 p-3">
+    <div data-resolvekit-id="sdk-checklist" className="rounded-lg border border-border bg-surface-2 p-3">
       <p className="text-xs font-semibold text-strong">SDK checklist</p>
       <ul className="mt-1.5 space-y-1 text-[11px] text-subtle">
         <li>1. Add `playbook-ios-sdk` package to your iOS app.</li>

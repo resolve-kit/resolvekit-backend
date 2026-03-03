@@ -7,7 +7,7 @@ import { decryptWithFernet, encryptWithFernet } from "@/lib/server/fernet";
 import { detail, readJson } from "@/lib/server/http";
 import { prisma } from "@/lib/server/prisma";
 import { llmProfileOut } from "@/lib/server/serializers";
-import { testProviderConnection } from "@/lib/server/provider";
+import { testProviderConnection, validateProviderApiBase } from "@/lib/server/provider";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +37,14 @@ export async function PATCH(
   if (!body) return detail(422, "Invalid LLM profile update payload");
 
   const provider = typeof body.provider === "string" ? body.provider.trim().toLowerCase() : profile.provider;
-  const apiBase = Object.prototype.hasOwnProperty.call(body, "api_base")
+  const requestedApiBase = Object.prototype.hasOwnProperty.call(body, "api_base")
     ? (typeof body.api_base === "string" && body.api_base.trim() ? body.api_base.trim() : null)
     : profile.apiBase;
+  const apiBaseValidation = validateProviderApiBase(provider, requestedApiBase);
+  if (!apiBaseValidation.ok) {
+    return detail(400, apiBaseValidation.error ?? "Invalid provider API base URL");
+  }
+  const apiBase = apiBaseValidation.normalized;
 
   const nextApiKey = Object.prototype.hasOwnProperty.call(body, "api_key")
     ? (typeof body.api_key === "string" ? body.api_key.trim() : "")

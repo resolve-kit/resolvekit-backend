@@ -44,7 +44,7 @@ export default function PricingPage() {
         </div>
       </header>
 
-      <section className="mt-12 grid items-start gap-6 animate-fade-up lg:grid-cols-[minmax(0,1fr)_300px]">
+      <section className="mt-12 animate-fade-up">
         <div className="max-w-3xl">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pricing</p>
           <h1 className="mt-2 text-4xl font-semibold leading-tight md:text-5xl">Pricing for Embedded LLM Agent Support</h1>
@@ -52,27 +52,7 @@ export default function PricingPage() {
             One plan for now: full product access while we harden reliability and ship fast with partner feedback.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">Free (for now). Pay us in feedback.</p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <span className="rounded-full border border-border bg-white/65 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              Full platform unlocked
-            </span>
-            <span className="rounded-full border border-border bg-white/65 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              Priority support loop
-            </span>
-            <span className="rounded-full border border-border bg-white/65 px-3 py-1 text-xs font-semibold text-muted-foreground">
-              No paid tier yet
-            </span>
-          </div>
         </div>
-        <Card className="p-5 md:p-6">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Launch access</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            We are intentionally simple while we scale: one launch plan, fast product iteration, direct operator feedback.
-          </p>
-          <a href={dashboardRegisterUrl} className="mt-4 block">
-            <Button className="w-full">Start Free</Button>
-          </a>
-        </Card>
       </section>
 
       <section className="mt-10">

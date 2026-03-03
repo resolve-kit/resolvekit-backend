@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Card } from "@/components/ui/card";
@@ -59,7 +60,7 @@ struct GetWeather: PlaybookFunction {
     lifecyclePhase: "Session Startup",
     lifecycleDetails: [
       "start() checks SDK compatibility and syncs function definitions.",
-      "Then creates session payload with client/llm_context/capabilities.",
+      "Then creates session payload with client/llm_context/entitlements/capabilities.",
     ],
     code: `import PlaybookUI
 
@@ -78,11 +79,12 @@ let runtime = PlaybookRuntime(
                 "account_mode": .string(session.accountMode)
             ]
         },
+        entitlementsProvider: { account.isPro ? ["pro"] : ["free"] },
         capabilitiesProvider: { capabilityService.currentCapabilities },
         functionPacks: [SupportPack.self],
         functions: [SetLights.self, GetWeather.self]
     )
-    )`,
+)`,
     notes: [
       "Use llmContextProvider for context that should directly shape LLM behavior.",
       "The SDK sends platform/app/SDK diagnostics automatically in client context.",
@@ -139,6 +141,9 @@ export function SdkFlow() {
             <h3 className="mt-2 text-2xl font-semibold leading-tight">Integrate ResolveKit iOS SDK in 3 steps</h3>
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-xl">
               This walkthrough is based on the real `playbook-ios-sdk` APIs and runtime lifecycle.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              iOS SDK is available now. Android, Next.js, React, React Native, and Flutter SDKs are coming soon.
             </p>
 
             <div className="mt-5 space-y-2">
@@ -199,6 +204,17 @@ export function SdkFlow() {
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="mt-5">
+          <Link
+            href="https://github.com/Nights-Are-Late/resolvekit-ios-sdk"
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-semibold text-primary hover:opacity-85"
+          >
+            Open full SDK integration guide
+          </Link>
         </div>
       </Card>
     </section>

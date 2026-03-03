@@ -112,7 +112,7 @@ export default function ApiKeys() {
           <Button
             variant="primary"
             size="md"
-            data-playbook-id="generate-api-key-btn"
+            data-resolvekit-id="generate-api-key-btn"
             onClick={createKey}
             loading={isGenerating}
           >
@@ -153,7 +153,7 @@ export default function ApiKeys() {
       )}
 
       {/* Keys list */}
-      <div data-playbook-id="api-keys-list" className="space-y-2">
+      <div data-resolvekit-id="api-keys-list" className="space-y-2">
         {keys.map((k) => (
           <div
             key={k.id}

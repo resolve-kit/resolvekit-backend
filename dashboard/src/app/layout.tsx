@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { assertDashboardSecurityConfig } from "@/lib/server/security";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,6 +12,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  assertDashboardSecurityConfig();
+
   return (
     <html lang="en">
       <body>{children}</body>

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const DEFAULT_ALLOWED_HEADERS = "Content-Type, Authorization";
 const DEFAULT_ALLOWED_METHODS = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 const DASHBOARD_SHELL_PATHS = ["/login", "/apps", "/knowledge-bases", "/organization"] as const;
+const AUTH_FREE_PATHS = new Set(["/login"]);
 
 function parseAllowedOrigins(raw: string | undefined): Set<string> {
   if (!raw) return new Set();
@@ -61,6 +62,11 @@ function needsDashboardShellRewrite(pathname: string): boolean {
   return DASHBOARD_SHELL_PATHS.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
+function hasDashboardSession(request: NextRequest): boolean {
+  const token = request.cookies.get("dashboard_token")?.value;
+  return Boolean(token && token.trim());
+}
+
 export function proxy(request: NextRequest): NextResponse {
   if (request.method === "OPTIONS") {
     return applyCorsHeaders(request, new NextResponse(null, { status: 204 }));
@@ -74,6 +80,13 @@ export function proxy(request: NextRequest): NextResponse {
   }
 
   if (request.method === "GET" && needsDashboardShellRewrite(request.nextUrl.pathname)) {
+    if (!AUTH_FREE_PATHS.has(request.nextUrl.pathname) && !hasDashboardSession(request)) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      loginUrl.search = "";
+      loginUrl.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
     const rewriteUrl = request.nextUrl.clone();
     rewriteUrl.pathname = "/";
     return NextResponse.rewrite(rewriteUrl);

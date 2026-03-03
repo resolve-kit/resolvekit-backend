@@ -22,6 +22,19 @@
    - `docker compose logs -f api`
    - `docker compose logs -f website`
 
+## Production compose setup
+
+1. Configure production env values (secrets + public URLs).
+2. Build and run:
+   - `docker compose -f docker-compose.prod.yml --env-file .env up -d --build`
+3. Check services:
+   - `docker compose -f docker-compose.prod.yml ps`
+4. Tail logs:
+   - `docker compose -f docker-compose.prod.yml logs -f backend`
+   - `docker compose -f docker-compose.prod.yml logs -f api`
+   - `docker compose -f docker-compose.prod.yml logs -f dashboard`
+   - `docker compose -f docker-compose.prod.yml logs -f website`
+
 ## Python local backend setup
 
 1. Install deps:

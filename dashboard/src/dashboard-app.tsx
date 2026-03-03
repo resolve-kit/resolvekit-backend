@@ -18,8 +18,7 @@ import ChatTheme from "./dashboard_pages/ChatTheme";
 import PlaybookCopilotProvider from "./components/PlaybookCopilotProvider";
 
 export function RootRedirect() {
-  const token = localStorage.getItem("token");
-  return <Navigate to={token ? "/apps" : "/login"} replace />;
+  return <Navigate to="/apps" replace />;
 }
 
 export function DashboardApp() {

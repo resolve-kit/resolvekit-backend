@@ -1,5 +1,10 @@
 const RAW_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
 const BASE = RAW_BASE.replace(/\/$/, "");
+const SESSION_OPTIONAL_AUTH_ROUTES = new Set([
+  "/v1/auth/login",
+  "/v1/auth/signup",
+  "/v1/auth/password-guidance",
+]);
 
 function getToken(): string | null {
   return localStorage.getItem("token");
@@ -11,6 +16,29 @@ export function setToken(token: string) {
 
 export function clearToken() {
   localStorage.removeItem("token");
+}
+
+function normalizePath(path: string): string {
+  if (!path) return "/";
+  const normalized = path.replace(/\/+$/, "");
+  return normalized || "/";
+}
+
+function isSessionOptionalAuthRoute(path: string): boolean {
+  return SESSION_OPTIONAL_AUTH_ROUTES.has(normalizePath(path));
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${BASE}/v1/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Best-effort logout; always clear client token state.
+  } finally {
+    clearToken();
+  }
 }
 
 export class ApiError extends Error {
@@ -63,7 +91,6 @@ export async function api<T = unknown>(
     headers["Content-Type"] = "application/json";
   }
   const token = getToken();
-  const isAuthRoute = path.startsWith("/v1/auth/");
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
@@ -76,7 +103,7 @@ export async function api<T = unknown>(
   if (res.status === 401) {
     const body = await res.json().catch(() => ({ detail: res.statusText })) as { detail?: unknown };
     const detail = formatErrorDetail(body.detail, res.statusText || "Unauthorized");
-    if (!isAuthRoute) {
+    if (!isSessionOptionalAuthRoute(path)) {
       clearToken();
       window.dispatchEvent(new CustomEvent("auth:expired"));
       throw new ApiError(401, "Session expired");
