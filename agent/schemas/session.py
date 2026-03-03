@@ -22,7 +22,6 @@ class SessionClientInfo(BaseModel):
 
 class SessionCreate(BaseModel):
     device_id: str | None = Field(default=None, max_length=255)
-    metadata: dict[str, Any] = Field(default_factory=dict)
     client: SessionClientInfo | None = None
     llm_context: dict[str, Any] = Field(default_factory=dict)
     entitlements: list[str] = Field(default_factory=list, max_length=64)

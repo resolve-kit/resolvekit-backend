@@ -194,9 +194,8 @@ class RouterResult:
 
 def _context_value(session: ChatSession, key: str) -> str | None:
     client = getattr(session, "client_context", {}) or {}
-    metadata = getattr(session, "metadata_", {}) or {}
 
-    candidate = client.get(key) or metadata.get(key)
+    candidate = client.get(key)
     if isinstance(candidate, str):
         cleaned = candidate.strip()
         return cleaned or None

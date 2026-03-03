@@ -40,15 +40,14 @@ def function_is_eligible(fn: RegisteredFunction, session: ChatSession) -> bool:
 
     availability = fn.availability or {}
     client = session.client_context or {}
-    metadata = session.metadata_ or {}
 
-    platform = client.get("platform") or metadata.get("platform")
+    platform = client.get("platform")
     allowed_platforms = availability.get("platforms")
     if isinstance(allowed_platforms, list) and allowed_platforms:
         if not isinstance(platform, str) or platform not in allowed_platforms:
             return False
 
-    os_version = client.get("os_version") or metadata.get("os_version")
+    os_version = client.get("os_version")
     if not _version_in_range(
         os_version,
         availability.get("min_os_version"),
@@ -56,7 +55,7 @@ def function_is_eligible(fn: RegisteredFunction, session: ChatSession) -> bool:
     ):
         return False
 
-    app_version = client.get("app_version") or metadata.get("app_version")
+    app_version = client.get("app_version")
     if not _version_in_range(
         app_version,
         availability.get("min_app_version"),

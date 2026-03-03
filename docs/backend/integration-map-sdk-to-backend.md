@@ -41,7 +41,6 @@ Backend call:
   - Router: [`agent/routers/sessions.py`](../../agent/routers/sessions.py)
   - Writes `ChatSession` with:
     - `device_id`
-    - `metadata`
     - `client_context`
     - `llm_context`
     - `entitlements`

@@ -173,11 +173,7 @@ Create a new chat session.
   "entitlements": ["pro"],
   "capabilities": ["camera", "location"],
   "locale": "fr",
-  "preferred_locales": ["fr-FR", "en-US"],
-  "metadata": {
-    "os_version": "18.2",
-    "app_version": "1.0.3"
-  }
+  "preferred_locales": ["fr-FR", "en-US"]
 }
 ```
 
@@ -190,7 +186,6 @@ Create a new chat session.
 | `capabilities` | string[] | no | `[]` | Device/runtime capabilities. |
 | `locale` | string | no | `null` | Explicit locale override (for example `fr`, `pt-br`). |
 | `preferred_locales` | string[] | no | `[]` | Ordered preferred locales; server picks first supported locale. |
-| `metadata` | object | no | `{}` | Arbitrary key-value pairs stored with the session. |
 
 `llm_context` validation limits:
 - Maximum 50 top-level keys
@@ -198,7 +193,7 @@ Create a new chat session.
 - Maximum serialized size 8192 bytes
 
 Use `llm_context` for model-personalization signals (for example location, account mode, environment).  
-Use `metadata` for operational/session diagnostics.
+Use `client` for SDK-managed operational diagnostics like platform, app version, and build.
 
 **Response:** `201 Created`
 

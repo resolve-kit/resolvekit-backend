@@ -517,7 +517,6 @@ async def test_run_agent_loop_open_mode_continues_and_assembles_enriched_prompt(
             "sdk_name": "playbook-ios",
             "sdk_version": "1.0.0",
         },
-        metadata_={},
         llm_context={
             "location": {"city": "Vilnius", "country": "LT"},
             "network_type": "wifi",
