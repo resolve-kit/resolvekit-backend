@@ -5,6 +5,13 @@ const SESSION_OPTIONAL_AUTH_ROUTES = new Set([
   "/v1/auth/signup",
   "/v1/auth/password-guidance",
 ]);
+const SESSION_COOKIE_BOUND_AUTH_ROUTES = new Set([
+  "/v1/auth/login",
+  "/v1/auth/signup",
+  "/v1/auth/password-guidance",
+  "/v1/auth/me",
+  "/v1/auth/logout",
+]);
 
 function getToken(): string | null {
   return localStorage.getItem("token");
@@ -28,9 +35,17 @@ function isSessionOptionalAuthRoute(path: string): boolean {
   return SESSION_OPTIONAL_AUTH_ROUTES.has(normalizePath(path));
 }
 
+function shouldUseSameOriginAuthRoute(path: string): boolean {
+  return SESSION_COOKIE_BOUND_AUTH_ROUTES.has(normalizePath(path));
+}
+
+function toRequestUrl(path: string): string {
+  return shouldUseSameOriginAuthRoute(path) ? path : `${BASE}${path}`;
+}
+
 export async function logout(): Promise<void> {
   try {
-    await fetch(`${BASE}/v1/auth/logout`, {
+    await fetch(toRequestUrl("/v1/auth/logout"), {
       method: "POST",
       credentials: "include",
     });
@@ -94,7 +109,7 @@ export async function api<T = unknown>(
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(toRequestUrl(path), {
     ...options,
     headers,
     credentials: options.credentials ?? "include",

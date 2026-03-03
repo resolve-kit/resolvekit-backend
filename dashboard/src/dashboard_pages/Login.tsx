@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { api } from "../api/client";
+import { api, setToken } from "../api/client";
 import ResolveKitWordmark from "../components/ResolveKitWordmark";
 import { Button, Input } from "../components/ui";
 
@@ -94,10 +94,11 @@ export default function Login() {
               organization_name: `${name.trim() || "My"}'s Organization`,
             }
         : { email, password };
-      await api(path, {
+      const res = await api<{ access_token: string }>(path, {
         method: "POST",
         body: JSON.stringify(body),
       });
+      setToken(res.access_token);
       if (isSignup && signupIntent === "join-org") {
         navigate("/organization");
       } else {
