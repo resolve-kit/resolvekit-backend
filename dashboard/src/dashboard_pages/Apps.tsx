@@ -38,14 +38,34 @@ function AppIcon({ name }: { name: string }) {
     "bg-warning-subtle text-warning border-warning-dim",
     "bg-danger-subtle text-danger border-danger-dim",
   ];
-  const idx = (name.charCodeAt(0) || 0) % palettes.length;
+  const safeName = typeof name === "string" ? name : "";
+  const firstChar = safeName.charAt(0);
+  const idx = (firstChar ? firstChar.charCodeAt(0) : 0) % palettes.length;
   return (
     <div
       className={`h-10 w-10 flex-shrink-0 rounded-xl border text-base font-semibold font-display flex items-center justify-center shadow-card ${palettes[idx]}`}
     >
-      {name[0]?.toUpperCase() || "?"}
+      {firstChar.toUpperCase() || "?"}
     </div>
   );
+}
+
+function sanitizeApps(payload: unknown): App[] {
+  if (!Array.isArray(payload)) return [];
+  return payload
+    .map((value) => {
+      if (!value || typeof value !== "object") return null;
+      const row = value as Partial<App>;
+      if (typeof row.id !== "string" || !row.id.trim()) return null;
+      return {
+        id: row.id,
+        name: typeof row.name === "string" && row.name.trim() ? row.name : "Untitled App",
+        bundle_id: typeof row.bundle_id === "string" ? row.bundle_id : null,
+        integration_enabled: Boolean(row.integration_enabled),
+        created_at: typeof row.created_at === "string" ? row.created_at : "",
+      } satisfies App;
+    })
+    .filter((app): app is App => Boolean(app));
 }
 
 const APP_NAV_ITEMS = [
@@ -63,6 +83,7 @@ const APP_NAV_ITEMS = [
 
 export default function Apps() {
   const [apps, setApps] = useState<App[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [appMissingConfig, setAppMissingConfig] = useState<Record<string, string[]>>({});
   const [newName, setNewName] = useState("");
   const [newBundleId, setNewBundleId] = useState("");
@@ -78,11 +99,28 @@ export default function Apps() {
   const { refresh } = useOnboarding();
 
   useEffect(() => {
-    api<App[]>("/v1/apps").then((loadedApps) => {
-      setApps(loadedApps);
-      void loadAppConfigStatus(loadedApps);
-    });
-  }, []);
+    let cancelled = false;
+
+    api<unknown>("/v1/apps")
+      .then((payload) => {
+        if (cancelled) return;
+        const loadedApps = sanitizeApps(payload);
+        setApps(loadedApps);
+        setLoadError(null);
+        void loadAppConfigStatus(loadedApps);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setApps([]);
+        const detail = err instanceof ApiError ? err.detail : "Failed to load apps";
+        setLoadError(detail);
+        toast(detail, "error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [toast]);
 
   async function loadAppConfigStatus(targetApps: App[]) {
     const entries = await Promise.all(
@@ -414,6 +452,12 @@ export default function Apps() {
             description="Create your first app to start shipping embedded LLM support."
           />
         </div>
+      )}
+
+      {loadError && (
+        <SectionCard title="Unable to load apps" className="mt-4 animate-fade-in-up">
+          <p className="text-sm text-danger">{loadError}</p>
+        </SectionCard>
       )}
 
       <ConfirmDialog

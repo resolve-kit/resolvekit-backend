@@ -26,8 +26,7 @@ export function MissionRail() {
           key={item.title}
           className={`p-5 animate-fade-up ${idx === 1 ? "[animation-delay:90ms]" : idx === 2 ? "[animation-delay:180ms]" : ""}`}
         >
-          <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Mission {idx + 1}</p>
-          <h2 className="mt-2 text-lg font-semibold leading-tight">{item.title}</h2>
+          <h2 className="text-lg font-semibold leading-tight">{item.title}</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
         </Card>
       ))}

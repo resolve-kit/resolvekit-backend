@@ -16,6 +16,8 @@ ResolveKit Backend provides the server-side runtime for embedded app assistants.
 2. Python-only backend:
    - `uv run alembic upgrade head`
    - `uv run python main.py`
+3. Production stack:
+   - `docker compose -f docker-compose.prod.yml --env-file .env up -d --build`
 
 ## Documentation Map
 

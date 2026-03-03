@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
 
-import { clearToken } from "../api/client";
+import { api, logout } from "../api/client";
 import { DirtyStateProvider } from "../context/DirtyStateContext";
 import { OnboardingProvider } from "../context/OnboardingContext";
 import AppSidebar from "./AppSidebar";
@@ -11,23 +11,45 @@ import ResolveKitWordmark from "./ResolveKitWordmark";
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const token = localStorage.getItem("token");
   const isAppRoute = useMatch("/apps/:appId/*");
+  const [authReady, setAuthReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleSignOut = useCallback(async () => {
+    await logout();
+    setIsAuthenticated(false);
+    setAuthReady(true);
+    navigate("/login", { replace: true });
+  }, [navigate]);
 
   useEffect(() => {
-    if (!token) navigate("/login");
-  }, [token, navigate]);
+    let cancelled = false;
+
+    api("/v1/auth/me")
+      .then(() => {
+        if (cancelled) return;
+        setIsAuthenticated(true);
+        setAuthReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        void handleSignOut();
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [handleSignOut]);
 
   useEffect(() => {
     function handleAuthExpired() {
-      clearToken();
-      navigate("/login");
+      void handleSignOut();
     }
     window.addEventListener("auth:expired", handleAuthExpired);
     return () => window.removeEventListener("auth:expired", handleAuthExpired);
-  }, [navigate]);
+  }, [handleSignOut]);
 
-  if (!token) return null;
+  if (!authReady || !isAuthenticated) return null;
 
   return (
     <DirtyStateProvider>
@@ -68,8 +90,7 @@ export default function Layout() {
 
               <button
                 onClick={() => {
-                  clearToken();
-                  navigate("/login");
+                  void handleSignOut();
                 }}
                 className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-subtle transition-colors hover:border-border-2 hover:text-body md:px-3"
               >

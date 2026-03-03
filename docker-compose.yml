@@ -56,6 +56,11 @@ services:
       KBS_SERVICE_JWT_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       KBS_SERVICE_JWT_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       KBS_ENCRYPTION_KEY: ${KBS_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+    command: [".venv/bin/uvicorn", "knowledge_bases.main:app", "--host", "0.0.0.0", "--port", "8100", "--reload"]
+    volumes:
+      - ./knowledge_bases:/app/knowledge_bases
+    ports:
+      - "127.0.0.1:8100:8100"
     networks:
       - resolvekit
 
@@ -74,24 +79,39 @@ services:
       IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
-    expose:
-      - "8000"
+    command: ["uv", "run", "uvicorn", "agent.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      - ./agent:/app/agent
+      - ./alembic:/app/alembic
+      - ./main.py:/app/main.py
+      - ./alembic.ini:/app/alembic.ini
+    ports:
+      - "127.0.0.1:8000:8000"
     networks:
       - resolvekit
 
   dashboard:
-    build:
-      context: ./dashboard
-      args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
-        NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_PLAYBOOK_ENABLED:-false}
-        NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_PLAYBOOK_KEY:-}
-        NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL:-http://localhost:8000}
+    image: node:22-alpine
     container_name: resolvekit_dashboard
     restart: unless-stopped
+    working_dir: /app
     depends_on:
       - api
+    command: >
+      sh -c "rm -rf .next-dashboard &&
+      npm install --no-audit --no-fund &&
+      if [ -f /resolvekit-web-sdk/package.json ] && [ -d /resolvekit-web-sdk/dist ]; then
+      rm -rf /app/.resolvekit-web-sdk &&
+      mkdir -p /app/.resolvekit-web-sdk &&
+      cp /resolvekit-web-sdk/package.json /app/.resolvekit-web-sdk/package.json &&
+      cp -R /resolvekit-web-sdk/dist /app/.resolvekit-web-sdk/dist &&
+      rm -rf /app/node_modules/@resolvekit/sdk &&
+      npm install --no-audit --no-fund --no-save /app/.resolvekit-web-sdk;
+      fi &&
+      node -e \"require.resolve('@resolvekit/sdk'); require.resolve('@resolvekit/sdk/react'); require.resolve('@resolvekit/sdk/react-router'); require.resolve('@resolvekit/sdk/starter');\" &&
+      npm run dev -- --hostname 0.0.0.0 --port 3000"
     environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
       NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_PLAYBOOK_ENABLED:-false}
       NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_PLAYBOOK_KEY:-}
       NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL:-http://localhost:8000}
@@ -104,24 +124,40 @@ services:
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
-    expose:
-      - "3000"
+      NEXT_DIST_DIR: .next-dashboard
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./dashboard:/app
+      - ${RESOLVEKIT_WEB_SDK_PATH:-../resolvekit-web-sdk}:/resolvekit-web-sdk:ro
+      - dashboard_node_modules:/app/node_modules
+    ports:
+      - "127.0.0.1:3000:3000"
     networks:
       - resolvekit
 
   api:
-    build:
-      context: ./dashboard
-      args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
-        NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_PLAYBOOK_ENABLED:-false}
-        NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_PLAYBOOK_KEY:-}
-        NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL:-http://localhost:8000}
+    image: node:22-alpine
     container_name: resolvekit_api
     restart: unless-stopped
+    working_dir: /app
     depends_on:
       - backend
+    command: >
+      sh -c "rm -rf .next-api &&
+      npm install --no-audit --no-fund &&
+      if [ -f /resolvekit-web-sdk/package.json ] && [ -d /resolvekit-web-sdk/dist ]; then
+      rm -rf /app/.resolvekit-web-sdk &&
+      mkdir -p /app/.resolvekit-web-sdk &&
+      cp /resolvekit-web-sdk/package.json /app/.resolvekit-web-sdk/package.json &&
+      cp -R /resolvekit-web-sdk/dist /app/.resolvekit-web-sdk/dist &&
+      rm -rf /app/node_modules/@resolvekit/sdk &&
+      npm install --no-audit --no-fund --no-save /app/.resolvekit-web-sdk;
+      fi &&
+      node -e \"require.resolve('@resolvekit/sdk'); require.resolve('@resolvekit/sdk/react'); require.resolve('@resolvekit/sdk/react-router'); require.resolve('@resolvekit/sdk/starter');\" &&
+      npm run dev -- --hostname 0.0.0.0 --port 3002"
     environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
       NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_PLAYBOOK_ENABLED:-false}
       NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_PLAYBOOK_KEY:-}
       NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL:-http://localhost:8000}
@@ -134,21 +170,34 @@ services:
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
-      IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-https://console.resolvekit.app}
-    expose:
-      - "3000"
+      IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002}
+      NEXT_DIST_DIR: .next-api
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./dashboard:/app
+      - ${RESOLVEKIT_WEB_SDK_PATH:-../resolvekit-web-sdk}:/resolvekit-web-sdk:ro
+      - api_node_modules:/app/node_modules
+    ports:
+      - "127.0.0.1:3002:3002"
     networks:
       - resolvekit
 
   website:
-    build:
-      context: ./website
-      args:
-        NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-http://localhost:3000}
+    image: node:22-alpine
     container_name: resolvekit_website
     restart: unless-stopped
-    expose:
-      - "3000"
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --hostname 0.0.0.0 --port 3001"
+    environment:
+      NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-http://localhost:3000}
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./website:/app
+      - website_node_modules:/app/node_modules
+    ports:
+      - "127.0.0.1:3001:3001"
     networks:
       - resolvekit
 
@@ -156,3 +205,8 @@ networks:
   resolvekit:
     name: resolvekit_default
     driver: bridge
+
+volumes:
+  dashboard_node_modules:
+  api_node_modules:
+  website_node_modules:

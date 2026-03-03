@@ -4,7 +4,19 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "./prisma";
 
-const JWT_SECRET = process.env.IAA_JWT_SECRET ?? "change-me-in-production";
+function resolveJwtSecret(): string {
+  const value = (process.env.IAA_JWT_SECRET ?? "").trim();
+  const insecureValues = new Set(["", "change-me-in-production"]);
+  if (insecureValues.has(value)) {
+    if (process.env.NODE_ENV === "test") {
+      return "test-only-dashboard-jwt-secret";
+    }
+    throw new Error("IAA_JWT_SECRET must be set to a secure non-default value");
+  }
+  return value;
+}
+
+const JWT_SECRET = resolveJwtSecret();
 const JWT_ALGORITHM = process.env.IAA_JWT_ALGORITHM ?? "HS256";
 const JWT_EXPIRE_MINUTES = Number(process.env.IAA_JWT_EXPIRE_MINUTES ?? "1440");
 const JWT_SECRET_BYTES = new TextEncoder().encode(JWT_SECRET);

@@ -13,7 +13,7 @@ def test_dashboard_copilot_provider_component_exists() -> None:
     assert "appId={boundAppId ?? undefined}" in text
     assert "/v1/copilot/runtime-token" not in text
     assert 'mode: "tokenProvider"' not in text
-    assert "data-playbook-id" in text
+    assert "data-resolvekit-id" in text
 
 
 def test_dashboard_app_mounts_copilot_provider_inside_router() -> None:

@@ -1,0 +1,161 @@
+name: resolvekit-prod
+
+x-dashboard-build: &dashboard_build
+  context: ./dashboard
+  dockerfile: Dockerfile
+  args:
+    NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.example.com}
+    NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_PLAYBOOK_ENABLED:-false}
+    NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_PLAYBOOK_KEY:-}
+    NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL:-https://agent.example.com}
+
+x-dashboard-runtime-env: &dashboard_runtime_env
+  NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.example.com}
+  NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_PLAYBOOK_ENABLED:-false}
+  NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_PLAYBOOK_KEY:-}
+  NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL:-https://agent.example.com}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+  IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
+  IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
+  IAA_JWT_EXPIRE_MINUTES: ${IAA_JWT_EXPIRE_MINUTES:-1440}
+  IAA_ENCRYPTION_KEY: ${IAA_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+  IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+  IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+  IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+  IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: resolvekit_prod_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-agent}
+    volumes:
+      - resolvekit_prod_db_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_BIND_ADDR:-127.0.0.1}:${POSTGRES_BIND_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - resolvekit
+
+  kb-db:
+    image: postgres:17-alpine
+    container_name: resolvekit_prod_kb_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${KBS_POSTGRES_DB:-knowledge_bases}
+    volumes:
+      - resolvekit_prod_kb_db_data:/var/lib/postgresql/data
+    ports:
+      - "${KBS_POSTGRES_BIND_ADDR:-127.0.0.1}:${KBS_POSTGRES_BIND_PORT:-15433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - resolvekit
+
+  kb-service:
+    build:
+      context: .
+      dockerfile: knowledge_bases/Dockerfile
+    image: resolvekit-kb-service:prod
+    container_name: resolvekit_prod_kb_service
+    restart: unless-stopped
+    depends_on:
+      kb-db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      KBS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@kb-db:5432/${KBS_POSTGRES_DB:-knowledge_bases}
+      KBS_SERVICE_JWT_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      KBS_SERVICE_JWT_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      KBS_ENCRYPTION_KEY: ${KBS_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+    ports:
+      - "${KBS_BIND_ADDR:-127.0.0.1}:${KBS_BIND_PORT:-8100}:8100"
+    networks:
+      - resolvekit
+
+  backend:
+    build: .
+    image: resolvekit-backend:prod
+    container_name: resolvekit_prod_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      kb-service:
+        condition: service_started
+    env_file: .env
+    environment:
+      IAA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+      IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+    ports:
+      - "${BACKEND_BIND_ADDR:-127.0.0.1}:${BACKEND_BIND_PORT:-8000}:8000"
+    networks:
+      - resolvekit
+
+  api:
+    build: *dashboard_build
+    image: resolvekit-dashboard:prod
+    container_name: resolvekit_prod_api
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      <<: *dashboard_runtime_env
+      IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-https://console.resolvekit.app,https://resolvekit.app}
+    ports:
+      - "${API_BIND_ADDR:-127.0.0.1}:${API_BIND_PORT:-3002}:3000"
+    networks:
+      - resolvekit
+
+  dashboard:
+    image: resolvekit-dashboard:prod
+    container_name: resolvekit_prod_dashboard
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      <<: *dashboard_runtime_env
+    ports:
+      - "${DASHBOARD_BIND_ADDR:-127.0.0.1}:${DASHBOARD_BIND_PORT:-3000}:3000"
+    networks:
+      - resolvekit
+
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit.app}
+    image: resolvekit-website:prod
+    container_name: resolvekit_prod_website
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit.app}
+    ports:
+      - "${WEBSITE_BIND_ADDR:-127.0.0.1}:${WEBSITE_BIND_PORT:-3001}:3000"
+    networks:
+      - resolvekit
+
+networks:
+  resolvekit:
+    name: resolvekit_prod_default
+    driver: bridge
+
+volumes:
+  resolvekit_prod_db_data:
+  resolvekit_prod_kb_db_data:

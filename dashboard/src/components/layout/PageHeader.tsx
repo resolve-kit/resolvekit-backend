@@ -10,7 +10,12 @@ interface PageHeaderProps {
 export function PageHeader({ eyebrow, title, subtitle, rightSlot }: PageHeaderProps) {
   return (
     <header className="glass-panel relative mb-6 overflow-hidden rounded-[1.6rem] border border-border/70 px-4 py-4 shadow-card animate-fade-in-up md:px-5 md:py-5">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(34,96,196,0.06),transparent_36%,rgba(0,0,0,0)_80%)]" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: "linear-gradient(135deg, rgba(34,96,196,0.06), transparent 36%, rgba(0,0,0,0) 80%)",
+        }}
+      />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="relative z-10">
           {eyebrow && <p className="text-[10px] uppercase tracking-[0.2em] text-accent">{eyebrow}</p>}

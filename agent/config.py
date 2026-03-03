@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     encryption_key: str = "change-me-in-production"
 
     # WebSocket auth migration
-    allow_legacy_ws_api_key: bool = True
+    allow_legacy_ws_api_key: bool = False
 
     # CORS
     cors_origins: list[str] = [

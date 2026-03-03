@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { api, setToken } from "../api/client";
+import { api } from "../api/client";
 import ResolveKitWordmark from "../components/ResolveKitWordmark";
 import { Button, Input } from "../components/ui";
 
@@ -94,11 +94,10 @@ export default function Login() {
               organization_name: `${name.trim() || "My"}'s Organization`,
             }
         : { email, password };
-      const res = await api<{ access_token: string }>(path, {
+      await api(path, {
         method: "POST",
         body: JSON.stringify(body),
       });
-      setToken(res.access_token);
       if (isSignup && signupIntent === "join-org") {
         navigate("/organization");
       } else {
@@ -113,7 +112,13 @@ export default function Login() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-canvas px-4 py-8 md:px-8 md:py-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(44,132,255,0.2),transparent_34%),radial-gradient(circle_at_84%_14%,rgba(27,186,131,0.14),transparent_36%)]" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 18% 8%, rgba(44,132,255,0.2), transparent 34%), radial-gradient(circle at 84% 14%, rgba(27,186,131,0.14), transparent 36%)",
+        }}
+      />
       <div className="pointer-events-none absolute -left-28 top-20 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
       <div className="pointer-events-none absolute -right-28 bottom-6 h-80 w-80 rounded-full bg-success/12 blur-3xl" />
 
@@ -131,22 +136,11 @@ export default function Login() {
             function calls to resolve user problems in real time.
           </p>
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            {["SDK embedded chat", "Approved tool actions", "Operator trace"].map((pill) => (
-              <span
-                key={pill}
-                className="rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-semibold text-subtle"
-              >
-                {pill}
-              </span>
-            ))}
-          </div>
-
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             {[
               ["Agent context", "Prompt + KB + session signals before every reply"],
               ["Action safety", "User approval required for sensitive function calls"],
-              ["Operator trace", "Full timeline of turns, tools, and outcomes"],
+              ["Session history", "Full timeline of turns, tools, and outcomes"],
             ].map(([title, body]) => (
               <div key={title} className="rounded-xl border border-border bg-surface px-3 py-3 shadow-card">
                 <p className="text-xs font-semibold text-strong">{title}</p>

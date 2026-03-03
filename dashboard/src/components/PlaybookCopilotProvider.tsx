@@ -184,7 +184,7 @@ export default function PlaybookCopilotProvider({ children }: { children: ReactN
       llmContext={boundAppId ? { dashboard_app_id: boundAppId } : undefined}
     >
       {children}
-      <span data-resolvekit-id="copilot-widget-anchor" className="hidden" />
+      <span data-playbook-id="copilot-widget-anchor" data-resolvekit-id="copilot-widget-anchor" className="hidden" />
     </PlaybookProvider>
   );
 }

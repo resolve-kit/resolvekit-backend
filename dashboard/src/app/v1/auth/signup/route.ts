@@ -13,6 +13,7 @@ import {
 } from "@/lib/server/organization";
 import { passwordRequirementFailures } from "@/lib/server/password";
 import { prisma } from "@/lib/server/prisma";
+import { getClientIp, isRateLimited } from "@/lib/server/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,16 @@ export async function POST(request: Request) {
     return detail(422, "Invalid signup payload");
   }
 
+  const ip = getClientIp(request);
+  if (isRateLimited({ bucket: "auth-signup-ip", key: ip, limit: 20, windowMs: 60 * 60 * 1000 })) {
+    return detail(429, "Too many signup attempts. Try again later.");
+  }
+
   const email = normalizeEmail(body.email);
+  if (isRateLimited({ bucket: "auth-signup-email", key: email, limit: 5, windowMs: 60 * 60 * 1000 })) {
+    return detail(429, "Too many signup attempts. Try again later.");
+  }
+
   const name = body.name.trim();
   const signupIntent: SignupIntent = body.signup_intent ?? "create_org";
   const organizationName = typeof body.organization_name === "string" ? body.organization_name.trim() : "";

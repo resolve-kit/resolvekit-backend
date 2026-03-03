@@ -518,25 +518,110 @@ export function isSupportedProvider(providerId: string): boolean {
   return PROVIDERS.some((provider) => provider.id === providerId);
 }
 
+function isIpv4(hostname: string): boolean {
+  const octets = hostname.split(".");
+  if (octets.length !== 4) return false;
+  return octets.every((part) => {
+    if (!/^[0-9]+$/.test(part)) return false;
+    const value = Number(part);
+    return value >= 0 && value <= 255;
+  });
+}
+
+function isPrivateIpv4(hostname: string): boolean {
+  if (!isIpv4(hostname)) return false;
+  const [a, b] = hostname.split(".").map((part) => Number(part));
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 0) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  return false;
+}
+
+function isDisallowedApiBaseHost(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+  if (!normalized) return true;
+  if (normalized === "localhost" || normalized.endsWith(".localhost")) return true;
+  if (normalized === "0.0.0.0") return true;
+  if (normalized === "::1") return true;
+  if (normalized.includes(":")) return true; // Block raw IPv6 literals in custom base URLs.
+  if (normalized.endsWith(".local") || normalized.endsWith(".internal")) return true;
+  if (isPrivateIpv4(normalized)) return true;
+  return false;
+}
+
+export function validateProviderApiBase(
+  providerId: string,
+  apiBase: string | null,
+): { ok: boolean; normalized: string | null; error: string | null } {
+  const normalizedProvider = providerId.trim().toLowerCase();
+  if (normalizedProvider !== "nexos") {
+    return { ok: true, normalized: null, error: null };
+  }
+
+  if (!apiBase || !apiBase.trim()) {
+    return { ok: true, normalized: null, error: null };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(apiBase.trim());
+  } catch {
+    return { ok: false, normalized: null, error: "Invalid provider API base URL" };
+  }
+
+  if (parsed.protocol !== "https:") {
+    return { ok: false, normalized: null, error: "Provider API base URL must use https" };
+  }
+  if (parsed.username || parsed.password) {
+    return { ok: false, normalized: null, error: "Provider API base URL must not contain credentials" };
+  }
+  if (isDisallowedApiBaseHost(parsed.hostname)) {
+    return { ok: false, normalized: null, error: "Provider API base host is not allowed" };
+  }
+
+  parsed.search = "";
+  parsed.hash = "";
+  const pathname = parsed.pathname.replace(/\/$/, "");
+  return {
+    ok: true,
+    normalized: `${parsed.origin}${pathname}`,
+    error: null,
+  };
+}
+
 export async function listModelsForProvider(
   providerId: string,
   apiKey: string | null,
   apiBase: string | null,
 ): Promise<{ models: ModelInfo[]; is_dynamic: boolean; error: string | null }> {
-  const apiUrl = providerId === "nexos" && apiBase
-    ? `${apiBase.replace(/\/$/, "")}/models`
-    : PROVIDER_API_URLS[providerId];
+  const normalizedProvider = providerId.trim().toLowerCase();
+  const validation = validateProviderApiBase(normalizedProvider, apiBase);
+  if (!validation.ok) {
+    return {
+      models: withCapabilities(FALLBACK_MODELS[normalizedProvider] ?? []),
+      is_dynamic: false,
+      error: validation.error,
+    };
+  }
+
+  const apiUrl = normalizedProvider === "nexos" && validation.normalized
+    ? `${validation.normalized}/models`
+    : PROVIDER_API_URLS[normalizedProvider];
 
   if (apiUrl && apiKey) {
     try {
-      const models = await fetchModels(providerId, apiUrl, apiKey, "chat");
-      const enrichedModels = await enrichModelsWithOpenRouterPricing(providerId, models, apiKey);
+      const models = await fetchModels(normalizedProvider, apiUrl, apiKey, "chat");
+      const enrichedModels = await enrichModelsWithOpenRouterPricing(normalizedProvider, models, apiKey);
       if (models.length > 0) {
         return { models: enrichedModels, is_dynamic: true, error: null };
       }
     } catch (error) {
       return {
-        models: withCapabilities(FALLBACK_MODELS[providerId] ?? []),
+        models: withCapabilities(FALLBACK_MODELS[normalizedProvider] ?? []),
         is_dynamic: false,
         error: error instanceof Error ? error.message : "Failed to fetch provider models",
       };
@@ -544,7 +629,11 @@ export async function listModelsForProvider(
   }
 
   return {
-    models: await enrichModelsWithOpenRouterPricing(providerId, withCapabilities(FALLBACK_MODELS[providerId] ?? []), apiKey),
+    models: await enrichModelsWithOpenRouterPricing(
+      normalizedProvider,
+      withCapabilities(FALLBACK_MODELS[normalizedProvider] ?? []),
+      apiKey,
+    ),
     is_dynamic: false,
     error: null,
   };
@@ -555,7 +644,18 @@ export async function listEmbeddingModelsForProvider(
   apiKey: string | null,
   apiBase: string | null,
 ): Promise<{ models: ModelInfo[]; is_dynamic: boolean; error: string | null }> {
-  if (providerId === "nexos") {
+  const normalizedProvider = providerId.trim().toLowerCase();
+
+  if (normalizedProvider === "nexos") {
+    const validation = validateProviderApiBase(normalizedProvider, apiBase);
+    if (!validation.ok) {
+      return {
+        models: [],
+        is_dynamic: false,
+        error: validation.error,
+      };
+    }
+
     if (!apiKey) {
       return {
         models: [],
@@ -564,10 +664,10 @@ export async function listEmbeddingModelsForProvider(
       };
     }
 
-    const base = apiBase ? apiBase.replace(/\/$/, "") : "https://api.nexos.ai/v1";
+    const base = validation.normalized ?? "https://api.nexos.ai/v1";
     try {
       const models = await fetchNexosEmbeddingModels(`${base}/embeddings/models`, apiKey);
-      const enrichedModels = await enrichModelsWithOpenRouterPricing(providerId, models, apiKey);
+      const enrichedModels = await enrichModelsWithOpenRouterPricing(normalizedProvider, models, apiKey);
       if (models.length > 0) {
         return { models: enrichedModels, is_dynamic: true, error: null };
       }
@@ -578,17 +678,17 @@ export async function listEmbeddingModelsForProvider(
     }
   }
 
-  const apiUrl = PROVIDER_API_URLS[providerId];
+  const apiUrl = PROVIDER_API_URLS[normalizedProvider];
   if (apiUrl && apiKey) {
     try {
-      const models = await fetchModels(providerId, apiUrl, apiKey, "embedding");
-      const enrichedModels = await enrichModelsWithOpenRouterPricing(providerId, models, apiKey);
+      const models = await fetchModels(normalizedProvider, apiUrl, apiKey, "embedding");
+      const enrichedModels = await enrichModelsWithOpenRouterPricing(normalizedProvider, models, apiKey);
       if (models.length > 0) {
         return { models: enrichedModels, is_dynamic: true, error: null };
       }
     } catch (error) {
       return {
-        models: withCapabilities(FALLBACK_EMBEDDING_MODELS[providerId] ?? []),
+        models: withCapabilities(FALLBACK_EMBEDDING_MODELS[normalizedProvider] ?? []),
         is_dynamic: false,
         error: error instanceof Error ? error.message : "Failed to fetch embedding models",
       };
@@ -597,8 +697,8 @@ export async function listEmbeddingModelsForProvider(
 
   return {
     models: await enrichModelsWithOpenRouterPricing(
-      providerId,
-      withCapabilities(FALLBACK_EMBEDDING_MODELS[providerId] ?? []),
+      normalizedProvider,
+      withCapabilities(FALLBACK_EMBEDDING_MODELS[normalizedProvider] ?? []),
       apiKey,
     ),
     is_dynamic: false,
@@ -614,6 +714,11 @@ export async function testProviderConnection(
   const normalizedProvider = provider.trim().toLowerCase();
   if (!isSupportedProvider(normalizedProvider)) {
     return { ok: false, latency_ms: null, error: `Unsupported provider: ${provider}` };
+  }
+
+  const validation = validateProviderApiBase(normalizedProvider, apiBase);
+  if (!validation.ok) {
+    return { ok: false, latency_ms: null, error: validation.error };
   }
 
   const normalizedKey = apiKey?.trim();

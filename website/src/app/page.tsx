@@ -35,7 +35,7 @@ export default function HomePage() {
       <section className="mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,430px)]">
         <div className="max-w-3xl animate-fade-up">
           <h1 className="text-5xl font-semibold leading-[1.02] tracking-tight">
-            Embedded Chat Support Powered by an LLM Agent That Can Actually Act
+            Embedded LLM Support Agent That Can Actually Act
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
             Developers integrate the ResolveKit SDK into mobile or web apps. Users get embedded chat. Your LLM agent
