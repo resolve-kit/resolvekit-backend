@@ -2,14 +2,14 @@ from pathlib import Path
 
 
 def test_dashboard_copilot_provider_component_exists() -> None:
-    provider = Path("dashboard/src/components/PlaybookCopilotProvider.tsx")
+    provider = Path("dashboard/src/components/ResolveKitCopilotProvider.tsx")
     assert provider.exists()
 
     text = provider.read_text(encoding="utf-8")
-    assert "PlaybookProvider" in text
-    assert "PlaybookApprovalWidget" not in text
-    assert "NEXT_PUBLIC_PLAYBOOK_KEY" in text
-    assert "apiKey={PLAYBOOK_API_KEY}" in text
+    assert "ResolveKitProvider" in text
+    assert "ResolveKitApprovalWidget" not in text
+    assert "NEXT_PUBLIC_RESOLVEKIT_KEY" in text
+    assert "apiKey={RESOLVEKIT_API_KEY}" in text
     assert "appId={boundAppId ?? undefined}" in text
     assert "/v1/copilot/runtime-token" not in text
     assert 'mode: "tokenProvider"' not in text
@@ -18,22 +18,22 @@ def test_dashboard_copilot_provider_component_exists() -> None:
 
 def test_dashboard_app_mounts_copilot_provider_inside_router() -> None:
     text = Path("dashboard/src/dashboard-app.tsx").read_text(encoding="utf-8")
-    assert "PlaybookCopilotProvider" in text
-    assert "<PlaybookCopilotProvider>" in text
+    assert "ResolveKitCopilotProvider" in text
+    assert "<ResolveKitCopilotProvider>" in text
 
 
 def test_dashboard_env_example_has_playbook_api_key_vars() -> None:
     text = Path(".env.example").read_text(encoding="utf-8")
-    assert "NEXT_PUBLIC_PLAYBOOK_ENABLED" in text
-    assert "NEXT_PUBLIC_PLAYBOOK_KEY" in text
-    assert "NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL" in text
+    assert "NEXT_PUBLIC_RESOLVEKIT_ENABLED" in text
+    assert "NEXT_PUBLIC_RESOLVEKIT_KEY" in text
+    assert "NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL" in text
     assert "IAA_DASHBOARD_RUNTIME_TOKEN_SECRET" not in text
     assert "IAA_DASHBOARD_RUNTIME_TOKEN_AUDIENCE" not in text
 
 
 def test_dashboard_readme_documents_playbook_api_key_config() -> None:
     text = Path("dashboard/README.md").read_text(encoding="utf-8")
-    assert "NEXT_PUBLIC_PLAYBOOK_KEY" in text
+    assert "NEXT_PUBLIC_RESOLVEKIT_KEY" in text
     assert "IAA_DASHBOARD_RUNTIME_TOKEN_SECRET" not in text
 
 
