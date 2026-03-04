@@ -16,3 +16,12 @@ def test_dashboard_dockerfile_installs_resolvekit_sdk_from_local_context() -> No
     assert "npm --prefix /resolvekit-web-sdk run build" in text
     assert "npm pack /resolvekit-web-sdk --pack-destination /tmp" in text
     assert "--no-save /tmp/resolvekit-sdk-*.tgz" in text
+
+
+def test_prod_compose_uses_prod_prefixed_container_names() -> None:
+    text = Path("docker-compose.prod.yml").read_text(encoding="utf-8")
+
+    assert "container_name: resolvekit_prod_backend" in text
+    assert "container_name: resolvekit_prod_api" in text
+    assert "container_name: resolvekit_prod_dashboard" in text
+    assert "container_name: resolvekit_prod_website" in text

@@ -91,7 +91,7 @@ services:
   backend:
     build: .
     image: resolvekit-backend:prod
-    container_name: resolvekit_backend
+    container_name: resolvekit_prod_backend
     restart: unless-stopped
     depends_on:
       db:
@@ -112,7 +112,7 @@ services:
   api:
     build: *dashboard_build
     image: resolvekit-dashboard:prod
-    container_name: resolvekit_api
+    container_name: resolvekit_prod_api
     restart: unless-stopped
     depends_on:
       - backend
@@ -126,7 +126,7 @@ services:
 
   dashboard:
     image: resolvekit-dashboard:prod
-    container_name: resolvekit_dashboard
+    container_name: resolvekit_prod_dashboard
     restart: unless-stopped
     depends_on:
       - api
@@ -144,7 +144,7 @@ services:
       args:
         NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit.app}
     image: resolvekit-website:prod
-    container_name: resolvekit_website
+    container_name: resolvekit_prod_website
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit.app}
