@@ -152,7 +152,6 @@ async def test_patch_session_context_updates_allowlist_and_client_context() -> N
         available_function_names=["capture_photo", "lookup_weather"],
         locale="fr",
     )
-<<<<<<< HEAD
     request = SimpleNamespace(headers={"X-Resolvekit-Chat-Capability": "cap-token"})
 
     with patch("agent.routers.sessions.validate_chat_capability_token"):
