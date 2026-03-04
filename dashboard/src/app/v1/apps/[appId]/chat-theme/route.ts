@@ -10,7 +10,7 @@ import { prisma } from "@/lib/server/prisma";
 export const dynamic = "force-dynamic";
 
 function normalizeOrDefaultTheme(rawTheme: unknown): {
-  normalized: ReturnType<typeof defaultChatTheme>;
+  normalized: ReturnType<typeof normalizeChatTheme>;
   shouldPersist: boolean;
 } {
   try {

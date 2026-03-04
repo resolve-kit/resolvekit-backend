@@ -9,9 +9,15 @@ RUN git config --global url."https://github.com/".insteadOf ssh://git@github.com
 COPY package.json ./
 COPY prisma ./prisma
 COPY --from=resolvekit_web_sdk /package.json /resolvekit-web-sdk/package.json
-COPY --from=resolvekit_web_sdk /dist /resolvekit-web-sdk/dist
-RUN npm install --no-audit --no-fund
-RUN npm install --no-audit --no-fund --package-lock=false --no-save /resolvekit-web-sdk
+COPY --from=resolvekit_web_sdk /src /resolvekit-web-sdk/src
+COPY --from=resolvekit_web_sdk /vite.config.ts /resolvekit-web-sdk/vite.config.ts
+COPY --from=resolvekit_web_sdk /tsconfig.json /resolvekit-web-sdk/tsconfig.json
+RUN node -e "const fs=require('fs');const p='/resolvekit-web-sdk/package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.dependencies&&j.dependencies['@resolvekit/sdk']){delete j.dependencies['@resolvekit/sdk'];}fs.writeFileSync(p, JSON.stringify(j, null, 2));"
+RUN npm --prefix /resolvekit-web-sdk install --no-audit --no-fund --package-lock=false
+RUN npm --prefix /resolvekit-web-sdk run build
+RUN npm install --no-audit --no-fund || true
+RUN npm pack /resolvekit-web-sdk --pack-destination /tmp
+RUN npm install --no-audit --no-fund --package-lock=false --no-save /tmp/resolvekit-sdk-*.tgz
 RUN node -e "require.resolve('@resolvekit/sdk'); require.resolve('@resolvekit/sdk/react'); require.resolve('@resolvekit/sdk/react-router'); require.resolve('@resolvekit/sdk/starter');"
 
 FROM node:22-alpine AS build
