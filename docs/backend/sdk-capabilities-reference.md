@@ -101,7 +101,7 @@ Key request fields: `device_id`, `llm_context`, `available_function_names`, `loc
 | Field | Notes |
 |-------|-------|
 | `session_id` | Use in all subsequent session-scoped calls |
-| `capability_token` | JWT; send as `x-chat-capability-token` header |
+| `capability_token` | JWT; send as `X-Resolvekit-Chat-Capability` header (legacy headers still accepted during migration). |
 | `reused_active_session` | `true` → load message history |
 | `chat_title` | Locale-aware title for the chat header |
 | `message_placeholder` | Locale-aware composer placeholder |
@@ -127,7 +127,7 @@ Key request fields: `device_id`, `llm_context`, `available_function_names`, `loc
 Activate when WebSocket is unavailable:
 
 - `POST /v1/sessions/{id}/messages`
-- Headers: `Authorization: Bearer {api_key}` + `x-chat-capability-token: {token}`
+- Headers: `Authorization: Bearer {api_key}` + `X-Resolvekit-Chat-Capability: {token}`
 - Body: `{ "text": "...", "locale": "en" }`
 - Response: `text/event-stream` — each frame: `event: {type}\ndata: {json}\n\n`
 
@@ -176,7 +176,7 @@ Both SDKs ✅
 
 When `reused_active_session: true` in the session response, load prior messages:
 
-`GET /v1/sessions/{id}/messages` with `x-chat-capability-token` header
+`GET /v1/sessions/{id}/messages` with `X-Resolvekit-Chat-Capability` header
 
 - Filter to: `role ∈ {user, assistant}` AND `content ≠ null`
 - Populate the message list before opening the transport connection

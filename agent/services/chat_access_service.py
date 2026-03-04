@@ -12,7 +12,8 @@ from agent.models.app import App
 
 CHAT_UNAVAILABLE_CODE = "chat_unavailable"
 CHAT_UNAVAILABLE_MESSAGE = "Chat is unavailable, try again later"
-CHAT_CAPABILITY_HEADER = "X-Playbook-Chat-Capability"
+CHAT_CAPABILITY_HEADER = "X-Resolvekit-Chat-Capability"
+LEGACY_PLAYBOOK_CHAT_CAPABILITY_HEADER = "X-Playbook-Chat-Capability"
 LEGACY_CHAT_CAPABILITY_HEADER = "x-chat-capability-token"
 CHAT_CAPABILITY_QUERY = "chat_capability"
 
@@ -34,6 +35,10 @@ def resolve_chat_capability_token(headers: Mapping[str, str] | Any) -> str | Non
     token = headers.get(CHAT_CAPABILITY_HEADER) if headers else None
     if token and str(token).strip():
         return str(token)
+
+    legacy_playbook_token = headers.get(LEGACY_PLAYBOOK_CHAT_CAPABILITY_HEADER) if headers else None
+    if legacy_playbook_token and str(legacy_playbook_token).strip():
+        return str(legacy_playbook_token)
 
     legacy_token = headers.get(LEGACY_CHAT_CAPABILITY_HEADER) if headers else None
     if legacy_token and str(legacy_token).strip():

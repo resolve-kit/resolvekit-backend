@@ -191,7 +191,6 @@ model ChatSession {
   deviceId      String?  @map("device_id") @db.VarChar(255)
   status        String   @default("active") @db.VarChar(20)
   lastActivityAt DateTime @default(now()) @map("last_activity_at") @db.Timestamptz(6)
-  metadata      Json     @default("{}") @map("metadata")
   clientContext Json     @default("{}") @map("client_context")
   llmContext    Json     @default("{}") @map("llm_context")
   availableFunctionNames Json   @default("[]") @map("available_function_names")
