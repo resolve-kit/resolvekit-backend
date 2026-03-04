@@ -135,6 +135,7 @@
         "type": "object"
       },
       "FunctionBulkSync": {
+        "additionalProperties": false,
         "properties": {
           "functions": {
             "items": {
@@ -212,20 +213,6 @@
             "title": "Parameters Schema",
             "type": "object"
           },
-          "required_capabilities": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Required Capabilities",
-            "type": "array"
-          },
-          "required_entitlements": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Required Entitlements",
-            "type": "array"
-          },
           "requires_approval": {
             "title": "Requires Approval",
             "type": "boolean"
@@ -248,8 +235,6 @@
           "is_active",
           "timeout_seconds",
           "availability",
-          "required_entitlements",
-          "required_capabilities",
           "source",
           "requires_approval",
           "created_at"
@@ -258,6 +243,7 @@
         "type": "object"
       },
       "FunctionRegister": {
+        "additionalProperties": false,
         "properties": {
           "availability": {
             "additionalProperties": true,
@@ -291,22 +277,6 @@
             "additionalProperties": true,
             "title": "Parameters Schema",
             "type": "object"
-          },
-          "required_capabilities": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 64,
-            "title": "Required Capabilities",
-            "type": "array"
-          },
-          "required_entitlements": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 64,
-            "title": "Required Entitlements",
-            "type": "array"
           },
           "requires_approval": {
             "default": true,
@@ -473,6 +443,7 @@
         "type": "object"
       },
       "SessionClientInfo": {
+        "additionalProperties": false,
         "properties": {
           "app_build": {
             "anyOf": [
@@ -562,14 +533,133 @@
         "title": "SessionClientInfo",
         "type": "object"
       },
-      "SessionCreate": {
+      "SessionContextOut": {
         "properties": {
-          "capabilities": {
+          "app_id": {
+            "format": "uuid",
+            "title": "App Id",
+            "type": "string"
+          },
+          "available_function_names": {
             "items": {
               "type": "string"
             },
-            "maxItems": 64,
-            "title": "Capabilities",
+            "title": "Available Function Names",
+            "type": "array"
+          },
+          "client_context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Context"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_activity_at": {
+            "format": "date-time",
+            "title": "Last Activity At",
+            "type": "string"
+          },
+          "llm_context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Context"
+          },
+          "locale": {
+            "title": "Locale",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "app_id",
+          "locale",
+          "last_activity_at"
+        ],
+        "title": "SessionContextOut",
+        "type": "object"
+      },
+      "SessionContextPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "available_function_names": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 512,
+            "title": "Available Function Names",
+            "type": "array"
+          },
+          "client": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionClientInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "llm_context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Context"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          }
+        },
+        "required": [
+          "available_function_names"
+        ],
+        "title": "SessionContextPatch",
+        "type": "object"
+      },
+      "SessionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "available_function_names": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 512,
+            "title": "Available Function Names",
             "type": "array"
           },
           "client": {
@@ -594,14 +684,6 @@
             ],
             "title": "Device Id"
           },
-          "entitlements": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 64,
-            "title": "Entitlements",
-            "type": "array"
-          },
           "llm_context": {
             "additionalProperties": true,
             "title": "Llm Context",
@@ -619,11 +701,6 @@
             ],
             "title": "Locale"
           },
-          "metadata": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
-          },
           "preferred_locales": {
             "items": {
               "type": "string"
@@ -638,6 +715,9 @@
             "type": "boolean"
           }
         },
+        "required": [
+          "available_function_names"
+        ],
         "title": "SessionCreate",
         "type": "object"
       },
@@ -647,6 +727,13 @@
             "format": "uuid",
             "title": "App Id",
             "type": "string"
+          },
+          "available_function_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Available Function Names",
+            "type": "array"
           },
           "chat_capability_token": {
             "anyOf": [
@@ -1083,6 +1170,59 @@
           }
         },
         "summary": "Create Session",
+        "tags": [
+          "sessions-sdk"
+        ]
+      }
+    },
+    "/v1/sessions/{session_id}/context": {
+      "patch": {
+        "operationId": "patch_session_context_v1_sessions__session_id__context_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionContextPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionContextOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Session Context",
         "tags": [
           "sessions-sdk"
         ]

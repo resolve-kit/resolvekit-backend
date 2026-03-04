@@ -43,8 +43,7 @@ Backend call:
     - `device_id`
     - `client_context`
     - `llm_context`
-    - `entitlements`
-    - `capabilities`
+    - `available_function_names`
     - `locale`
     - `preferred_locales`
 
@@ -110,7 +109,7 @@ Backend orchestrator internally:
 SDK provides:
 
 - Function definitions + availability metadata.
-- Runtime session context (`platform`, app version, entitlements, capabilities, custom `llm_context`).
+- Runtime session context (`platform`, app version, session `available_function_names`, custom `llm_context`).
 
 Backend uses:
 

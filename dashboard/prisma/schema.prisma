@@ -141,8 +141,6 @@ model RegisteredFunction {
   descriptionOverride  String?  @map("description_override") @db.VarChar(1000)
   timeoutSeconds       Int      @default(30) @map("timeout_seconds")
   availability         Json     @default("{}")
-  requiredEntitlements Json     @default("[]") @map("required_entitlements")
-  requiredCapabilities Json     @default("[]") @map("required_capabilities")
   source               String   @default("app_inline") @db.VarChar(32)
   packName             String?  @map("pack_name") @db.VarChar(255)
 
@@ -196,8 +194,7 @@ model ChatSession {
   metadata      Json     @default("{}") @map("metadata")
   clientContext Json     @default("{}") @map("client_context")
   llmContext    Json     @default("{}") @map("llm_context")
-  entitlements  Json     @default("[]")
-  capabilities  Json     @default("[]")
+  availableFunctionNames Json   @default("[]") @map("available_function_names")
   locale        String   @default("en") @db.VarChar(16)
 
   app      App      @relation(fields: [appId], references: [id], onDelete: Cascade)

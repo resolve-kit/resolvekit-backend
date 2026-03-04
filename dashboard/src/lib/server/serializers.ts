@@ -8,8 +8,6 @@ export function functionOut(fn: {
   isActive: boolean;
   timeoutSeconds: number;
   availability: unknown;
-  requiredEntitlements: unknown;
-  requiredCapabilities: unknown;
   source: string;
   packName: string | null;
   createdAt: Date;
@@ -24,8 +22,6 @@ export function functionOut(fn: {
     is_active: fn.isActive,
     timeout_seconds: fn.timeoutSeconds,
     availability: fn.availability,
-    required_entitlements: fn.requiredEntitlements,
-    required_capabilities: fn.requiredCapabilities,
     source: fn.source,
     pack_name: fn.packName,
     created_at: fn.createdAt,
@@ -41,6 +37,7 @@ export function sessionOut(session: {
   createdAt: Date;
   clientContext: unknown;
   llmContext: unknown;
+  availableFunctionNames: unknown;
   locale: string;
 }) {
   return {
@@ -49,6 +46,7 @@ export function sessionOut(session: {
     device_id: session.deviceId,
     client_context: session.clientContext,
     llm_context: session.llmContext,
+    available_function_names: session.availableFunctionNames,
     locale: session.locale,
     chat_title: "Support Chat",
     message_placeholder: "Message",

@@ -58,7 +58,7 @@ Inputs:
 - Session context:
   - `client_context` (platform, app version, SDK version, etc.)
   - `llm_context` (custom structured fields from SDK)
-  - eligibility fields (`entitlements`, `capabilities`)
+  - eligibility fields (`available_function_names`)
 - Knowledge context:
   - assigned KB IDs for app
   - prefetch search results
@@ -88,4 +88,3 @@ Transport implementations:
 
 - [Error Contracts](error-contracts.md)
 - [SDK Integration Protocol](../../SDK_INTEGRATION.md)
-

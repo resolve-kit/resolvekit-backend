@@ -21,7 +21,7 @@ This document maps runtime capabilities to concrete implementation modules in `a
   - [`agent/services/compatibility_service.py`](../../agent/services/compatibility_service.py)
 - Key features:
   - Bulk function sync from SDK.
-  - Runtime filtering by platform/version/entitlements/capabilities.
+  - Runtime filtering by platform/version and session function allowlist.
 
 ResolveKit records are read by runtime for prompt enrichment, but CRUD ownership is in dashboard `api`.
 
@@ -36,8 +36,7 @@ ResolveKit records are read by runtime for prompt enrichment, but CRUD ownership
   - Per-session context fields:
     - `client_context`
     - `llm_context`
-    - `entitlements`
-    - `capabilities`
+    - `available_function_names`
   - Dashboard session/message listing.
 
 ## Chat Runtime Transports
