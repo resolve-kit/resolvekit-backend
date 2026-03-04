@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
   Button,
@@ -80,8 +80,10 @@ const APP_NAV_ITEMS = [
   { label: "Sessions", slug: "sessions" },
   { label: "Audit Log", slug: "audit" },
 ];
+const APP_DEFAULT_SLUG = APP_NAV_ITEMS[0]?.slug ?? "llm";
 
 export default function Apps() {
+  const navigate = useNavigate();
   const [apps, setApps] = useState<App[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [appMissingConfig, setAppMissingConfig] = useState<Record<string, string[]>>({});
@@ -246,6 +248,24 @@ export default function Apps() {
     }
   }
 
+  function openDefaultAppPage(appId: string) {
+    navigate(`/apps/${appId}/${APP_DEFAULT_SLUG}`);
+  }
+
+  function handleAppCardClick(event: MouseEvent<HTMLElement>, appId: string) {
+    const target = event.target as HTMLElement;
+    if (target.closest("a, button, input, textarea, select, label")) return;
+    openDefaultAppPage(appId);
+  }
+
+  function handleAppCardKeyDown(event: KeyboardEvent<HTMLElement>, appId: string) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const target = event.target as HTMLElement;
+    if (target.closest("a, button, input, textarea, select, label")) return;
+    event.preventDefault();
+    openDefaultAppPage(appId);
+  }
+
   const appToDelete = apps.find((a) => a.id === confirmDeleteId) ?? null;
   const appToToggle = apps.find((a) => a.id === confirmToggleAppId) ?? null;
   const configuredApps = Object.values(appMissingConfig).filter((missing) => missing.length === 0).length;
@@ -331,7 +351,18 @@ export default function Apps() {
           <div
             key={app.id}
             data-resolvekit-id={`app-card-${app.id}`}
-            className={`group relative glass-panel rounded-xl border border-border/70 p-4 transition-all hover:-translate-y-0.5 hover:border-border-2 hover:shadow-card animate-fade-in-up ${
+            role="link"
+            tabIndex={0}
+            onClick={(event) => {
+              if (editingAppId === app.id) return;
+              handleAppCardClick(event, app.id);
+            }}
+            onKeyDown={(event) => {
+              if (editingAppId === app.id) return;
+              handleAppCardKeyDown(event, app.id);
+            }}
+            aria-label={`Open ${app.name} app settings`}
+            className={`group relative glass-panel rounded-xl border border-border/70 p-4 transition-all hover:-translate-y-0.5 hover:border-border-2 hover:shadow-card cursor-pointer animate-fade-in-up ${
               i === 0 ? "" : i === 1 ? "delay-50" : i === 2 ? "delay-100" : "delay-150"
             }`}
           >
