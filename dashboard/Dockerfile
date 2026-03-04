@@ -8,7 +8,11 @@ RUN git config --global url."https://github.com/".insteadOf ssh://git@github.com
 
 COPY package.json ./
 COPY prisma ./prisma
+COPY --from=resolvekit_web_sdk /package.json /resolvekit-web-sdk/package.json
+COPY --from=resolvekit_web_sdk /dist /resolvekit-web-sdk/dist
 RUN npm install --no-audit --no-fund
+RUN npm install --no-audit --no-fund --package-lock=false --no-save /resolvekit-web-sdk
+RUN node -e "require.resolve('@resolvekit/sdk'); require.resolve('@resolvekit/sdk/react'); require.resolve('@resolvekit/sdk/react-router'); require.resolve('@resolvekit/sdk/starter');"
 
 FROM node:22-alpine AS build
 

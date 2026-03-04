@@ -48,6 +48,8 @@ Settings are loaded via pydantic settings models:
   - Dashboard API origin used from `dash` UI (for example: `https://api.<domain>`).
 - `DATABASE_URL`
   - Dashboard Next route handler DB connection string (Prisma).
+- `RESOLVEKIT_WEB_SDK_PATH`
+  - Filesystem path to local `resolvekit-web-sdk` repo used by docker compose (`docker-compose.yml` and `docker-compose.prod.yml`) to inject/build `@resolvekit/sdk`.
 - `IAA_JWT_SECRET`
 - `IAA_JWT_ALGORITHM`
 - `IAA_JWT_EXPIRE_MINUTES`

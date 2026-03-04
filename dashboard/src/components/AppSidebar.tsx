@@ -14,6 +14,7 @@ const AGENT_CHILD_ITEMS: NavItem[] = [
   { label: "Model", slug: "llm" },
   { label: "System Prompt", slug: "agent" },
   { label: "Limits", slug: "limits" },
+  { label: "Functions", slug: "functions" },
   { label: "Playbooks", slug: "playbooks" },
   { label: "Knowledge Bases", slug: "knowledge-bases" },
 ];

@@ -28,11 +28,14 @@
 ## Production compose setup
 
 1. Configure production env values (secrets + public URLs).
-2. Build and run:
+2. Build local web SDK package used by dashboard/api production image build:
+   - `npm --prefix ../resolvekit-web-sdk run build`
+   - Optional if SDK repo is elsewhere: set `RESOLVEKIT_WEB_SDK_PATH=/absolute/path/to/resolvekit-web-sdk`
+3. Build and run:
    - `docker compose -f docker-compose.prod.yml --env-file .env up -d --build`
-3. Check services:
+4. Check services:
    - `docker compose -f docker-compose.prod.yml ps`
-4. Tail logs:
+5. Tail logs:
    - `docker compose -f docker-compose.prod.yml logs -f backend`
    - `docker compose -f docker-compose.prod.yml logs -f api`
    - `docker compose -f docker-compose.prod.yml logs -f dashboard`

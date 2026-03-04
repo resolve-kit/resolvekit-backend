@@ -11,6 +11,7 @@ const TABS = [
   { label: "Model", slug: "llm" },
   { label: "System Prompt", slug: "agent" },
   { label: "Limits", slug: "limits" },
+  { label: "Functions", slug: "functions" },
   { label: "Playbooks", slug: "playbooks" },
   { label: "Knowledge Bases", slug: "knowledge-bases" },
   { label: "API Keys", slug: "api-keys" },
