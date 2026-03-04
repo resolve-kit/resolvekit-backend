@@ -14,15 +14,17 @@ class FunctionRegister(BaseModel):
     parameters_schema: dict[str, Any] = Field(default_factory=dict)
     timeout_seconds: Annotated[int, Field(ge=1, le=300)] = 30
     availability: dict[str, Any] = Field(default_factory=dict)
-    required_entitlements: list[str] = Field(default_factory=list, max_length=64)
-    required_capabilities: list[str] = Field(default_factory=list, max_length=64)
     source: FunctionSource = "app_inline"
     pack_name: str | None = None
     requires_approval: bool = True
 
+    model_config = {"extra": "forbid"}
+
 
 class FunctionBulkSync(BaseModel):
     functions: list[FunctionRegister] = Field(max_length=512)
+
+    model_config = {"extra": "forbid"}
 
 
 class FunctionUpdate(BaseModel):
@@ -32,11 +34,11 @@ class FunctionUpdate(BaseModel):
     is_active: bool | None = None
     timeout_seconds: int | None = None
     availability: dict[str, Any] | None = None
-    required_entitlements: list[str] | None = None
-    required_capabilities: list[str] | None = None
     source: FunctionSource | None = None
     pack_name: str | None = None
     requires_approval: bool | None = None
+
+    model_config = {"extra": "forbid"}
 
 
 class FunctionOut(BaseModel):
@@ -49,8 +51,6 @@ class FunctionOut(BaseModel):
     is_active: bool
     timeout_seconds: int
     availability: dict[str, Any]
-    required_entitlements: list[str]
-    required_capabilities: list[str]
     source: str
     pack_name: str | None = None
     requires_approval: bool

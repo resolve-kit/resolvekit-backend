@@ -37,10 +37,16 @@ def test_resolve_chat_capability_token_accepts_legacy_header() -> None:
 
 def test_resolve_chat_capability_token_prefers_primary_header() -> None:
     headers = {
-        "X-Playbook-Chat-Capability": "primary-token",
+        "X-Resolvekit-Chat-Capability": "primary-token",
+        "X-Playbook-Chat-Capability": "playbook-token",
         "x-chat-capability-token": "legacy-token",
     }
     assert resolve_chat_capability_token(headers) == "primary-token"
+
+
+def test_resolve_chat_capability_token_accepts_playbook_header() -> None:
+    headers = {"X-Playbook-Chat-Capability": "playbook-token"}
+    assert resolve_chat_capability_token(headers) == "playbook-token"
 
 
 def test_chat_capability_token_validates_for_same_session_and_version() -> None:
@@ -73,6 +79,38 @@ def test_chat_capability_token_rejected_when_integration_disabled() -> None:
 
     with pytest.raises(HTTPException) as exc_info:
         validate_chat_capability_token(token=token, session_id=session_id, app=app)
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == {"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE}
+
+
+def test_chat_capability_token_rejected_when_missing() -> None:
+    app = _app(integration_enabled=True, integration_version=1)
+    session_id = uuid.uuid4()
+    with pytest.raises(HTTPException) as exc_info:
+        validate_chat_capability_token(token=None, session_id=session_id, app=app)
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == {"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE}
+
+
+def test_chat_capability_token_rejected_when_blank() -> None:
+    app = _app(integration_enabled=True, integration_version=1)
+    session_id = uuid.uuid4()
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_chat_capability_token(token="   ", session_id=session_id, app=app)
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == {"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE}
+
+
+def test_chat_capability_token_rejected_when_invalid() -> None:
+    app = _app(integration_enabled=True, integration_version=1)
+    session_id = uuid.uuid4()
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_chat_capability_token(token="invalid-token", session_id=session_id, app=app)
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == {"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE}

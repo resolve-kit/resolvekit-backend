@@ -9,13 +9,16 @@
 ## Docker-first setup
 
 1. Configure `.env` (copy from `.env.example` if needed).
-2. Start stack:
+2. Build local web SDK package used by dashboard/api containers:
+   - `npm --prefix ../resolvekit-web-sdk run build`
+   - Optional if SDK repo is elsewhere: set `RESOLVEKIT_WEB_SDK_PATH=/absolute/path/to/resolvekit-web-sdk`
+3. Start stack:
    - `docker compose up --build -d`
-3. Check services:
+4. Check services:
    - `docker compose ps`
    - `curl -s http://localhost:8000/health`
    - `docker compose logs --tail=20 kb-service`
-4. Tail logs:
+5. Tail logs:
    - `docker compose logs -f backend`
    - `docker compose logs -f kb-service`
    - `docker compose logs -f dashboard`

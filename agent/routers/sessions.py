@@ -10,7 +10,14 @@ from agent.middleware.auth import get_app_from_api_key
 from agent.models.app import App
 from agent.models.message import Message
 from agent.models.session import ChatSession
-from agent.schemas.session import MessageOut, SessionCreate, SessionOut, SessionWSTicketOut
+from agent.schemas.session import (
+    MessageOut,
+    SessionContextOut,
+    SessionContextPatch,
+    SessionCreate,
+    SessionOut,
+    SessionWSTicketOut,
+)
 from agent.services.chat_localization_service import effective_texts, resolve_locale
 from agent.services.chat_access_service import (
     ensure_chat_available_for_app,
@@ -51,8 +58,7 @@ async def create_session(
         session.device_id = body.device_id
         session.client_context = client_context
         session.llm_context = body.llm_context
-        session.entitlements = body.entitlements
-        session.capabilities = body.capabilities
+        session.available_function_names = body.available_function_names
         session.locale = resolved_locale
         session.status = "active"
         session.last_activity_at = datetime.now(timezone.utc)
@@ -62,8 +68,7 @@ async def create_session(
             device_id=body.device_id,
             client_context=client_context,
             llm_context=body.llm_context,
-            entitlements=body.entitlements,
-            capabilities=body.capabilities,
+            available_function_names=body.available_function_names,
             locale=resolved_locale,
         )
         db.add(session)
@@ -84,7 +89,11 @@ async def create_session(
         await db.commit()
         await db.refresh(session)
 
-    chat_capability_token = issue_chat_capability_token(session_id=session.id, app=app)
+    chat_capability_token = issue_chat_capability_token(
+        session_id=session.id,
+        app=app,
+        ttl_seconds=ttl_minutes * 60,
+    )
 
     return SessionOut(
         id=session.id,
@@ -92,6 +101,7 @@ async def create_session(
         device_id=session.device_id,
         client_context=session.client_context,
         llm_context=session.llm_context,
+        available_function_names=session.available_function_names,
         locale=session.locale,
         chat_title=texts["chat_title"],
         message_placeholder=texts["message_placeholder"],
@@ -103,6 +113,39 @@ async def create_session(
         chat_capability_token=chat_capability_token,
         reused_active_session=reused_active_session,
     )
+
+
+@sdk_router.patch("/{session_id}/context", response_model=SessionContextOut)
+async def patch_session_context(
+    session_id: uuid.UUID,
+    body: SessionContextPatch,
+    request: Request,
+    app: App = Depends(get_app_from_api_key),
+    db: AsyncSession = Depends(get_db),
+):
+    validate_chat_capability_token(
+        token=resolve_chat_capability_token(request.headers),
+        session_id=session_id,
+        app=app,
+    )
+
+    session = await db.get(ChatSession, session_id)
+    if not session or session.app_id != app.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    if body.client is not None:
+        session.client_context = body.client.model_dump(exclude_none=True)
+    if body.llm_context is not None:
+        session.llm_context = body.llm_context
+    session.available_function_names = body.available_function_names
+
+    if isinstance(body.locale, str) and body.locale.strip():
+        session.locale = resolve_locale(body.locale, [session.locale])
+
+    session.last_activity_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(session)
+    return session
 
 
 @sdk_router.get("/{session_id}/localization")

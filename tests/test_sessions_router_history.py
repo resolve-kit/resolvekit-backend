@@ -63,7 +63,7 @@ async def test_sdk_session_history_returns_messages_for_owned_session() -> None:
         ),
     ]
     db = _FakeDB(session_obj=session_obj, messages=messages)
-    request = SimpleNamespace(headers={"X-Playbook-Chat-Capability": "cap-token"})
+    request = SimpleNamespace(headers={"X-Resolvekit-Chat-Capability": "cap-token"})
 
     with patch("agent.routers.sessions.validate_chat_capability_token"):
         out = await get_session_messages_sdk(session_id=session_id, request=request, app=app, db=db)
@@ -78,7 +78,7 @@ async def test_sdk_session_history_rejects_foreign_session() -> None:
     app = SimpleNamespace(id=uuid.uuid4(), integration_enabled=True, integration_version=1)
     foreign_session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
     db = _FakeDB(session_obj=foreign_session, messages=[])
-    request = SimpleNamespace(headers={"X-Playbook-Chat-Capability": "cap-token"})
+    request = SimpleNamespace(headers={"X-Resolvekit-Chat-Capability": "cap-token"})
 
     with patch("agent.routers.sessions.validate_chat_capability_token"):
         with pytest.raises(HTTPException) as exc_info:

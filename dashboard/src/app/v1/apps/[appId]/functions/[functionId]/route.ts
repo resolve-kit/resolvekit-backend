@@ -17,8 +17,6 @@ type FunctionUpdatePayload = {
   is_active?: boolean;
   timeout_seconds?: number;
   availability?: Record<string, unknown>;
-  required_entitlements?: string[];
-  required_capabilities?: string[];
   source?: "app_inline" | "playbook_pack";
   pack_name?: string | null;
 };
@@ -39,6 +37,12 @@ export async function PATCH(
 
   const body = await readJson<FunctionUpdatePayload>(request);
   if (!body) return detail(422, "Invalid function update payload");
+  if (
+    Object.prototype.hasOwnProperty.call(body, "required_entitlements")
+    || Object.prototype.hasOwnProperty.call(body, "required_capabilities")
+  ) {
+    return detail(422, "required_entitlements and required_capabilities are no longer supported");
+  }
 
   const oldIsActive = fn.isActive;
   const oldOverride = fn.descriptionOverride;
@@ -50,8 +54,6 @@ export async function PATCH(
     isActive?: boolean;
     timeoutSeconds?: number;
     availability?: Prisma.InputJsonValue;
-    requiredEntitlements?: Prisma.InputJsonValue;
-    requiredCapabilities?: Prisma.InputJsonValue;
     source?: "app_inline" | "playbook_pack";
     packName?: string | null;
   } = {};
@@ -65,12 +67,6 @@ export async function PATCH(
   if (typeof body.timeout_seconds === "number") data.timeoutSeconds = body.timeout_seconds;
   if (body.availability && typeof body.availability === "object") {
     data.availability = body.availability as Prisma.InputJsonValue;
-  }
-  if (Array.isArray(body.required_entitlements)) {
-    data.requiredEntitlements = body.required_entitlements as Prisma.InputJsonValue;
-  }
-  if (Array.isArray(body.required_capabilities)) {
-    data.requiredCapabilities = body.required_capabilities as Prisma.InputJsonValue;
   }
   if (body.source === "app_inline" || body.source === "playbook_pack") data.source = body.source;
   if (Object.prototype.hasOwnProperty.call(body, "pack_name")) data.packName = body.pack_name ?? null;

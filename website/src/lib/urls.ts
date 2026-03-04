@@ -4,7 +4,7 @@ function trimTrailingSlash(value: string): string {
 
 const rawDashboardBaseUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000";
 const rawFeedbackIssuesUrl =
-  process.env.NEXT_PUBLIC_FEEDBACK_ISSUES_URL ?? "https://github.com/Nights-Are-Late/resolvekit-ios-sdk";
+  process.env.NEXT_PUBLIC_FEEDBACK_ISSUES_URL ?? "https://github.com/Nights-Are-Late/resolvekit-ios-sdk/issues";
 
 export const dashboardBaseUrl = trimTrailingSlash(rawDashboardBaseUrl);
 export const dashboardLoginUrl = `${dashboardBaseUrl}/login`;

@@ -99,15 +99,19 @@ services:
       - api
     command: >
       sh -c "rm -rf .next-dashboard &&
-      npm install --no-audit --no-fund &&
-      if [ -f /resolvekit-web-sdk/package.json ] && [ -d /resolvekit-web-sdk/dist ]; then
-      rm -rf /app/.resolvekit-web-sdk &&
-      mkdir -p /app/.resolvekit-web-sdk &&
-      cp /resolvekit-web-sdk/package.json /app/.resolvekit-web-sdk/package.json &&
-      cp -R /resolvekit-web-sdk/dist /app/.resolvekit-web-sdk/dist &&
-      rm -rf /app/node_modules/@resolvekit/sdk &&
-      npm install --no-audit --no-fund --no-save /app/.resolvekit-web-sdk;
+      if [ ! -f /resolvekit-web-sdk/package.json ] || [ ! -d /resolvekit-web-sdk/dist ]; then
+      echo 'ERROR: Local resolvekit-web-sdk package.json/dist not found at /resolvekit-web-sdk.' &&
+      echo 'Set RESOLVEKIT_WEB_SDK_PATH and run npm --prefix ../resolvekit-web-sdk run build before docker compose up.' &&
+      exit 1;
       fi &&
+      rm -rf /app/node_modules/.resolvekit-web-sdk &&
+      mkdir -p /app/node_modules/.resolvekit-web-sdk &&
+      cp /resolvekit-web-sdk/package.json /app/node_modules/.resolvekit-web-sdk/package.json &&
+      cp -R /resolvekit-web-sdk/dist /app/node_modules/.resolvekit-web-sdk/dist &&
+      rm -rf /app/node_modules/@resolvekit/sdk &&
+      npm install --no-audit --no-fund --package-lock=false || true &&
+      npm install --no-audit --no-fund --package-lock=false --no-save /app/node_modules/.resolvekit-web-sdk &&
+      npx prisma generate &&
       node -e \"require.resolve('@resolvekit/sdk'); require.resolve('@resolvekit/sdk/react'); require.resolve('@resolvekit/sdk/react-router'); require.resolve('@resolvekit/sdk/starter');\" &&
       npm run dev -- --hostname 0.0.0.0 --port 3000"
     environment:
@@ -145,15 +149,19 @@ services:
       - backend
     command: >
       sh -c "rm -rf .next-api &&
-      npm install --no-audit --no-fund &&
-      if [ -f /resolvekit-web-sdk/package.json ] && [ -d /resolvekit-web-sdk/dist ]; then
-      rm -rf /app/.resolvekit-web-sdk &&
-      mkdir -p /app/.resolvekit-web-sdk &&
-      cp /resolvekit-web-sdk/package.json /app/.resolvekit-web-sdk/package.json &&
-      cp -R /resolvekit-web-sdk/dist /app/.resolvekit-web-sdk/dist &&
-      rm -rf /app/node_modules/@resolvekit/sdk &&
-      npm install --no-audit --no-fund --no-save /app/.resolvekit-web-sdk;
+      if [ ! -f /resolvekit-web-sdk/package.json ] || [ ! -d /resolvekit-web-sdk/dist ]; then
+      echo 'ERROR: Local resolvekit-web-sdk package.json/dist not found at /resolvekit-web-sdk.' &&
+      echo 'Set RESOLVEKIT_WEB_SDK_PATH and run npm --prefix ../resolvekit-web-sdk run build before docker compose up.' &&
+      exit 1;
       fi &&
+      rm -rf /app/node_modules/.resolvekit-web-sdk &&
+      mkdir -p /app/node_modules/.resolvekit-web-sdk &&
+      cp /resolvekit-web-sdk/package.json /app/node_modules/.resolvekit-web-sdk/package.json &&
+      cp -R /resolvekit-web-sdk/dist /app/node_modules/.resolvekit-web-sdk/dist &&
+      rm -rf /app/node_modules/@resolvekit/sdk &&
+      npm install --no-audit --no-fund --package-lock=false || true &&
+      npm install --no-audit --no-fund --package-lock=false --no-save /app/node_modules/.resolvekit-web-sdk &&
+      npx prisma generate &&
       node -e \"require.resolve('@resolvekit/sdk'); require.resolve('@resolvekit/sdk/react'); require.resolve('@resolvekit/sdk/react-router'); require.resolve('@resolvekit/sdk/starter');\" &&
       npm run dev -- --hostname 0.0.0.0 --port 3002"
     environment:

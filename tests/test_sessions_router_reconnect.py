@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from agent.routers.sessions import create_session
-from agent.schemas.session import SessionClientInfo, SessionCreate
+from agent.routers.sessions import create_session, patch_session_context
+from agent.schemas.session import SessionClientInfo, SessionContextPatch, SessionCreate
 
 
 class _FakeDB:
@@ -32,6 +32,13 @@ class _FakeDB:
             setattr(item, "status", "active")
         self.refreshed.append(item)
 
+    async def get(self, model: object, ident: uuid.UUID) -> object | None:
+        _ = model
+        for item in self.refreshed:
+            if getattr(item, "id", None) == ident:
+                return item
+        return None
+
 
 @pytest.mark.asyncio
 async def test_create_session_reuses_latest_active_session() -> None:
@@ -46,8 +53,7 @@ async def test_create_session_reuses_latest_active_session() -> None:
         device_id="device-1",
         client_context={"platform": "old"},
         llm_context={"location": "old"},
-        entitlements=["basic"],
-        capabilities=["legacy"],
+        available_function_names=["legacy_function"],
         status="active",
         last_activity_at=datetime.now(timezone.utc) - timedelta(minutes=8),
         created_at=datetime.now(timezone.utc) - timedelta(hours=1),
@@ -57,8 +63,7 @@ async def test_create_session_reuses_latest_active_session() -> None:
         device_id="device-1",
         client=SessionClientInfo(platform="ios"),
         llm_context={"location": "vilnius"},
-        entitlements=["pro"],
-        capabilities=["camera"],
+        available_function_names=["capture_photo"],
         reuse_active_session=True,
     )
 
@@ -78,8 +83,7 @@ async def test_create_session_reuses_latest_active_session() -> None:
     assert response.initial_message == "Hello! How can I help you today?"
     assert existing.client_context == {"platform": "ios"}
     assert existing.llm_context == {"location": "vilnius"}
-    assert existing.entitlements == ["pro"]
-    assert existing.capabilities == ["camera"]
+    assert existing.available_function_names == ["capture_photo"]
     assert existing.last_activity_at > datetime.now(timezone.utc) - timedelta(minutes=1)
     assert db.added == []
     assert db.commit_count == 1
@@ -98,8 +102,7 @@ async def test_create_session_creates_new_when_reuse_is_disabled() -> None:
         device_id="device-1",
         client=SessionClientInfo(platform="ios"),
         llm_context={"location": "vilnius"},
-        entitlements=["pro"],
-        capabilities=["camera"],
+        available_function_names=["capture_photo"],
         preferred_locales=["fr-FR"],
         reuse_active_session=False,
     )
@@ -120,3 +123,48 @@ async def test_create_session_creates_new_when_reuse_is_disabled() -> None:
     assert response.initial_message == "Bonjour ! Comment puis-je vous aider aujourd'hui ?"
     assert len(db.added) == 2
     assert db.commit_count == 2
+
+
+@pytest.mark.asyncio
+async def test_patch_session_context_updates_allowlist_and_client_context() -> None:
+    app = SimpleNamespace(
+        id=uuid.uuid4(),
+        integration_enabled=True,
+        integration_version=1,
+    )
+    existing = SimpleNamespace(
+        id=uuid.uuid4(),
+        app_id=app.id,
+        client_context={"platform": "old"},
+        llm_context={"mode": "old"},
+        available_function_names=["legacy_function"],
+        locale="en",
+        last_activity_at=datetime.now(timezone.utc) - timedelta(minutes=8),
+        created_at=datetime.now(timezone.utc) - timedelta(hours=1),
+        status="active",
+        device_id="device-1",
+    )
+    db = _FakeDB()
+    await db.refresh(existing)
+    body = SessionContextPatch(
+        client=SessionClientInfo(platform="ios", sdk_version="2.0.0"),
+        llm_context={"mode": "new"},
+        available_function_names=["capture_photo", "lookup_weather"],
+        locale="fr",
+    )
+    request = SimpleNamespace(headers={"X-Resolvekit-Chat-Capability": "cap-token"})
+
+    with patch("agent.routers.sessions.validate_chat_capability_token"):
+        response = await patch_session_context(
+            session_id=existing.id,
+            body=body,
+            request=request,
+            app=app,
+            db=db,
+        )
+
+    assert response.id == existing.id
+    assert existing.client_context == {"platform": "ios", "sdk_version": "2.0.0"}
+    assert existing.llm_context == {"mode": "new"}
+    assert existing.available_function_names == ["capture_photo", "lookup_weather"]
+    assert existing.locale == "fr"

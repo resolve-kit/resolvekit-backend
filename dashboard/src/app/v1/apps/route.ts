@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         organizationId: orgId,
         name: body.name.trim(),
         bundleId: typeof body.bundle_id === "string" ? body.bundle_id : null,
-        chatTheme: defaultChatTheme() as object,
+        chatTheme: defaultChatTheme() as Prisma.InputJsonValue,
         chatLocalizationOverrides: {},
       },
     });
