@@ -40,8 +40,6 @@ async def bulk_sync_functions(
             fn.parameters_schema = f.parameters_schema
             fn.timeout_seconds = f.timeout_seconds
             fn.availability = f.availability
-            fn.required_entitlements = f.required_entitlements
-            fn.required_capabilities = f.required_capabilities
             fn.source = f.source
             fn.pack_name = f.pack_name
             fn.requires_approval = f.requires_approval
@@ -54,8 +52,6 @@ async def bulk_sync_functions(
                 parameters_schema=f.parameters_schema,
                 timeout_seconds=f.timeout_seconds,
                 availability=f.availability,
-                required_entitlements=f.required_entitlements,
-                required_capabilities=f.required_capabilities,
                 source=f.source,
                 pack_name=f.pack_name,
                 requires_approval=f.requires_approval,

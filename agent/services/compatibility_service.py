@@ -38,6 +38,10 @@ def function_is_eligible(fn: RegisteredFunction, session: ChatSession) -> bool:
     if not fn.is_active:
         return False
 
+    available_function_names = set(getattr(session, "available_function_names", []) or [])
+    if fn.name not in available_function_names:
+        return False
+
     availability = fn.availability or {}
     client = session.client_context or {}
 
@@ -61,16 +65,6 @@ def function_is_eligible(fn: RegisteredFunction, session: ChatSession) -> bool:
         availability.get("min_app_version"),
         availability.get("max_app_version"),
     ):
-        return False
-
-    session_entitlements = set(session.entitlements or [])
-    required_entitlements = set(fn.required_entitlements or [])
-    if not required_entitlements.issubset(session_entitlements):
-        return False
-
-    session_capabilities = set(session.capabilities or [])
-    required_capabilities = set(fn.required_capabilities or [])
-    if not required_capabilities.issubset(session_capabilities):
         return False
 
     return True

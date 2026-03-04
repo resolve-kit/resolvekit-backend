@@ -20,8 +20,7 @@ Every SDK client must accept these configuration fields:
 | `base_url` | No (default: localhost:8000) | Root for all API calls |
 | `device_id` | No | `POST /v1/sessions` → `device_id` |
 | `llm_context` | No | `POST /v1/sessions` → `llm_context` |
-| `entitlements` | No | `POST /v1/sessions` → `entitlements` |
-| `capabilities` | No | `POST /v1/sessions` → `capabilities` |
+| `available_function_names` | Yes | `POST /v1/sessions` → `available_function_names` |
 | `locale` | No | `POST /v1/sessions` → `locale` |
 | `preferred_locales` | No | `POST /v1/sessions` → `preferred_locales` (fallback list) |
 | `client` | No | `POST /v1/sessions` → `client` (platform/os/app/sdk versions) |
@@ -62,7 +61,7 @@ Functions let the AI execute actions in the host app. Registered via `PUT /v1/fu
 
 ## 3. Function Packs & Availability Gating
 
-Functions can be grouped into packs and conditionally registered based on platform, OS/app version, entitlements, and capabilities. Backend filters via [`GET /v1/functions/eligible`](../../agent/routers/functions.py).
+Functions can be grouped into packs and conditionally registered based on platform and OS/app version. Backend filters via [`GET /v1/functions/eligible`](../../agent/routers/functions.py), then intersects with session `available_function_names`.
 
 **Additional wire fields per function:**
 
@@ -76,9 +75,7 @@ Functions can be grouped into packs and conditionally registered based on platfo
     "max_os_version": null,
     "min_app_version": "2.0",
     "max_app_version": null
-  },
-  "required_entitlements": ["pro"],
-  "required_capabilities": ["camera"]
+  }
 }
 ```
 
@@ -97,7 +94,7 @@ Functions can be grouped into packs and conditionally registered based on platfo
 
 **Start a session:** `POST /v1/sessions`
 
-Key request fields: `device_id`, `llm_context`, `entitlements`, `capabilities`, `locale`, `preferred_locales`, `client`, `reuse_active_session: true`
+Key request fields: `device_id`, `llm_context`, `available_function_names`, `locale`, `preferred_locales`, `client`, `reuse_active_session: true`
 
 **Response fields:**
 

@@ -100,8 +100,6 @@ Idempotent full-sync. Call on every app launch.
 | `parameters_schema` | object | no | `{}` | JSON Schema describing the function's arguments. |
 | `timeout_seconds` | int | no | `30` | Server-enforced per-call timeout. |
 | `availability` | object | no | `{}` | Compatibility rules: `platforms`, `min_os_version`, `max_os_version`, `min_app_version`, `max_app_version`. |
-| `required_entitlements` | string[] | no | `[]` | Entitlements required in session context (for example subscription tiers). |
-| `required_capabilities` | string[] | no | `[]` | Required runtime capabilities (for example hardware/API support). |
 | `source` | string | no | `"app_inline"` | Provenance: `app_inline` or `playbook_pack`. |
 | `pack_name` | string or null | no | `null` | Optional function pack identifier. |
 
@@ -137,7 +135,7 @@ Returns all active functions for the app. Useful for verifying registration stat
 
 ### `GET /v1/functions/eligible?session_id=<uuid>`
 
-Returns only functions eligible for a given session context after compatibility + entitlement filtering.
+Returns only functions eligible for a given session context after compatibility + session allowlist filtering.
 
 ---
 
@@ -170,8 +168,7 @@ Create a new chat session.
     "network_type": "wifi",
     "is_traveling": false
   },
-  "entitlements": ["pro"],
-  "capabilities": ["camera", "location"],
+  "available_function_names": ["setLights", "getWeather"],
   "locale": "fr",
   "preferred_locales": ["fr-FR", "en-US"]
 }
@@ -182,8 +179,7 @@ Create a new chat session.
 | `device_id` | string | no | `null` | Stable device identifier. |
 | `client` | object | no | `null` | Structured compatibility context (recommended). |
 | `llm_context` | object | no | `{}` | Custom JSON context injected into LLM routing, prompt context, and KB query shaping. |
-| `entitlements` | string[] | no | `[]` | User/app entitlements (for paywall-aware tool access). |
-| `capabilities` | string[] | no | `[]` | Device/runtime capabilities. |
+| `available_function_names` | string[] | yes | — | Authoritative list of SDK-callable function names for this session. |
 | `locale` | string | no | `null` | Explicit locale override (for example `fr`, `pt-br`). |
 | `preferred_locales` | string[] | no | `[]` | Ordered preferred locales; server picks first supported locale. |
 
@@ -194,6 +190,28 @@ Create a new chat session.
 
 Use `llm_context` for model-personalization signals (for example location, account mode, environment).  
 Use `client` for SDK-managed operational diagnostics like platform, app version, and build.
+
+### `PATCH /v1/sessions/{session_id}/context`
+
+Update reconnect/runtime context for an existing session.
+
+**Request:**
+
+```json
+{
+  "client": {
+    "platform": "ios",
+    "sdk_version": "1.0.1"
+  },
+  "llm_context": {
+    "network_type": "cellular"
+  },
+  "available_function_names": ["setLights"],
+  "locale": "fr"
+}
+```
+
+Use this before reconnecting transport to keep runtime tool availability in sync with the host app.
 
 **Response:** `201 Created`
 
@@ -526,8 +544,7 @@ Content-Type: application/json
 Before each turn, the backend computes eligible tools for the current session:
 
 - Active + platform/OS/app-version compatible
-- Required entitlements present
-- Required capabilities present
+- Function name present in session `available_function_names`
 
 Only eligible tools are passed to the LLM.
 
@@ -536,7 +553,7 @@ Only eligible tools are passed to the LLM.
 - Injected into the system prompt as session custom context
 - Used to enrich KB prefetch and internal `kb_search` fallback queries
 
-`llm_context` does **not** affect compatibility gating directly. Tool eligibility remains based on function availability rules, `client` context, `entitlements`, and `capabilities`.
+`llm_context` does **not** affect compatibility gating directly. Tool eligibility remains based on function availability rules, `client` context, and the session `available_function_names` allowlist.
 
 This is what happens inside the server after the SDK sends a `chat_message`:
 

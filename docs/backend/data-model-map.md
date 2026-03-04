@@ -43,8 +43,7 @@ This map covers the primary entities used across runtime, governance, and KB int
   - Session lifecycle and context payloads:
     - `client_context`
     - `llm_context`
-    - `entitlements`
-    - `capabilities`
+    - `available_function_names`
 - `Message`
   - Ordered conversation records (user/assistant/tool).
 - `WSTicket`
