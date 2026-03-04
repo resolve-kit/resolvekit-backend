@@ -62,27 +62,19 @@ function SDKChecklist() {
     <div data-resolvekit-id="sdk-checklist" className="rounded-lg border border-border bg-surface-2 p-3">
       <p className="text-xs font-semibold text-strong">SDK checklist</p>
       <ul className="mt-1.5 space-y-1 text-[11px] text-subtle">
-        <li>1. Add `playbook-ios-sdk` package to your iOS app.</li>
+        <li>1. Add `resolvekit-ios-sdk` from GitHub to your iOS app.</li>
         <li>2. Configure backend base URL + app API key provider.</li>
         <li>3. Register `@ResolveKit` functions in runtime configuration.</li>
         <li>4. Validate active functions in dashboard.</li>
       </ul>
       <div className="mt-2 flex flex-wrap gap-2">
         <a
-          href="https://github.com/nedasvi/playbook-ios-sdk/blob/main/README.md"
+          href="https://github.com/Nights-Are-Late/resolvekit-ios-sdk"
           target="_blank"
           rel="noreferrer"
           className="text-[11px] text-accent hover:text-accent-hover"
         >
-          iOS SDK README
-        </a>
-        <a
-          href="https://github.com/nedasvi/playbook_backend/blob/main/SDK_INTEGRATION.md"
-          target="_blank"
-          rel="noreferrer"
-          className="text-[11px] text-accent hover:text-accent-hover"
-        >
-          Backend SDK integration
+          ResolveKit iOS SDK on GitHub
         </a>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { SdkFlow } from "@/components/sections/sdk-flow";
 import { ToolApprovalStrip } from "@/components/sections/tool-approval-strip";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { dashboardLoginUrl, dashboardRegisterUrl, feedbackIssuesUrl } from "@/lib/urls";
+import { dashboardLoginUrl, dashboardRegisterUrl, feedbackIssuesUrl, iosSdkRepoUrl } from "@/lib/urls";
 
 export default function HomePage() {
   return (
@@ -50,6 +50,9 @@ export default function HomePage() {
             <Link href="/pricing">
               <Button variant="outline">See plan details</Button>
             </Link>
+            <a href={iosSdkRepoUrl} target="_blank" rel="noreferrer">
+              <Button variant="outline">iOS SDK GitHub</Button>
+            </a>
             <a href={feedbackIssuesUrl} target="_blank" rel="noreferrer">
               <Button variant="ghost">Share feedback</Button>
             </a>

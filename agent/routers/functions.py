@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.database import get_db
-from agent.middleware.auth import get_app_from_api_key
+from agent.middleware.auth import get_app_from_sdk_auth
 from agent.models.app import App
 from agent.models.function_registry import RegisteredFunction
 from agent.models.session import ChatSession
@@ -19,7 +19,7 @@ sdk_router = APIRouter(prefix="/v1/functions", tags=["functions-sdk"])
 @sdk_router.put("/bulk", response_model=list[FunctionOut])
 async def bulk_sync_functions(
     body: FunctionBulkSync,
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(RegisteredFunction).where(RegisteredFunction.app_id == app.id))
@@ -67,7 +67,7 @@ async def bulk_sync_functions(
 
 @sdk_router.get("", response_model=list[FunctionOut])
 async def list_functions_sdk(
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -79,7 +79,7 @@ async def list_functions_sdk(
 @sdk_router.get("/eligible", response_model=list[FunctionOut])
 async def list_eligible_functions_sdk(
     session_id: uuid.UUID,
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     session = await db.get(ChatSession, session_id)

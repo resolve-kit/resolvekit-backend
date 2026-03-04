@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.database import get_db
-from agent.middleware.auth import get_app_from_api_key
+from agent.middleware.auth import get_app_from_sdk_auth
 from agent.models.app import App
 from agent.models.message import Message
 from agent.models.session import ChatSession
@@ -35,7 +35,7 @@ sdk_router = APIRouter(prefix="/v1/sessions", tags=["sessions-sdk"])
 @sdk_router.post("", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
 async def create_session(
     body: SessionCreate,
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     ensure_chat_available_for_app(app)
@@ -120,7 +120,7 @@ async def patch_session_context(
     session_id: uuid.UUID,
     body: SessionContextPatch,
     request: Request,
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
@@ -153,7 +153,7 @@ async def get_session_localization(
     session_id: uuid.UUID,
     request: Request,
     locale: str | None = Query(default=None),
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
@@ -182,7 +182,7 @@ async def get_session_localization(
 async def create_ws_ticket(
     session_id: uuid.UUID,
     request: Request,
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
@@ -207,7 +207,7 @@ async def create_ws_ticket(
 async def get_session_messages_sdk(
     session_id: uuid.UUID,
     request: Request,
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(

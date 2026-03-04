@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Card } from "@/components/ui/card";
+import { iosSdkRepoUrl } from "@/lib/urls";
 
 type IntegrationStepId = "define-functions" | "configure-runtime" | "embed-chat";
 
@@ -140,7 +141,7 @@ export function SdkFlow() {
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">How To Integrate</p>
             <h3 className="mt-2 text-2xl font-semibold leading-tight">Integrate ResolveKit iOS SDK in 3 steps</h3>
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-xl">
-              This walkthrough is based on the real `playbook-ios-sdk` APIs and runtime lifecycle.
+              This walkthrough is based on the real `resolvekit-ios-sdk` APIs and runtime lifecycle.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               iOS SDK is available now. Android, Next.js, React, React Native, and Flutter SDKs are coming soon.
@@ -208,12 +209,12 @@ export function SdkFlow() {
 
         <div className="mt-5">
           <Link
-            href="https://github.com/Nights-Are-Late/resolvekit-ios-sdk"
+            href={iosSdkRepoUrl}
             target="_blank"
             rel="noreferrer"
             className="text-sm font-semibold text-primary hover:opacity-85"
           >
-            Open full SDK integration guide
+            Get iOS SDK on GitHub
           </Link>
         </div>
       </Card>

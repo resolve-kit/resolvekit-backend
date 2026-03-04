@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.database import get_db
-from agent.middleware.auth import get_app_from_api_key
+from agent.middleware.auth import get_app_from_sdk_auth
 from agent.models.agent_config import AgentConfig
 from agent.models.app import App
 from agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
@@ -99,7 +99,7 @@ async def send_message_sse(
     session_id: uuid.UUID,
     body: ChatMessageBody,
     request: Request,
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
     db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
@@ -160,7 +160,7 @@ async def submit_tool_result(
     session_id: uuid.UUID,
     body: ToolResultPayload,
     request: Request,
-    app: App = Depends(get_app_from_api_key),
+    app: App = Depends(get_app_from_sdk_auth),
 ):
     validate_chat_capability_token(
         token=resolve_chat_capability_token(request.headers),

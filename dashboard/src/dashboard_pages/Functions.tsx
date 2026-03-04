@@ -20,6 +20,8 @@ interface Fn {
   timeout_seconds: number;
 }
 
+const IOS_SDK_REPO_URL = "https://github.com/Nights-Are-Late/resolvekit-ios-sdk";
+
 export default function Functions() {
   const { appId } = useParams();
   const { toast } = useToast();
@@ -278,14 +280,14 @@ export default function Functions() {
             <p className="text-xs mt-2 text-muted">
               Open your iOS app with SDK + API key configured to register functions here.
             </p>
-            <a
-              href="https://github.com/Nights-Are-Late/resolvekit-ios-sdk"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex text-xs font-semibold text-accent hover:text-accent-hover transition-colors"
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => window.open(IOS_SDK_REPO_URL, "_blank", "noopener,noreferrer")}
             >
-              SDK integration guide
-            </a>
+              Open iOS SDK GitHub repo
+            </Button>
           </div>
         )}
       </div>

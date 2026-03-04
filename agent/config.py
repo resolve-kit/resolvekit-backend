@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     supported_sdk_major_versions: list[int] = [1]
     chat_capability_secret: str | None = None
     chat_capability_ttl_seconds: int = 300
+    sdk_client_token_secret: str | None = None
+    sdk_client_token_ttl_seconds: int = 900
+    sdk_client_token_rate_limit_per_minute: int = 60
 
     # Knowledge base microservice
     knowledge_bases_base_url: str = "http://kb-service:8100"

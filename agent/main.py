@@ -26,6 +26,8 @@ def validate_security_config() -> None:
         raise RuntimeError("IAA_ENCRYPTION_KEY must be set to a secure non-default value")
     if settings.chat_capability_secret is not None and settings.chat_capability_secret in insecure_values:
         raise RuntimeError("IAA_CHAT_CAPABILITY_SECRET must be set to a secure non-default value")
+    if settings.sdk_client_token_secret is not None and settings.sdk_client_token_secret in insecure_values:
+        raise RuntimeError("IAA_SDK_CLIENT_TOKEN_SECRET must be set to a secure non-default value")
 
 
 async def session_expiry_task():

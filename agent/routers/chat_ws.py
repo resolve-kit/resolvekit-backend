@@ -90,24 +90,24 @@ class WebSocketSender(MessageSender):
             fut.set_result(result)
 
 
-async def authenticate_ws(ws: WebSocket, db: AsyncSession) -> App | None:
+async def authenticate_ws(ws: WebSocket, db: AsyncSession) -> tuple[App | None, bool]:
     ws_ticket = ws.query_params.get("ticket")
     session_id_raw = ws.path_params.get("session_id")
     if ws_ticket and session_id_raw:
         try:
             session_id = uuid.UUID(str(session_id_raw))
         except ValueError:
-            return None
+            return None, False
         app = await consume_ws_ticket(db, ws_ticket, session_id)
         if app:
-            return app
+            return app, True
 
     if not settings.allow_legacy_ws_api_key:
-        return None
+        return None, False
 
     api_key_raw = ws.query_params.get("api_key")
     if not api_key_raw:
-        return None
+        return None, False
 
     key_hash = hashlib.sha256(api_key_raw.encode()).hexdigest()
     result = await db.execute(
@@ -115,9 +115,9 @@ async def authenticate_ws(ws: WebSocket, db: AsyncSession) -> App | None:
     )
     api_key = result.scalar_one_or_none()
     if not api_key:
-        return None
+        return None, False
 
-    return await db.get(App, api_key.app_id)
+    return await db.get(App, api_key.app_id), False
 
 
 @router.websocket("/v1/sessions/{session_id}/ws")
@@ -126,21 +126,22 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
 
     async with async_session_factory() as db:
         # Auth
-        app = await authenticate_ws(ws, db)
+        app, used_ws_ticket = await authenticate_ws(ws, db)
         if not app:
             await ws.send_json({"type": "error", "payload": {"code": "auth_failed", "message": "Invalid WebSocket auth ticket"}})
             await ws.close(code=4001)
             return
 
         capability_token = ws.query_params.get(CHAT_CAPABILITY_QUERY)
-        try:
-            validate_chat_capability_token(token=capability_token, session_id=session_id, app=app)
-        except HTTPException:
-            await ws.send_json(
-                {"type": "error", "payload": {"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE, "recoverable": True}}
-            )
-            await ws.close(code=4003)
-            return
+        if not used_ws_ticket or capability_token:
+            try:
+                validate_chat_capability_token(token=capability_token, session_id=session_id, app=app)
+            except HTTPException:
+                await ws.send_json(
+                    {"type": "error", "payload": {"code": CHAT_UNAVAILABLE_CODE, "message": CHAT_UNAVAILABLE_MESSAGE, "recoverable": True}}
+                )
+                await ws.close(code=4003)
+                return
 
         # Validate session
         session = await db.get(ChatSession, session_id)
@@ -184,6 +185,22 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
         sender = WebSocketSender(ws)
         agent_task: asyncio.Task | None = None
 
+        async def watch_agent_task(task: asyncio.Task) -> None:
+            nonlocal agent_task
+            try:
+                await task
+            except asyncio.CancelledError:
+                return
+            except Exception:
+                await sender.send_error(
+                    "agent_error",
+                    "Assistant is temporarily unavailable. Please try again.",
+                    recoverable=True,
+                )
+            finally:
+                if agent_task is task:
+                    agent_task = None
+
         try:
             while True:
                 raw = await ws.receive_text()
@@ -217,11 +234,8 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                         await sender.send_error("turn_in_progress", "A turn is already in progress")
                         continue
 
-                    # If previous task finished with an exception, retrieve it to avoid warnings
+                    # Previous task is finished; clear the slot before launching a new turn.
                     if agent_task is not None and agent_task.done():
-                        exc = agent_task.exception() if not agent_task.cancelled() else None
-                        if exc:
-                            await sender.send_error("agent_error", str(exc))
                         agent_task = None
 
                     text = envelope.get("payload", {}).get("text", "").strip()
@@ -248,6 +262,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                     agent_task = asyncio.create_task(
                         run_agent_loop(db, session, agent_config, functions, text, sender)
                     )
+                    asyncio.create_task(watch_agent_task(agent_task))
 
         except WebSocketDisconnect:
             # Cancel any in-flight agent task on disconnect
