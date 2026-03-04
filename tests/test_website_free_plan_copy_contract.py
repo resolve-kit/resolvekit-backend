@@ -8,7 +8,7 @@ HERO_PREVIEW_COMPONENT_PATH = Path("website/src/components/hero-chat-preview.tsx
 
 FREE_LABEL = "Free (for now)"
 FEEDBACK_LABEL = "Pay us in feedback"
-ISSUES_URL = "https://github.com/nedasvi/playbook-ios-sdk/issues"
+ISSUES_URL = "https://github.com/Nights-Are-Late/resolvekit-ios-sdk/issues"
 
 
 def test_free_plan_feedback_copy_exists_on_home_and_pricing_pages() -> None:

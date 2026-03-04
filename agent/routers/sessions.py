@@ -89,7 +89,11 @@ async def create_session(
         await db.commit()
         await db.refresh(session)
 
-    chat_capability_token = issue_chat_capability_token(session_id=session.id, app=app)
+    chat_capability_token = issue_chat_capability_token(
+        session_id=session.id,
+        app=app,
+        ttl_seconds=ttl_minutes * 60,
+    )
 
     return SessionOut(
         id=session.id,

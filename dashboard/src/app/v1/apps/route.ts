@@ -8,6 +8,7 @@ import {
   defaultOrganizationName,
   randomOrganizationPublicId,
 } from "@/lib/server/organization";
+import { defaultChatTheme } from "@/lib/server/chat-theme";
 import { prisma } from "@/lib/server/prisma";
 
 export const dynamic = "force-dynamic";
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
         organizationId: orgId,
         name: body.name.trim(),
         bundleId: typeof body.bundle_id === "string" ? body.bundle_id : null,
+        chatTheme: defaultChatTheme() as Prisma.InputJsonValue,
       },
     });
     return NextResponse.json(appOut(app), { status: 201 });

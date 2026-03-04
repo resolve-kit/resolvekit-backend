@@ -9,6 +9,22 @@ import { prisma } from "@/lib/server/prisma";
 
 export const dynamic = "force-dynamic";
 
+function normalizeOrDefaultTheme(rawTheme: unknown): {
+  normalized: ReturnType<typeof defaultChatTheme>;
+  shouldPersist: boolean;
+} {
+  try {
+    const normalized = normalizeChatTheme(rawTheme);
+    const shouldPersist = JSON.stringify(rawTheme) !== JSON.stringify(normalized);
+    return { normalized, shouldPersist };
+  } catch {
+    return {
+      normalized: normalizeChatTheme(defaultChatTheme()),
+      shouldPersist: true,
+    };
+  }
+}
+
 export async function GET(request: NextRequest, context: { params: Promise<{ appId: string }> }) {
   const developer = await getDeveloperFromRequest(request);
   if (!developer) return detail(401, "Invalid token");
@@ -18,9 +34,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ app
   if (!app) return detail(404, "App not found");
 
   try {
-    const rawTheme = app.chatTheme && typeof app.chatTheme === "object" ? app.chatTheme : defaultChatTheme();
-    const normalized = normalizeChatTheme(rawTheme);
-    if (JSON.stringify(rawTheme) !== JSON.stringify(normalized)) {
+    const { normalized, shouldPersist } = normalizeOrDefaultTheme(app.chatTheme);
+    if (shouldPersist) {
       await prisma.app.update({
         where: { id: app.id },
         data: { chatTheme: normalized as Prisma.InputJsonValue },
