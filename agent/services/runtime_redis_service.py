@@ -86,6 +86,15 @@ async def claim_or_get_owner(session_id: str, app_id: str, instance_id: str, ttl
     return owner or instance_id
 
 
+async def force_claim_owner(session_id: str, app_id: str, instance_id: str, ttl_seconds: int) -> None:
+    """Unconditionally claim WS ownership — newest connection always wins."""
+    redis = await _get_redis()
+    if redis is None:
+        return
+    key = _owner_key(session_id, app_id)
+    await redis.set(key, instance_id, ex=ttl_seconds)
+
+
 async def refresh_owner(session_id: str, app_id: str, instance_id: str, ttl_seconds: int) -> None:
     redis = await _get_redis()
     if redis is None:

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,6 +16,22 @@ from agent.routers import (
 )
 from agent.services.session_service import expire_stale_sessions
 from agent.services.runtime_redis_service import close_redis
+
+
+def _configure_logging() -> None:
+    """Apply timestamped formatter to agent.* loggers after uvicorn has set up its own config."""
+    fmt = logging.Formatter(
+        fmt="%(asctime)s.%(msecs)03d [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler = logging.StreamHandler()
+    handler.setFormatter(fmt)
+
+    agent_logger = logging.getLogger("agent")
+    agent_logger.setLevel(logging.INFO)
+    # Remove any handlers uvicorn may have propagated; attach our own.
+    agent_logger.handlers = [handler]
+    agent_logger.propagate = False
 
 
 def validate_security_config() -> None:
@@ -44,6 +61,7 @@ async def session_expiry_task():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _configure_logging()
     validate_security_config()
     task = asyncio.create_task(session_expiry_task())
     yield

@@ -968,6 +968,15 @@ async def run_agent_loop(
     user_text: str,
     sender: MessageSender,
 ) -> None:
+    logger.info(
+        "agent_loop_start session_id=%s app_id=%s locale=%s functions=%d user_text_len=%d",
+        session.id,
+        session.app_id,
+        session.locale,
+        len(functions),
+        len(user_text),
+    )
+
     # 1. Persist user message
     seq = await get_next_sequence(db, session.id)
     user_msg = Message(
@@ -999,6 +1008,15 @@ async def run_agent_loop(
         custom_context_prompt,
         preloaded_context_msgs,
         functions,
+    )
+
+    logger.info(
+        "router_result session_id=%s app_id=%s in_scope=%s needs_kb=%s intent=%r",
+        session.id,
+        session.app_id,
+        router_result.in_scope,
+        router_result.needs_kb,
+        router_result.intent,
     )
 
     scope_mode = str(getattr(config, "scope_mode", "strict") or "strict")
@@ -1141,6 +1159,15 @@ async def run_agent_loop(
                 "completion_tokens": response.usage.completion_tokens,
             }
 
+        logger.info(
+            "llm_response session_id=%s app_id=%s tool_round=%d has_text=%s tool_calls=%d",
+            session.id,
+            session.app_id,
+            tool_round,
+            bool(accumulated_text),
+            len(tool_calls_data),
+        )
+
         # 4. If text response (no tool calls) → done
         if accumulated_text and not tool_calls_data:
             seq = await get_next_sequence(db, session.id)
@@ -1244,6 +1271,15 @@ async def run_agent_loop(
 
                 timeout = get_function_timeout(functions, fn_name)
                 requires_approval = get_function_requires_approval(functions, fn_name)
+                logger.info(
+                    "tool_call_sent session_id=%s app_id=%s call_id=%s fn=%s timeout=%ds requires_approval=%s",
+                    session.id,
+                    session.app_id,
+                    info["id"],
+                    fn_name,
+                    timeout,
+                    requires_approval,
+                )
                 await sender.send_tool_call_request(info["id"], fn_name, arguments, timeout, human_description, requires_approval)
 
             # Wait for all SDK tool results
@@ -1255,7 +1291,16 @@ async def run_agent_loop(
                 timeout = get_function_timeout(functions, fn_name)
                 try:
                     result = await sender.wait_for_tool_result(info["id"], timeout)
-                    if result.get("status") == "success":
+                    result_status = result.get("status", "unknown")
+                    logger.info(
+                        "tool_result_received session_id=%s app_id=%s call_id=%s fn=%s status=%s",
+                        session.id,
+                        session.app_id,
+                        info["id"],
+                        fn_name,
+                        result_status,
+                    )
+                    if result_status == "success":
                         raw = result.get("result")
                         content = raw if isinstance(raw, str) else json.dumps(raw)
                     else:
@@ -1271,6 +1316,14 @@ async def run_agent_loop(
                     db.add(result_msg)
                     await db.commit()
                 except asyncio.TimeoutError:
+                    logger.warning(
+                        "tool_call_timeout session_id=%s app_id=%s call_id=%s fn=%s timeout=%ds",
+                        session.id,
+                        session.app_id,
+                        info["id"],
+                        fn_name,
+                        timeout,
+                    )
                     seq = await get_next_sequence(db, session.id)
                     timeout_msg = Message(
                         session_id=session.id,
