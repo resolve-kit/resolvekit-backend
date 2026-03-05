@@ -504,6 +504,84 @@ def _should_force_kb_prefetch(user_text: str) -> bool:
     return bool(SUPPORT_CONTACT_HINT_PATTERN.search(user_text))
 
 
+def _normalize_tool_calls(raw_tool_calls: Any) -> list[dict[str, Any]]:
+    if isinstance(raw_tool_calls, dict):
+        raw_items = [raw_tool_calls]
+    elif isinstance(raw_tool_calls, list):
+        raw_items = raw_tool_calls
+    else:
+        return []
+
+    normalized: list[dict[str, Any]] = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        tc_copy = dict(item)
+        tc_copy.setdefault("type", "function")
+
+        function_payload = tc_copy.get("function")
+        if not isinstance(function_payload, dict):
+            function_payload = {}
+        function_copy = dict(function_payload)
+        function_copy.setdefault("name", "")
+        function_copy.setdefault("arguments", "")
+        tc_copy["function"] = function_copy
+
+        normalized.append(tc_copy)
+    return normalized
+
+
+def _append_llm_messages_from_context(llm_messages: list[dict[str, Any]], context_msgs: list[Message]) -> None:
+    pending_tool_call: dict[str, Any] | None = None
+
+    for msg in context_msgs:
+        role = str(getattr(msg, "role", "") or "")
+        content = getattr(msg, "content", None) or ""
+
+        if role == "tool_call":
+            # Start a new tool-call block. Any prior incomplete block is discarded.
+            pending_tool_call = None
+            tool_calls = _normalize_tool_calls(getattr(msg, "tool_calls", None))
+            required_ids = {str(tc.get("id", "")).strip() for tc in tool_calls if str(tc.get("id", "")).strip()}
+            if tool_calls and required_ids:
+                pending_tool_call = {
+                    "assistant_msg": {"role": "assistant", "content": content, "tool_calls": tool_calls},
+                    "required_ids": required_ids,
+                    "seen_ids": set(),
+                    "tool_msgs": [],
+                }
+            elif content:
+                llm_messages.append({"role": "assistant", "content": content})
+            continue
+
+        if role == "tool_result":
+            if not pending_tool_call:
+                continue
+            tool_call_id = str(getattr(msg, "tool_call_id", "") or "").strip()
+            if not tool_call_id or tool_call_id not in pending_tool_call["required_ids"]:
+                pending_tool_call = None
+                continue
+            if tool_call_id in pending_tool_call["seen_ids"]:
+                continue
+
+            pending_tool_call["seen_ids"].add(tool_call_id)
+            pending_tool_call["tool_msgs"].append({
+                "role": "tool",
+                "tool_call_id": tool_call_id,
+                "content": content,
+            })
+            if pending_tool_call["seen_ids"] == pending_tool_call["required_ids"]:
+                llm_messages.append(pending_tool_call["assistant_msg"])
+                llm_messages.extend(pending_tool_call["tool_msgs"])
+                pending_tool_call = None
+            continue
+
+        # Non-tool message: drop any incomplete tool-call block before appending.
+        if pending_tool_call:
+            pending_tool_call = None
+        llm_messages.append({"role": role, "content": content})
+
+
 async def _run_router(
     config: AgentConfig,
     user_text: str,
@@ -1004,28 +1082,7 @@ async def run_agent_loop(
             playbook_prompt=playbook_prompt,
         )
         llm_messages = [{"role": "system", "content": system_prompt}]
-        for msg in context_msgs:
-            if msg.role == "tool_call":
-                # Ensure each tool call has "type": "function" (required by OpenAI)
-                tool_calls = []
-                for tc in (msg.tool_calls or []):
-                    tc_copy = dict(tc)
-                    tc_copy.setdefault("type", "function")
-                    tool_calls.append(tc_copy)
-                llm_messages.append({
-                    "role": "assistant",
-                    # Some OpenAI-compatible gateways reject null content.
-                    "content": msg.content or "",
-                    "tool_calls": tool_calls,
-                })
-            elif msg.role == "tool_result":
-                llm_messages.append({
-                    "role": "tool",
-                    "tool_call_id": msg.tool_call_id,
-                    "content": msg.content or "",
-                })
-            else:
-                llm_messages.append({"role": msg.role, "content": msg.content or ""})
+        _append_llm_messages_from_context(llm_messages, context_msgs)
 
         # 3. Call LLM (non-streaming)
         try:

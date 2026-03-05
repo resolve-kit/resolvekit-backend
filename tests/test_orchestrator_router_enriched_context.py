@@ -671,6 +671,88 @@ async def test_run_agent_loop_forces_kb_prefetch_for_support_contact_question_wh
 
 
 @pytest.mark.asyncio
+async def test_run_agent_loop_drops_orphaned_tool_call_history_before_llm_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db = _DummyDB()
+    sender = _DummySender()
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    config = SimpleNamespace(
+        system_prompt="Support assistant.",
+        scope_mode="strict",
+        max_tool_rounds=3,
+        max_context_messages=20,
+    )
+
+    sequence_counter = {"value": 0}
+
+    async def fake_next_sequence(_db, _session_id):  # noqa: ANN001
+        sequence_counter["value"] += 1
+        return sequence_counter["value"]
+
+    stale_tool_calls = [
+        {
+            "id": "call_orphan_1",
+            "type": "function",
+            "function": {"name": "lookup_account", "arguments": "{}"},
+        },
+        {
+            "id": "call_orphan_2",
+            "type": "function",
+            "function": {"name": "lookup_plan", "arguments": "{}"},
+        },
+    ]
+
+    monkeypatch.setattr(orchestrator, "get_next_sequence", fake_next_sequence)
+    monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
+    monkeypatch.setattr(
+        orchestrator,
+        "load_context_messages",
+        AsyncMock(
+            return_value=[
+                SimpleNamespace(role="user", content="Earlier question", tool_calls=None, tool_call_id=None),
+                SimpleNamespace(role="tool_call", content="", tool_calls=stale_tool_calls, tool_call_id=None),
+                SimpleNamespace(role="assistant", content="Let's continue.", tool_calls=None, tool_call_id=None),
+                SimpleNamespace(role="user", content="Can you help me now?", tool_calls=None, tool_call_id=None),
+            ]
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [])))
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=True,
+                rejection_reason=None,
+                needs_kb=False,
+                kb_query=None,
+                intent="Ask for help",
+            )
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "build_playbook_prompt", AsyncMock(return_value=""))
+    monkeypatch.setattr(orchestrator, "_prefetch_kb_context", AsyncMock(return_value=""))
+    llm_mock = AsyncMock(return_value=_response_with_final_text("Sure, I can help with that."))
+    monkeypatch.setattr(orchestrator, "call_llm", llm_mock)
+
+    await orchestrator.run_agent_loop(
+        db=db,
+        session=session,
+        config=config,
+        functions=[],
+        user_text="Can you help me now?",
+        sender=sender,
+    )
+
+    llm_mock.assert_awaited_once()
+    llm_messages = llm_mock.await_args.args[1]
+    assert all(not (msg["role"] == "assistant" and msg.get("tool_calls")) for msg in llm_messages)
+    assert sender.turn_complete_text == "Sure, I can help with that."
+    assert sender.errors == []
+
+
+@pytest.mark.asyncio
 async def test_prefetch_kb_context_uses_snippet_and_truncates(monkeypatch: pytest.MonkeyPatch) -> None:
     long_snippet = "A" * 1500
     execute_mock = AsyncMock(return_value={"items": [{"source_title": "Password Reset", "snippet": long_snippet}]})
