@@ -28,6 +28,11 @@ website/.next/
 # Docker
 data/
 
+# Local deploy
+.env.local-deploy
+deploy/local-nginx/certbot/conf/
+deploy/local-nginx/logs/
+
 # OS
 .DS_Store
 
