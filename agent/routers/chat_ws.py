@@ -37,6 +37,7 @@ from agent.services.runtime_redis_service import (
     pop_outbox_frames,
     pop_tool_result,
     push_outbox_frame,
+    redis_enabled,
     refresh_owner,
     store_tool_result,
 )
@@ -108,25 +109,27 @@ class WebSocketSender(MessageSender):
         }
         ws = self._ws
         if ws is None:
-            self._enqueue_outgoing_frame(frame)
             await push_outbox_frame(
                 str(self._session_id),
                 str(self._app_id),
                 frame,
                 ttl_seconds=settings.ws_outbox_ttl_seconds,
             )
+            if not redis_enabled():
+                self._enqueue_outgoing_frame(frame)
             return
         try:
             await ws.send_json(frame)
         except Exception:
             self._ws = None
-            self._enqueue_outgoing_frame(frame)
             await push_outbox_frame(
                 str(self._session_id),
                 str(self._app_id),
                 frame,
                 ttl_seconds=settings.ws_outbox_ttl_seconds,
             )
+            if not redis_enabled():
+                self._enqueue_outgoing_frame(frame)
 
     async def send_text_delta(self, delta: str, accumulated: str) -> None:
         await self._send("assistant_text_delta", {"delta": delta, "accumulated": accumulated})

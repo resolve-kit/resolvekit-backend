@@ -16,6 +16,7 @@ from agent.models.app import App
 from agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from agent.models.session import ChatSession
 from agent.schemas.ws_protocol import ToolResultPayload
+from agent.config import settings
 from agent.services.chat_access_service import (
     apply_runtime_llm_profile,
     resolve_chat_capability_token,
@@ -29,6 +30,7 @@ from agent.services.pending_tool_results import (
     register_pending_tool_result,
     resolve_pending_tool_result,
 )
+from agent.services.runtime_redis_service import store_tool_result
 from agent.services.session_service import is_session_expired
 
 router = APIRouter(tags=["chat-http"])
@@ -166,7 +168,18 @@ async def submit_tool_result(
         app=app,
     )
 
-    if not resolve_pending_tool_result(session_id, app.id, body.call_id, body.model_dump()):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pending tool call with this ID")
+    payload_dict = body.model_dump()
+
+    # Same-instance fast path: resolve in-memory Future if present
+    resolve_pending_tool_result(session_id, app.id, body.call_id, payload_dict)
+
+    # Cross-instance durable path: write to Redis so the owner's wait loop picks it up
+    await store_tool_result(
+        str(session_id),
+        str(app.id),
+        body.call_id,
+        payload_dict,
+        ttl_seconds=settings.ws_tool_result_ttl_seconds,
+    )
 
     return {"status": "ok"}
