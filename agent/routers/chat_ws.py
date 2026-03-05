@@ -184,6 +184,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
 
         sender = WebSocketSender(ws)
         agent_task: asyncio.Task | None = None
+        last_rx_at: float = asyncio.get_event_loop().time()
 
         async def watch_agent_task(task: asyncio.Task) -> None:
             nonlocal agent_task
@@ -201,9 +202,29 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                 if agent_task is task:
                     agent_task = None
 
+        async def keepalive_task_fn() -> None:
+            nonlocal last_rx_at
+            interval = 30.0
+            dead_timeout = 60.0
+            while True:
+                await asyncio.sleep(interval)
+                elapsed = asyncio.get_event_loop().time() - last_rx_at
+                if elapsed > dead_timeout:
+                    try:
+                        await ws.close(code=1001)
+                    except Exception:
+                        pass
+                    return
+                try:
+                    await sender._send("ping", {})
+                except Exception:
+                    return
+
+        keepalive_task = asyncio.create_task(keepalive_task_fn())
         try:
             while True:
                 raw = await ws.receive_text()
+                last_rx_at = asyncio.get_event_loop().time()
                 try:
                     envelope = json.loads(raw)
                 except json.JSONDecodeError:
@@ -265,6 +286,11 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                     asyncio.create_task(watch_agent_task(agent_task))
 
         except WebSocketDisconnect:
+            keepalive_task.cancel()
+            try:
+                await keepalive_task
+            except (asyncio.CancelledError, Exception):
+                pass
             # Cancel any in-flight agent task on disconnect
             if agent_task is not None and not agent_task.done():
                 agent_task.cancel()

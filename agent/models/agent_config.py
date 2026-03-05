@@ -40,7 +40,7 @@ class AgentConfig(Base, UUIDMixin):
     temperature: Mapped[float] = mapped_column(default=0.7)
     max_tokens: Mapped[int] = mapped_column(Integer, default=4096)
     max_tool_rounds: Mapped[int] = mapped_column(Integer, default=10)
-    session_ttl_minutes: Mapped[int] = mapped_column(Integer, default=60)
+    session_ttl_minutes: Mapped[int] = mapped_column(Integer, default=30)
     max_context_messages: Mapped[int] = mapped_column(Integer, default=100)
     scope_mode: Mapped[str] = mapped_column(String(20), default="strict")
     kb_vision_mode: Mapped[str] = mapped_column(String(20), default="ocr_safe")

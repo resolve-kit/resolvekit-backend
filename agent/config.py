@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Server
     debug: bool = False
 
+    # Session TTL
+    session_ttl_minutes: int = 30
+
     # SDK compatibility policy
     minimum_sdk_version: str = "1.0.0"
     supported_sdk_major_versions: list[int] = [1]

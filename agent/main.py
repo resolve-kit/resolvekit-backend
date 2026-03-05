@@ -35,10 +35,10 @@ async def session_expiry_task():
     while True:
         try:
             async with async_session_factory() as db:
-                await expire_stale_sessions(db, ttl_minutes=60)
+                await expire_stale_sessions(db)
         except Exception:
             pass
-        await asyncio.sleep(300)
+        await asyncio.sleep(60)
 
 
 @asynccontextmanager

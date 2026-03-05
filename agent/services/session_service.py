@@ -1,14 +1,15 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agent.config import settings
 from agent.models.agent_config import AgentConfig
 from agent.models.message import Message
 from agent.models.session import ChatSession
 
-DEFAULT_SESSION_TTL_MINUTES = 60
+DEFAULT_SESSION_TTL_MINUTES = settings.session_ttl_minutes
 
 
 async def get_next_sequence(db: AsyncSession, session_id: uuid.UUID) -> int:
@@ -79,11 +80,16 @@ async def get_reusable_session(
     return result.scalar_one_or_none()
 
 
-async def expire_stale_sessions(db: AsyncSession, ttl_minutes: int) -> int:
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=ttl_minutes)
+async def expire_stale_sessions(db: AsyncSession) -> int:
+    # Expire sessions using each app's configured TTL via a JOIN with agent_configs.
+    # Sessions for apps without an agent_config fall back to the system default TTL.
     result = await db.execute(
         update(ChatSession)
-        .where(ChatSession.status == "active", ChatSession.last_activity_at < cutoff)
+        .where(
+            ChatSession.app_id == AgentConfig.app_id,
+            ChatSession.status == "active",
+            ChatSession.last_activity_at < func.now() - AgentConfig.session_ttl_minutes * text("interval '1 minute'"),
+        )
         .values(status="expired")
     )
     await db.commit()
