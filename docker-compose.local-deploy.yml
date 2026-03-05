@@ -1,0 +1,253 @@
+name: resolvekit-local-deploy
+
+x-dashboard-build: &dashboard_build
+  context: ./dashboard
+  dockerfile: Dockerfile
+  additional_contexts:
+    resolvekit_web_sdk: ${RESOLVEKIT_WEB_SDK_PATH:-../resolvekit-web-sdk}
+  args:
+    NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.resolvekit-dev.example.com}
+    NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
+    NEXT_PUBLIC_RESOLVEKIT_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
+    NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.resolvekit-dev.example.com}
+    NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
+    NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
+    NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.resolvekit-dev.example.com}
+
+x-dashboard-runtime-env: &dashboard_runtime_env
+  NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.resolvekit-dev.example.com}
+  NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
+  NEXT_PUBLIC_RESOLVEKIT_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
+  NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.resolvekit-dev.example.com}
+  NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
+  NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
+  NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.resolvekit-dev.example.com}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+  IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
+  IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
+  IAA_JWT_EXPIRE_MINUTES: ${IAA_JWT_EXPIRE_MINUTES:-1440}
+  IAA_ENCRYPTION_KEY: ${IAA_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+  IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+  IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+  IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+  IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: resolvekit_local_deploy_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_BIND_ADDR:-127.0.0.1}:${REDIS_BIND_PORT:-16379}:6379"
+    networks:
+      - resolvekit
+
+  db:
+    image: postgres:17-alpine
+    container_name: resolvekit_local_deploy_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-agent}
+    volumes:
+      - local_deploy_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_BIND_ADDR:-127.0.0.1}:${POSTGRES_BIND_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - resolvekit
+
+  kb-db:
+    image: postgres:17-alpine
+    container_name: resolvekit_local_deploy_kb_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${KBS_POSTGRES_DB:-knowledge_bases}
+    volumes:
+      - local_deploy_kb_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${KBS_POSTGRES_BIND_ADDR:-127.0.0.1}:${KBS_POSTGRES_BIND_PORT:-15433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - resolvekit
+
+  kb-service:
+    build:
+      context: .
+      dockerfile: knowledge_bases/Dockerfile
+    image: resolvekit-kb-service:local-deploy
+    container_name: resolvekit_local_deploy_kb_service
+    restart: unless-stopped
+    depends_on:
+      kb-db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      KBS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@kb-db:5432/${KBS_POSTGRES_DB:-knowledge_bases}
+      KBS_SERVICE_JWT_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      KBS_SERVICE_JWT_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      KBS_ENCRYPTION_KEY: ${KBS_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+    ports:
+      - "${KBS_BIND_ADDR:-127.0.0.1}:${KBS_BIND_PORT:-8100}:8100"
+    networks:
+      - resolvekit
+
+  backend:
+    build: .
+    image: resolvekit-backend:local-deploy
+    container_name: resolvekit_local_deploy_backend
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+      kb-service:
+        condition: service_started
+    env_file: .env
+    environment:
+      IAA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+      IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      IAA_REDIS_URL: ${IAA_REDIS_URL:-redis://redis:6379/0}
+      IAA_CORS_ORIGINS: '${IAA_CORS_ORIGINS:-["https://resolvekit-dev.example.com","https://console.resolvekit-dev.example.com","https://api.resolvekit-dev.example.com"]}'
+    ports:
+      - "${BACKEND_BIND_ADDR:-127.0.0.1}:${BACKEND_BIND_PORT:-8000}:8000"
+    networks:
+      - resolvekit
+
+  api:
+    build: *dashboard_build
+    image: resolvekit-dashboard:local-deploy
+    container_name: resolvekit_local_deploy_api
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      <<: *dashboard_runtime_env
+      IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-https://resolvekit-dev.example.com,https://console.resolvekit-dev.example.com}
+    ports:
+      - "${API_BIND_ADDR:-127.0.0.1}:${API_BIND_PORT:-3002}:3000"
+    networks:
+      - resolvekit
+
+  dashboard:
+    image: resolvekit-dashboard:local-deploy
+    container_name: resolvekit_local_deploy_dashboard
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      <<: *dashboard_runtime_env
+    ports:
+      - "${DASHBOARD_BIND_ADDR:-127.0.0.1}:${DASHBOARD_BIND_PORT:-3000}:3000"
+    networks:
+      - resolvekit
+
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit-dev.example.com}
+    image: resolvekit-website:local-deploy
+    container_name: resolvekit_local_deploy_website
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit-dev.example.com}
+    ports:
+      - "${WEBSITE_BIND_ADDR:-127.0.0.1}:${WEBSITE_BIND_PORT:-3001}:3000"
+    networks:
+      - resolvekit
+
+  cert-seed:
+    image: certbot/certbot:latest
+    container_name: resolvekit_local_deploy_cert_seed
+    restart: "no"
+    environment:
+      LETSENCRYPT_CERT_NAME: ${LETSENCRYPT_CERT_NAME:-resolvekit-dev}
+      RESOLVEKIT_AGENT_HOST: ${RESOLVEKIT_AGENT_HOST:-agent.resolvekit-dev.example.com}
+    volumes:
+      - ./deploy/local-nginx/certbot/conf:/etc/letsencrypt
+      - ./deploy/local-nginx/scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/cert-seed.sh"]
+    networks:
+      - resolvekit
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: resolvekit_local_deploy_certbot
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    environment:
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-change-me@example.com}
+      LETSENCRYPT_STAGING: ${LETSENCRYPT_STAGING:-1}
+      LETSENCRYPT_CERT_NAME: ${LETSENCRYPT_CERT_NAME:-resolvekit-dev}
+      RESOLVEKIT_MARKETING_HOST: ${RESOLVEKIT_MARKETING_HOST:-resolvekit-dev.example.com}
+      RESOLVEKIT_CONSOLE_HOST: ${RESOLVEKIT_CONSOLE_HOST:-console.resolvekit-dev.example.com}
+      RESOLVEKIT_API_HOST: ${RESOLVEKIT_API_HOST:-api.resolvekit-dev.example.com}
+      RESOLVEKIT_AGENT_HOST: ${RESOLVEKIT_AGENT_HOST:-agent.resolvekit-dev.example.com}
+    volumes:
+      - ./deploy/local-nginx/certbot/conf:/etc/letsencrypt
+      - ./deploy/local-nginx/certbot/www:/var/www/certbot
+      - ./deploy/local-nginx/scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/certbot-loop.sh"]
+    networks:
+      - resolvekit
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: resolvekit_local_deploy_nginx
+    restart: unless-stopped
+    depends_on:
+      cert-seed:
+        condition: service_completed_successfully
+      website:
+        condition: service_started
+      dashboard:
+        condition: service_started
+      api:
+        condition: service_started
+      backend:
+        condition: service_started
+    command: /bin/sh -c 'while :; do sleep ${NGINX_RELOAD_INTERVAL_SECONDS:-60} & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'
+    environment:
+      RESOLVEKIT_MARKETING_HOST: ${RESOLVEKIT_MARKETING_HOST:-resolvekit-dev.example.com}
+      RESOLVEKIT_CONSOLE_HOST: ${RESOLVEKIT_CONSOLE_HOST:-console.resolvekit-dev.example.com}
+      RESOLVEKIT_API_HOST: ${RESOLVEKIT_API_HOST:-api.resolvekit-dev.example.com}
+      RESOLVEKIT_AGENT_HOST: ${RESOLVEKIT_AGENT_HOST:-agent.resolvekit-dev.example.com}
+      LETSENCRYPT_CERT_NAME: ${LETSENCRYPT_CERT_NAME:-resolvekit-dev}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
+    volumes:
+      - ./deploy/local-nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/local-nginx/templates:/etc/nginx/templates:ro
+      - ./deploy/local-nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./deploy/local-nginx/certbot/www:/var/www/certbot:ro
+      - ./deploy/local-nginx/logs:/var/log/nginx
+    ports:
+      - "${GATEWAY_HTTP_BIND_ADDR:-0.0.0.0}:${GATEWAY_HTTP_BIND_PORT:-80}:80"
+      - "${GATEWAY_HTTPS_BIND_ADDR:-0.0.0.0}:${GATEWAY_HTTPS_BIND_PORT:-443}:443"
+    networks:
+      - resolvekit
+
+networks:
+  resolvekit:
+    name: resolvekit_local_deploy_default
+    driver: bridge
+
+volumes:
+  local_deploy_postgres_data:
+  local_deploy_kb_postgres_data:

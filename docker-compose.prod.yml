@@ -27,6 +27,15 @@ x-dashboard-runtime-env: &dashboard_runtime_env
   IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: resolvekit_prod_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_BIND_ADDR:-127.0.0.1}:${REDIS_BIND_PORT:-16379}:6379"
+    networks:
+      - resolvekit
+
   db:
     image: postgres:17-alpine
     container_name: resolvekit_prod_db
@@ -94,6 +103,8 @@ services:
     container_name: resolvekit_prod_backend
     restart: unless-stopped
     depends_on:
+      redis:
+        condition: service_started
       db:
         condition: service_healthy
       kb-service:
@@ -104,6 +115,7 @@ services:
       IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      IAA_REDIS_URL: ${IAA_REDIS_URL:-redis://redis:6379/0}
     ports:
       - "${BACKEND_BIND_ADDR:-127.0.0.1}:${BACKEND_BIND_PORT:-8000}:8000"
     networks:

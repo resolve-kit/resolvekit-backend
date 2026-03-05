@@ -25,6 +25,41 @@
    - `docker compose logs -f api`
    - `docker compose logs -f website`
 
+## Local deploy with Dockerized NGINX (non-prod)
+
+This mirrors the ResolveKit routing pattern from `scout4me_balance`, including HTTPS termination and cert renewal via Let's Encrypt:
+
+- `resolvekit.*` host -> `website`
+- `console.resolvekit.*` host -> `dashboard`
+- `api.resolvekit.*` host -> `api`
+- `agent.resolvekit.*` host -> `backend` (including WS and SSE routes)
+
+1. Prepare env files:
+   - `cp .env.example .env` (if not already set)
+   - `cp .env.local-deploy.example .env.local-deploy`
+2. Set real public DNS records for all 4 hostnames in `.env.local-deploy` so they resolve to this machine's public IP.
+3. Open inbound ports `80` and `443` to this machine.
+4. Build local web SDK package for dashboard/api image build:
+   - `npm --prefix ../resolvekit-web-sdk run build`
+5. Start local deploy stack:
+   - `docker compose -f docker-compose.local-deploy.yml --env-file .env --env-file .env.local-deploy up -d --build`
+6. Watch certificate bootstrap/renewal logs:
+   - `docker compose -f docker-compose.local-deploy.yml --env-file .env --env-file .env.local-deploy logs -f certbot`
+7. Run DB migrations once:
+   - `docker compose -f docker-compose.local-deploy.yml --env-file .env --env-file .env.local-deploy exec backend uv run alembic upgrade head`
+8. Verify:
+   - `curl -s https://<agent-host>/health`
+   - open `https://<marketing-host>`
+   - open `https://<console-host>`
+
+Notes:
+
+- `cert-seed` creates a temporary self-signed cert so nginx can start before Let's Encrypt cert issuance.
+- Keep `LETSENCRYPT_STAGING=1` for safe test runs (untrusted cert chain), then switch to `0` for browser-trusted certs.
+- WebSocket proxy route is preserved at `wss://<agent-host>/v1/sessions/{id}/ws`.
+- Stop stack:
+  - `docker compose -f docker-compose.local-deploy.yml --env-file .env --env-file .env.local-deploy down`
+
 ## Production compose setup
 
 1. Configure production env values (secrets + public URLs).
@@ -40,6 +75,25 @@
    - `docker compose -f docker-compose.prod.yml logs -f api`
    - `docker compose -f docker-compose.prod.yml logs -f dashboard`
    - `docker compose -f docker-compose.prod.yml logs -f website`
+
+### WebSocket affinity (multi-instance)
+
+For `POST /v1/sessions/{id}/ws-ticket` and `WS /v1/sessions/{id}/ws`, configure load-balancer affinity by `session_id` so reconnects route to the same backend shard.
+
+- If your LB supports URI-hash affinity, hash on full request URI.
+- If it supports path capture rules, hash specifically on the `{session_id}` segment.
+- Keep WebSocket upgrade timeout high enough for long-running turns.
+
+Example NGINX upstream policy:
+
+```nginx
+upstream resolvekit_backend {
+    hash $request_uri consistent;
+    server backend-1:8000;
+    server backend-2:8000;
+    server backend-3:8000;
+}
+```
 
 ## Python local backend setup
 

@@ -32,6 +32,14 @@ from agent.services.pending_tool_results import (
     register_pending_tool_result,
     resolve_pending_tool_result,
 )
+from agent.services.runtime_redis_service import (
+    claim_or_get_owner,
+    pop_outbox_frames,
+    pop_tool_result,
+    push_outbox_frame,
+    refresh_owner,
+    store_tool_result,
+)
 from agent.services.session_service import is_session_expired
 from agent.services.ws_ticket_service import consume_ws_ticket
 
@@ -39,19 +47,86 @@ router = APIRouter(tags=["chat-ws"])
 
 
 class WebSocketSender(MessageSender):
-    def __init__(self, ws: WebSocket, session_id: uuid.UUID, app_id: uuid.UUID):
-        self.ws = ws
+    def __init__(self, session_id: uuid.UUID, app_id: uuid.UUID):
         self._session_id = session_id
         self._app_id = app_id
+        self._ws: WebSocket | None = None
         self._pending_results: dict[str, asyncio.Future] = {}
+        self._outbox: list[dict[str, Any]] = []
+        self._max_outbox_size = 256
+
+    @property
+    def has_active_socket(self) -> bool:
+        return self._ws is not None
+
+    async def attach_ws(self, ws: WebSocket) -> None:
+        self._ws = ws
+        await self.flush_redis_outbox()
+        if not self._outbox:
+            return
+
+        queued = list(self._outbox)
+        self._outbox.clear()
+        for index, frame in enumerate(queued):
+            try:
+                await ws.send_json(frame)
+            except Exception:
+                self._ws = None
+                self._enqueue_outgoing_frame(frame)
+                for rest in queued[index + 1:]:
+                    self._enqueue_outgoing_frame(rest)
+                return
+
+    async def flush_redis_outbox(self) -> None:
+        if self._ws is None:
+            return
+        frames = await pop_outbox_frames(str(self._session_id), str(self._app_id))
+        if not frames:
+            return
+        for frame in frames:
+            try:
+                await self._ws.send_json(frame)
+            except Exception:
+                self._ws = None
+                self._enqueue_outgoing_frame(frame)
+                break
+
+    def detach_ws(self) -> None:
+        self._ws = None
+
+    def _enqueue_outgoing_frame(self, frame: dict[str, Any]) -> None:
+        self._outbox.append(frame)
+        if len(self._outbox) > self._max_outbox_size:
+            self._outbox = self._outbox[-self._max_outbox_size :]
 
     async def _send(self, msg_type: str, payload: dict, request_id: str | None = None) -> None:
-        await self.ws.send_json({
+        frame = {
             "type": msg_type,
             "request_id": request_id,
             "payload": payload,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        }
+        ws = self._ws
+        if ws is None:
+            self._enqueue_outgoing_frame(frame)
+            await push_outbox_frame(
+                str(self._session_id),
+                str(self._app_id),
+                frame,
+                ttl_seconds=settings.ws_outbox_ttl_seconds,
+            )
+            return
+        try:
+            await ws.send_json(frame)
+        except Exception:
+            self._ws = None
+            self._enqueue_outgoing_frame(frame)
+            await push_outbox_frame(
+                str(self._session_id),
+                str(self._app_id),
+                frame,
+                ttl_seconds=settings.ws_outbox_ttl_seconds,
+            )
 
     async def send_text_delta(self, delta: str, accumulated: str) -> None:
         await self._send("assistant_text_delta", {"delta": delta, "accumulated": accumulated})
@@ -85,22 +160,49 @@ class WebSocketSender(MessageSender):
 
     async def wait_for_tool_result(self, call_id: str, timeout: int) -> dict[str, Any]:
         fut = self._pending_results.get(call_id)
-        if not fut:
-            raise ValueError(f"No pending result for {call_id}")
+        deadline = asyncio.get_event_loop().time() + timeout
         try:
-            return await asyncio.wait_for(fut, timeout=timeout)
+            while True:
+                remaining = deadline - asyncio.get_event_loop().time()
+                if remaining <= 0:
+                    raise asyncio.TimeoutError
+                if fut is not None:
+                    try:
+                        return await asyncio.wait_for(asyncio.shield(fut), timeout=min(0.25, remaining))
+                    except asyncio.TimeoutError:
+                        pass
+                redis_payload = await pop_tool_result(str(self._session_id), str(self._app_id), call_id)
+                if redis_payload is not None:
+                    if fut is not None and not fut.done():
+                        fut.set_result(redis_payload)
+                    return redis_payload
+                await asyncio.sleep(min(0.1, remaining))
         finally:
             self._pending_results.pop(call_id, None)
             clear_pending_tool_result(self._session_id, self._app_id, call_id)
 
-    def resolve_tool_result(self, call_id: str, result: dict) -> None:
+    async def resolve_tool_result(self, call_id: str, result: dict) -> None:
         if resolve_pending_tool_result(self._session_id, self._app_id, call_id, result):
+            await store_tool_result(
+                str(self._session_id),
+                str(self._app_id),
+                call_id,
+                result,
+                ttl_seconds=settings.ws_tool_result_ttl_seconds,
+            )
             return
 
         # Local fallback keeps behaviour stable when sender owns the future.
         fut = self._pending_results.get(call_id)
         if fut and not fut.done():
             fut.set_result(result)
+        await store_tool_result(
+            str(self._session_id),
+            str(self._app_id),
+            call_id,
+            result,
+            ttl_seconds=settings.ws_tool_result_ttl_seconds,
+        )
 
     def clear_pending_results(self) -> None:
         for call_id, fut in list(self._pending_results.items()):
@@ -108,6 +210,40 @@ class WebSocketSender(MessageSender):
             if not fut.done():
                 fut.cancel()
         self._pending_results.clear()
+
+
+class ActiveTurnState:
+    def __init__(self, sender: WebSocketSender):
+        self.sender = sender
+        self.agent_task: asyncio.Task | None = None
+
+
+_active_turns: dict[tuple[str, str], ActiveTurnState] = {}
+
+
+def _turn_key(session_id: uuid.UUID, app_id: uuid.UUID) -> tuple[str, str]:
+    return str(session_id), str(app_id)
+
+
+def _get_or_create_active_turn(session_id: uuid.UUID, app_id: uuid.UUID) -> ActiveTurnState:
+    key = _turn_key(session_id, app_id)
+    state = _active_turns.get(key)
+    if state is None:
+        state = ActiveTurnState(sender=WebSocketSender(session_id=session_id, app_id=app_id))
+        _active_turns[key] = state
+    return state
+
+
+def _cleanup_active_turn_if_idle(session_id: uuid.UUID, app_id: uuid.UUID) -> None:
+    key = _turn_key(session_id, app_id)
+    state = _active_turns.get(key)
+    if state is None:
+        return
+    if state.sender.has_active_socket:
+        return
+    if state.agent_task is not None and not state.agent_task.done():
+        return
+    _active_turns.pop(key, None)
 
 
 async def authenticate_ws(ws: WebSocket, db: AsyncSession) -> tuple[App | None, bool]:
@@ -202,12 +338,90 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
             await ws.close(code=4003)
             return
 
-        sender = WebSocketSender(ws, session.id, app.id)
-        agent_task: asyncio.Task | None = None
+        session_id_str = str(session.id)
+        app_id_str = str(app.id)
+        owner_id = await claim_or_get_owner(
+            session_id=session_id_str,
+            app_id=app_id_str,
+            instance_id=settings.instance_id,
+            ttl_seconds=settings.ws_owner_ttl_seconds,
+        )
+        is_owner = owner_id == settings.instance_id
+
+        if not is_owner:
+            relay_sender = WebSocketSender(session_id=session.id, app_id=app.id)
+            await relay_sender.attach_ws(ws)
+            last_rx_at: float = asyncio.get_event_loop().time()
+
+            async def relay_keepalive_task_fn() -> None:
+                nonlocal last_rx_at
+                interval = 30.0
+                dead_timeout = 60.0
+                while True:
+                    await asyncio.sleep(interval)
+                    elapsed = asyncio.get_event_loop().time() - last_rx_at
+                    if elapsed > dead_timeout:
+                        try:
+                            await ws.close(code=1001)
+                        except Exception:
+                            pass
+                        return
+                    await relay_sender._send("ping", {})
+
+            async def relay_outbox_task_fn() -> None:
+                while True:
+                    await relay_sender.flush_redis_outbox()
+                    await asyncio.sleep(0.2)
+
+            relay_keepalive_task = asyncio.create_task(relay_keepalive_task_fn())
+            relay_outbox_task = asyncio.create_task(relay_outbox_task_fn())
+            try:
+                while True:
+                    raw = await ws.receive_text()
+                    last_rx_at = asyncio.get_event_loop().time()
+                    try:
+                        envelope = json.loads(raw)
+                    except json.JSONDecodeError:
+                        await relay_sender.send_error("invalid_json", "Invalid JSON")
+                        continue
+
+                    msg_type = envelope.get("type")
+                    if msg_type == "ping":
+                        await relay_sender._send("pong", {})
+                        continue
+                    if msg_type == "tool_result":
+                        payload = envelope.get("payload", {})
+                        call_id = payload.get("call_id")
+                        if call_id:
+                            await relay_sender.resolve_tool_result(call_id, payload)
+                        continue
+                    if msg_type == "chat_message":
+                        await relay_sender.send_error(
+                            "turn_relay_active",
+                            "Recovering in-flight turn. Please wait for completion before sending a new message.",
+                            recoverable=True,
+                        )
+            except WebSocketDisconnect:
+                relay_sender.detach_ws()
+            finally:
+                relay_keepalive_task.cancel()
+                relay_outbox_task.cancel()
+                try:
+                    await relay_keepalive_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+                try:
+                    await relay_outbox_task
+                except (asyncio.CancelledError, Exception):
+                    pass
+            return
+
+        turn_state = _get_or_create_active_turn(session.id, app.id)
+        sender = turn_state.sender
+        await sender.attach_ws(ws)
         last_rx_at: float = asyncio.get_event_loop().time()
 
         async def watch_agent_task(task: asyncio.Task) -> None:
-            nonlocal agent_task
             try:
                 await task
             except asyncio.CancelledError:
@@ -219,8 +433,21 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                     recoverable=True,
                 )
             finally:
-                if agent_task is task:
-                    agent_task = None
+                if turn_state.agent_task is task:
+                    turn_state.agent_task = None
+                sender.clear_pending_results()
+                _cleanup_active_turn_if_idle(session.id, app.id)
+
+        async def owner_lease_task_fn() -> None:
+            interval = max(5, settings.ws_owner_ttl_seconds // 3)
+            while True:
+                await refresh_owner(
+                    session_id=session_id_str,
+                    app_id=app_id_str,
+                    instance_id=settings.instance_id,
+                    ttl_seconds=settings.ws_owner_ttl_seconds,
+                )
+                await asyncio.sleep(interval)
 
         async def keepalive_task_fn() -> None:
             nonlocal last_rx_at
@@ -241,6 +468,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                     return
 
         keepalive_task = asyncio.create_task(keepalive_task_fn())
+        owner_lease_task = asyncio.create_task(owner_lease_task_fn())
         try:
             while True:
                 raw = await ws.receive_text()
@@ -260,7 +488,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                     payload = envelope.get("payload", {})
                     call_id = payload.get("call_id")
                     if call_id:
-                        sender.resolve_tool_result(call_id, payload)
+                        await sender.resolve_tool_result(call_id, payload)
 
                 elif msg_type == "chat_message":
                     await db.refresh(app)
@@ -271,13 +499,13 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                         continue
 
                     # Check if a turn is already running
-                    if agent_task is not None and not agent_task.done():
+                    if turn_state.agent_task is not None and not turn_state.agent_task.done():
                         await sender.send_error("turn_in_progress", "A turn is already in progress")
                         continue
 
                     # Previous task is finished; clear the slot before launching a new turn.
-                    if agent_task is not None and agent_task.done():
-                        agent_task = None
+                    if turn_state.agent_task is not None and turn_state.agent_task.done():
+                        turn_state.agent_task = None
 
                     text = envelope.get("payload", {}).get("text", "").strip()
                     locale = envelope.get("payload", {}).get("locale")
@@ -300,10 +528,10 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
 
                     # Launch agent loop as background task so the receive loop
                     # stays free to route tool_result messages back to the orchestrator
-                    agent_task = asyncio.create_task(
+                    turn_state.agent_task = asyncio.create_task(
                         run_agent_loop(db, session, agent_config, functions, text, sender)
                     )
-                    asyncio.create_task(watch_agent_task(agent_task))
+                    asyncio.create_task(watch_agent_task(turn_state.agent_task))
 
         except WebSocketDisconnect:
             keepalive_task.cancel()
@@ -312,12 +540,15 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
             except (asyncio.CancelledError, Exception):
                 pass
 
-            sender.clear_pending_results()
-
-            # Cancel any in-flight agent task on disconnect
-            if agent_task is not None and not agent_task.done():
-                agent_task.cancel()
+            sender.detach_ws()
+            if turn_state.agent_task is not None and not turn_state.agent_task.done():
                 try:
-                    await agent_task
+                    await turn_state.agent_task
                 except (asyncio.CancelledError, Exception):
                     pass
+            owner_lease_task.cancel()
+            try:
+                await owner_lease_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            _cleanup_active_turn_if_idle(session.id, app.id)

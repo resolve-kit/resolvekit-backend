@@ -32,6 +32,16 @@ Settings are loaded via pydantic settings models:
 - `IAA_SUPPORTED_SDK_MAJOR_VERSIONS`
 - `IAA_CHAT_CAPABILITY_SECRET`
 - `IAA_CHAT_CAPABILITY_TTL_SECONDS`
+- `IAA_REDIS_URL`
+  - Redis DSN for cross-instance WS continuity (owner lease, outbox replay, tool-result handoff).
+- `IAA_INSTANCE_ID`
+  - Stable process identifier for Redis owner leasing (defaults to hostname).
+- `IAA_WS_OWNER_TTL_SECONDS`
+  - Owner lease TTL for active WS session shards.
+- `IAA_WS_OUTBOX_TTL_SECONDS`
+  - TTL for buffered WS outbound frames in Redis.
+- `IAA_WS_TOOL_RESULT_TTL_SECONDS`
+  - TTL for bridged tool results in Redis.
 
 ## KB bridge
 

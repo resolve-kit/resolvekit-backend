@@ -19,6 +19,10 @@ ResolveKit Backend provides the server-side runtime for embedded app assistants.
 3. Production stack:
    - `npm --prefix ../resolvekit-web-sdk run build`
    - `docker compose -f docker-compose.prod.yml --env-file .env up -d --build`
+4. Local deploy with Dockerized nginx (non-prod):
+   - `cp .env.local-deploy.example .env.local-deploy`
+   - configure public DNS + Let's Encrypt values in `.env.local-deploy`
+   - `docker compose -f docker-compose.local-deploy.yml --env-file .env --env-file .env.local-deploy up -d --build`
 
 ## Documentation Map
 

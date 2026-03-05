@@ -1,6 +1,15 @@
 name: resolvekit
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: resolvekit_redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16379:6379"
+    networks:
+      - resolvekit
+
   db:
     image: postgres:17-alpine
     container_name: resolvekit_db
@@ -69,6 +78,8 @@ services:
     container_name: resolvekit_backend
     restart: unless-stopped
     depends_on:
+      redis:
+        condition: service_started
       db:
         condition: service_healthy
       kb-service:
@@ -79,6 +90,7 @@ services:
       IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      IAA_REDIS_URL: ${IAA_REDIS_URL:-redis://redis:6379/0}
     command: ["uv", "run", "uvicorn", "agent.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     volumes:
       - ./agent:/app/agent

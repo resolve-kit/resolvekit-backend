@@ -1,3 +1,5 @@
+import socket
+
 from pydantic_settings import BaseSettings
 
 
@@ -31,6 +33,13 @@ class Settings(BaseSettings):
 
     # Session TTL
     session_ttl_minutes: int = 30
+
+    # Realtime continuity (Redis-backed)
+    redis_url: str = ""
+    instance_id: str = socket.gethostname()
+    ws_owner_ttl_seconds: int = 120
+    ws_outbox_ttl_seconds: int = 300
+    ws_tool_result_ttl_seconds: int = 300
 
     # SDK compatibility policy
     minimum_sdk_version: str = "1.0.0"

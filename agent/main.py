@@ -14,6 +14,7 @@ from agent.routers import (
     sessions,
 )
 from agent.services.session_service import expire_stale_sessions
+from agent.services.runtime_redis_service import close_redis
 
 
 def validate_security_config() -> None:
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
         await task
     except asyncio.CancelledError:
         pass
+    await close_redis()
 
 
 app = FastAPI(

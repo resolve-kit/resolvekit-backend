@@ -645,17 +645,23 @@ Each registered function has a `timeout_seconds` value (default 30). If the SDK 
 
 ### WebSocket reconnection
 
-The server does **not** maintain reconnection state across WebSocket connections. If the connection drops:
+The runtime supports best-effort in-flight turn continuity using Redis-backed ownership, outbox buffering, and tool-result handoff.
 
-1. The server cancels the in-flight agent task.
-2. Any pending tool-result futures are abandoned.
-3. The session and all persisted messages remain in the DB.
+If the WebSocket drops during an active turn:
+
+1. The owner instance keeps the in-flight agent task alive.
+2. Pending tool-result waits remain active.
+3. Outbound server frames (for example `tool_call_request` / `turn_complete`) are buffered and replayed after reconnect.
+4. Tool results submitted through a reconnect on another instance are bridged back to the owner via Redis.
+
+If reconnect does not happen in time, normal timeout behavior still applies (for example function call timeout).
 
 **On reconnect:**
 
 - Open a new WebSocket to the **same session ID** (if not expired).
-- The agent will resume from the persisted message history.
-- Any interrupted tool call will not be retried automatically — the LLM will reconsider from the persisted context on the next `chat_message`.
+- Reuse the same `chat_capability` token and fetch a fresh `ws-ticket`.
+- Pending turn output and pending tool calls continue without re-sending `chat_message`.
+- During relay of an active in-flight turn, new `chat_message` submissions are deferred until that turn completes.
 
 ### Session TTL
 
