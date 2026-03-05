@@ -27,6 +27,11 @@ from agent.services.chat_access_service import (
 from agent.services.chat_localization_service import resolve_locale
 from agent.services.function_service import get_eligible_functions
 from agent.services.orchestrator import MessageSender, run_agent_loop
+from agent.services.pending_tool_results import (
+    clear_pending_tool_result,
+    register_pending_tool_result,
+    resolve_pending_tool_result,
+)
 from agent.services.session_service import is_session_expired
 from agent.services.ws_ticket_service import consume_ws_ticket
 
@@ -34,8 +39,10 @@ router = APIRouter(tags=["chat-ws"])
 
 
 class WebSocketSender(MessageSender):
-    def __init__(self, ws: WebSocket):
+    def __init__(self, ws: WebSocket, session_id: uuid.UUID, app_id: uuid.UUID):
         self.ws = ws
+        self._session_id = session_id
+        self._app_id = app_id
         self._pending_results: dict[str, asyncio.Future] = {}
 
     async def _send(self, msg_type: str, payload: dict, request_id: str | None = None) -> None:
@@ -60,6 +67,7 @@ class WebSocketSender(MessageSender):
     ) -> None:
         fut: asyncio.Future = asyncio.get_event_loop().create_future()
         self._pending_results[call_id] = fut
+        register_pending_tool_result(self._session_id, self._app_id, call_id, fut)
         await self._send("tool_call_request", {
             "call_id": call_id,
             "function_name": function_name,
@@ -83,11 +91,23 @@ class WebSocketSender(MessageSender):
             return await asyncio.wait_for(fut, timeout=timeout)
         finally:
             self._pending_results.pop(call_id, None)
+            clear_pending_tool_result(self._session_id, self._app_id, call_id)
 
     def resolve_tool_result(self, call_id: str, result: dict) -> None:
+        if resolve_pending_tool_result(self._session_id, self._app_id, call_id, result):
+            return
+
+        # Local fallback keeps behaviour stable when sender owns the future.
         fut = self._pending_results.get(call_id)
         if fut and not fut.done():
             fut.set_result(result)
+
+    def clear_pending_results(self) -> None:
+        for call_id, fut in list(self._pending_results.items()):
+            clear_pending_tool_result(self._session_id, self._app_id, call_id)
+            if not fut.done():
+                fut.cancel()
+        self._pending_results.clear()
 
 
 async def authenticate_ws(ws: WebSocket, db: AsyncSession) -> tuple[App | None, bool]:
@@ -182,7 +202,7 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
             await ws.close(code=4003)
             return
 
-        sender = WebSocketSender(ws)
+        sender = WebSocketSender(ws, session.id, app.id)
         agent_task: asyncio.Task | None = None
         last_rx_at: float = asyncio.get_event_loop().time()
 
@@ -291,6 +311,9 @@ async def chat_websocket(ws: WebSocket, session_id: uuid.UUID):
                 await keepalive_task
             except (asyncio.CancelledError, Exception):
                 pass
+
+            sender.clear_pending_results()
+
             # Cancel any in-flight agent task on disconnect
             if agent_task is not None and not agent_task.done():
                 agent_task.cancel()
