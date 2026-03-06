@@ -58,6 +58,10 @@ async def close_redis() -> None:
         _redis_client = None
 
 
+async def get_redis_client() -> Redis | None:
+    return await _get_redis()
+
+
 def _owner_key(session_id: str, app_id: str) -> str:
     return f"rk:ws:owner:{session_id}:{app_id}"
 
