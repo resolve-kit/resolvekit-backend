@@ -77,6 +77,7 @@ async def test_create_session_reuses_latest_active_session() -> None:
     assert response.id == existing.id
     assert response.chat_capability_token == "cap-token"
     assert response.reused_active_session is True
+    assert response.events_url == f"/v1/sessions/{existing.id}/events"
     assert response.locale == "en"
     assert response.chat_title == "Support Chat"
     assert response.message_placeholder == "Message"
@@ -119,6 +120,7 @@ async def test_create_session_creates_new_when_reuse_is_disabled() -> None:
     assert response.device_id == "device-1"
     assert response.chat_capability_token == "cap-token"
     assert response.reused_active_session is False
+    assert response.events_url == f"/v1/sessions/{response.id}/events"
     assert response.locale == "fr"
     assert response.initial_message == "Bonjour ! Comment puis-je vous aider aujourd'hui ?"
     assert len(db.added) == 2

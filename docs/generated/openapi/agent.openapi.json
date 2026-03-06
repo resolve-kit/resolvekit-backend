@@ -1,6 +1,29 @@
 {
   "components": {
     "schemas": {
+      "ChatMessageAccepted": {
+        "properties": {
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "accepted",
+            "title": "Status",
+            "type": "string"
+          },
+          "turn_id": {
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turn_id",
+          "request_id"
+        ],
+        "title": "ChatMessageAccepted",
+        "type": "object"
+      },
       "ChatMessageBody": {
         "properties": {
           "locale": {
@@ -14,13 +37,20 @@
             ],
             "title": "Locale"
           },
+          "request_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Request Id",
+            "type": "string"
+          },
           "text": {
             "title": "Text",
             "type": "string"
           }
         },
         "required": [
-          "text"
+          "text",
+          "request_id"
         ],
         "title": "ChatMessageBody",
         "type": "object"
@@ -408,6 +438,25 @@
         "title": "MessageOut",
         "type": "object"
       },
+      "SDKClientTokenResponse": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expires_at"
+        ],
+        "title": "SDKClientTokenResponse",
+        "type": "object"
+      },
       "SDKCompatResponse": {
         "properties": {
           "client_requirements": {
@@ -779,6 +828,17 @@
             ],
             "title": "Device Id"
           },
+          "events_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Events Url"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -824,17 +884,6 @@
           "status": {
             "title": "Status",
             "type": "string"
-          },
-          "ws_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ws Url"
           }
         },
         "required": [
@@ -848,31 +897,7 @@
         "title": "SessionOut",
         "type": "object"
       },
-      "SessionWSTicketOut": {
-        "properties": {
-          "expires_at": {
-            "format": "date-time",
-            "title": "Expires At",
-            "type": "string"
-          },
-          "ws_ticket": {
-            "title": "Ws Ticket",
-            "type": "string"
-          },
-          "ws_url": {
-            "title": "Ws Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "ws_url",
-          "ws_ticket",
-          "expires_at"
-        ],
-        "title": "SessionWSTicketOut",
-        "type": "object"
-      },
-      "ToolResultPayload": {
+      "ToolResultBody": {
         "properties": {
           "call_id": {
             "title": "Call Id",
@@ -889,6 +914,12 @@
             ],
             "title": "Error"
           },
+          "idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
           "result": {
             "anyOf": [
               {},
@@ -901,13 +932,19 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "turn_id": {
+            "title": "Turn Id",
+            "type": "string"
           }
         },
         "required": [
+          "turn_id",
+          "idempotency_key",
           "call_id",
           "status"
         ],
-        "title": "ToolResultPayload",
+        "title": "ToolResultBody",
         "type": "object"
       },
       "ValidationError": {
@@ -1113,6 +1150,27 @@
         ]
       }
     },
+    "/v1/sdk/client-token": {
+      "post": {
+        "operationId": "create_sdk_client_token_v1_sdk_client_token_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SDKClientTokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Create Sdk Client Token",
+        "tags": [
+          "sdk"
+        ]
+      }
+    },
     "/v1/sdk/compat": {
       "get": {
         "operationId": "get_sdk_compatibility_v1_sdk_compat_get",
@@ -1228,6 +1286,63 @@
         ]
       }
     },
+    "/v1/sessions/{session_id}/events": {
+      "get": {
+        "operationId": "stream_events_v1_sessions__session_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stream Events",
+        "tags": [
+          "chat-events"
+        ]
+      }
+    },
     "/v1/sessions/{session_id}/localization": {
       "get": {
         "operationId": "get_session_localization_v1_sessions__session_id__localization_get",
@@ -1332,7 +1447,7 @@
         ]
       },
       "post": {
-        "operationId": "send_message_sse_v1_sessions__session_id__messages_post",
+        "operationId": "submit_message_v1_sessions__session_id__messages_post",
         "parameters": [
           {
             "in": "path",
@@ -1356,10 +1471,12 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "202": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageAccepted"
+                }
               }
             },
             "description": "Successful Response"
@@ -1375,9 +1492,9 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Send Message Sse",
+        "summary": "Submit Message",
         "tags": [
-          "chat-http"
+          "chat-events"
         ]
       }
     },
@@ -1400,7 +1517,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ToolResultPayload"
+                "$ref": "#/components/schemas/ToolResultBody"
               }
             }
           },
@@ -1428,50 +1545,7 @@
         },
         "summary": "Submit Tool Result",
         "tags": [
-          "chat-http"
-        ]
-      }
-    },
-    "/v1/sessions/{session_id}/ws-ticket": {
-      "post": {
-        "operationId": "create_ws_ticket_v1_sessions__session_id__ws_ticket_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "session_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Session Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionWSTicketOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Create Ws Ticket",
-        "tags": [
-          "sessions-sdk"
+          "chat-events"
         ]
       }
     }

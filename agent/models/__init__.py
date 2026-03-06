@@ -14,7 +14,6 @@ from agent.models.session import ChatSession
 from agent.models.message import Message
 from agent.models.llm_usage_event import LLMUsageEvent
 from agent.models.playbook import Playbook, PlaybookFunction
-from agent.models.ws_ticket import SessionWSTicket
 
 __all__ = [
     "Base",
@@ -34,5 +33,4 @@ __all__ = [
     "LLMUsageEvent",
     "Playbook",
     "PlaybookFunction",
-    "SessionWSTicket",
 ]

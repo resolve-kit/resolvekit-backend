@@ -16,7 +16,6 @@ from agent.schemas.session import (
     SessionContextPatch,
     SessionCreate,
     SessionOut,
-    SessionWSTicketOut,
 )
 from agent.services.chat_localization_service import effective_texts, resolve_locale
 from agent.services.chat_access_service import (
@@ -26,7 +25,6 @@ from agent.services.chat_access_service import (
     validate_chat_capability_token,
 )
 from agent.services.session_service import get_next_sequence, get_reusable_session, resolve_session_ttl_minutes
-from agent.services.ws_ticket_service import issue_ws_ticket
 
 # SDK endpoints (API key auth)
 sdk_router = APIRouter(prefix="/v1/sessions", tags=["sessions-sdk"])
@@ -109,7 +107,7 @@ async def create_session(
         status=session.status,
         last_activity_at=session.last_activity_at,
         created_at=session.created_at,
-        ws_url=f"/v1/sessions/{session.id}/ws",
+        events_url=f"/v1/sessions/{session.id}/events",
         chat_capability_token=chat_capability_token,
         reused_active_session=reused_active_session,
     )
@@ -176,32 +174,6 @@ async def get_session_localization(
         "message_placeholder": texts["message_placeholder"],
         "initial_message": texts["initial_message"],
     }
-
-
-@sdk_router.post("/{session_id}/ws-ticket", response_model=SessionWSTicketOut)
-async def create_ws_ticket(
-    session_id: uuid.UUID,
-    request: Request,
-    app: App = Depends(get_app_from_sdk_auth),
-    db: AsyncSession = Depends(get_db),
-):
-    validate_chat_capability_token(
-        token=resolve_chat_capability_token(request.headers),
-        session_id=session_id,
-        app=app,
-    )
-
-    session = await db.get(ChatSession, session_id)
-    if not session or session.app_id != app.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-
-    raw_ticket, expires_at = await issue_ws_ticket(db, session, app)
-    return SessionWSTicketOut(
-        ws_url=f"/v1/sessions/{session.id}/ws",
-        ws_ticket=raw_ticket,
-        expires_at=expires_at,
-    )
-
 
 @sdk_router.get("/{session_id}/messages", response_model=list[MessageOut])
 async def get_session_messages_sdk(

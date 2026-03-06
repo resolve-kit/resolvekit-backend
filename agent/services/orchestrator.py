@@ -896,7 +896,7 @@ async def execute_internal_kb_tool_call(
 
 
 class MessageSender:
-    """Interface for sending messages to the client (WebSocket or SSE)."""
+    """Interface for sending messages to the client over the session event stream."""
 
     async def send_text_delta(self, delta: str, accumulated: str) -> None:
         raise NotImplementedError
