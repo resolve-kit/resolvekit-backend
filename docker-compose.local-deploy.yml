@@ -223,7 +223,7 @@ services:
         condition: service_started
       backend:
         condition: service_started
-    command: /bin/sh -c 'while :; do sleep ${NGINX_RELOAD_INTERVAL_SECONDS:-60} & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'
+    command: /bin/sh -c '/docker-entrypoint.d/20-envsubst-on-templates.sh && while :; do sleep ${NGINX_RELOAD_INTERVAL_SECONDS:-60} & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'
     environment:
       RESOLVEKIT_MARKETING_HOST: ${RESOLVEKIT_MARKETING_HOST:-resolvekit-dev.example.com}
       RESOLVEKIT_CONSOLE_HOST: ${RESOLVEKIT_CONSOLE_HOST:-console.resolvekit-dev.example.com}
