@@ -241,6 +241,7 @@ async def stream_events(
 
     async def generate():
         last_event_id = cursor
+        yield ": connected\n\n"
         while True:
             try:
                 events = await event_stream_store.wait_for_events(
@@ -261,7 +262,14 @@ async def stream_events(
                 last_event_id = event["event_id"]
                 yield f"id: {event['event_id']}\nevent: {event['type']}\ndata: {json.dumps(event)}\n\n"
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/v1/sessions/{session_id}/messages", response_model=ChatMessageAccepted, status_code=status.HTTP_202_ACCEPTED)

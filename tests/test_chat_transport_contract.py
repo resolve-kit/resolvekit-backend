@@ -1,9 +1,12 @@
 import asyncio
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from starlette.requests import Request
 
+from agent.routers import chat_events
 from agent.services.event_stream_service import EventStreamStore
 
 
@@ -75,3 +78,48 @@ async def test_event_stream_store_notifies_waiters_of_new_events() -> None:
 
     assert len(events) == 1
     assert events[0]["type"] == "turn_complete"
+
+
+@pytest.mark.asyncio
+async def test_stream_events_yields_initial_keepalive_before_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_id = uuid.uuid4()
+    app_id = uuid.uuid4()
+    fake_session = SimpleNamespace(id=session_id)
+    fake_app = SimpleNamespace(id=app_id)
+
+    async def fake_load_runtime_context(db, passed_session_id, passed_app):
+        assert passed_session_id == session_id
+        assert passed_app is fake_app
+        return fake_session, None, None
+
+    def fake_validate_chat_capability_token(*, token, session_id, app):
+        assert session_id == fake_session.id
+        assert app is fake_app
+
+    async def should_not_wait_yet(**kwargs):
+        raise AssertionError("stream waited for events before yielding initial keepalive")
+
+    monkeypatch.setattr(chat_events, "_load_runtime_context", fake_load_runtime_context)
+    monkeypatch.setattr(chat_events, "validate_chat_capability_token", fake_validate_chat_capability_token)
+    monkeypatch.setattr(chat_events, "resolve_chat_capability_token", lambda headers: "token")
+    monkeypatch.setattr(chat_events.event_stream_store, "wait_for_events", should_not_wait_yet)
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": f"/v1/sessions/{session_id}/events",
+            "headers": [],
+        }
+    )
+    response = await chat_events.stream_events(
+        session_id=session_id,
+        request=request,
+        cursor=None,
+        app=fake_app,
+        db=object(),
+    )
+
+    first_chunk = await response.body_iterator.__anext__()
+
+    assert first_chunk == ": connected\n\n"
