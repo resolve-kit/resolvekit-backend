@@ -193,6 +193,9 @@ async def get_session_messages_sdk(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
     result = await db.execute(
-        select(Message).where(Message.session_id == session_id).order_by(Message.sequence_number)
+        select(Message).where(
+            Message.session_id == session_id,
+            Message.role.in_(["user", "assistant"]),
+        ).order_by(Message.sequence_number)
     )
     return result.scalars().all()
