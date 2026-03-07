@@ -8,6 +8,12 @@ from starlette.requests import Request
 
 from agent.routers import chat_events
 from agent.services.event_stream_service import EventStreamStore
+from agent.services.pending_tool_results import (
+    register_pending_tool_result,
+    resolve_pending_tool_result,
+    clear_pending_tool_result,
+)
+from agent.services.turn_state_service import TurnStateStore
 
 
 class FakeRedisStream:
@@ -263,3 +269,62 @@ async def test_stream_events_yields_initial_keepalive_before_waiting(monkeypatch
     first_chunk = await response.body_iterator.__anext__()
 
     assert first_chunk == ": connected\n\n"
+
+
+@pytest.mark.asyncio
+async def test_pending_tool_result_same_process_delivery() -> None:
+    """Tool result submitted in same process resolves the local Future."""
+    session_id = uuid.uuid4()
+    app_id = uuid.uuid4()
+    call_id = "call-1"
+
+    fut: asyncio.Future = asyncio.get_event_loop().create_future()
+    await register_pending_tool_result(session_id, app_id, call_id, fut)
+
+    payload = {"call_id": call_id, "status": "success", "result": {"answer": 42}}
+    resolved = await resolve_pending_tool_result(session_id, app_id, call_id, payload)
+
+    assert resolved is True
+    assert fut.done()
+    assert fut.result() == payload
+    clear_pending_tool_result(session_id, app_id, call_id)
+
+
+@pytest.mark.asyncio
+async def test_pending_tool_result_dedup_via_turn_state_store() -> None:
+    """Dedup keys checked via TurnStateStore prevent duplicate tool results."""
+    store = TurnStateStore()
+    session_id = uuid.uuid4()
+    app_id = uuid.uuid4()
+
+    key = "turn-1:call-1:idem-1"
+    first = await store.check_and_add_dedup_key(session_id=session_id, app_id=app_id, key=key)
+    second = await store.check_and_add_dedup_key(session_id=session_id, app_id=app_id, key=key)
+    different = await store.check_and_add_dedup_key(session_id=session_id, app_id=app_id, key="turn-1:call-2:idem-1")
+
+    assert first is False
+    assert second is True
+    assert different is False
+
+
+@pytest.mark.asyncio
+async def test_turn_state_idempotent_request_id_returns_same_turn() -> None:
+    """Submitting the same request_id returns the original turn_id without conflict."""
+    store = TurnStateStore()
+    session_id = uuid.uuid4()
+    app_id = uuid.uuid4()
+
+    turn_id_1, is_new_1 = await store.try_start_turn(
+        session_id=session_id, app_id=app_id, request_id="req-A", turn_id="turn-A",
+    )
+    assert is_new_1 is True
+
+    # Clear the active turn so the lock is released
+    await store.clear_turn(session_id=session_id, app_id=app_id, turn_id="turn-A")
+
+    # Same request_id returns original turn_id
+    turn_id_2, is_new_2 = await store.try_start_turn(
+        session_id=session_id, app_id=app_id, request_id="req-A", turn_id="turn-B",
+    )
+    assert turn_id_2 == "turn-A"
+    assert is_new_2 is False

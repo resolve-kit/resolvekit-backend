@@ -1,7 +1,6 @@
 import asyncio
 import json
 import uuid
-from dataclasses import dataclass, field
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -31,6 +30,7 @@ from agent.services.pending_tool_results import (
     resolve_pending_tool_result,
 )
 from agent.services.session_service import is_session_expired
+from agent.services.turn_state_service import turn_state_store
 
 router = APIRouter(tags=["chat-events"])
 
@@ -56,40 +56,18 @@ class ToolResultBody(BaseModel):
     error: str | None = None
 
 
-@dataclass
-class ActiveTurnState:
-    turn_id: str | None = None
-    request_id: str | None = None
-    agent_task: asyncio.Task | None = None
-    request_turns: dict[str, str] = field(default_factory=dict)
-    tool_result_keys: set[str] = field(default_factory=set)
-    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+_active_tasks: dict[tuple[str, str], asyncio.Task] = {}
 
 
-_active_turns: dict[tuple[str, str], ActiveTurnState] = {}
-
-
-def _turn_key(session_id: uuid.UUID, app_id: uuid.UUID) -> tuple[str, str]:
+def _task_key(session_id: uuid.UUID, app_id: uuid.UUID) -> tuple[str, str]:
     return str(session_id), str(app_id)
 
 
-def _get_or_create_active_turn(session_id: uuid.UUID, app_id: uuid.UUID) -> ActiveTurnState:
-    key = _turn_key(session_id, app_id)
-    state = _active_turns.get(key)
-    if state is None:
-        state = ActiveTurnState()
-        _active_turns[key] = state
-    return state
-
-
-def _cleanup_active_turn_if_idle(session_id: uuid.UUID, app_id: uuid.UUID) -> None:
-    key = _turn_key(session_id, app_id)
-    state = _active_turns.get(key)
-    if state is None:
-        return
-    if state.agent_task is not None and not state.agent_task.done():
-        return
-    _active_turns.pop(key, None)
+def _cleanup_task_if_done(session_id: uuid.UUID, app_id: uuid.UUID) -> None:
+    key = _task_key(session_id, app_id)
+    task = _active_tasks.get(key)
+    if task is None or task.done():
+        _active_tasks.pop(key, None)
 
 
 class EventStreamSender(MessageSender):
@@ -124,7 +102,7 @@ class EventStreamSender(MessageSender):
     ) -> None:
         fut: asyncio.Future = asyncio.get_event_loop().create_future()
         self._pending[call_id] = fut
-        register_pending_tool_result(self._session_id, self._app_id, call_id, fut)
+        await register_pending_tool_result(self._session_id, self._app_id, call_id, fut)
         await self._push("tool_call_request", {
             "call_id": call_id,
             "function_name": function_name,
@@ -215,13 +193,8 @@ async def _run_turn(
             },
         )
     finally:
-        state = _get_or_create_active_turn(session_id, app_id)
-        async with state.lock:
-            if state.turn_id == turn_id:
-                state.agent_task = None
-                state.turn_id = None
-                state.request_id = None
-        _cleanup_active_turn_if_idle(session_id, app_id)
+        await turn_state_store.clear_turn(session_id=session_id, app_id=app_id, turn_id=turn_id)
+        _cleanup_task_if_done(session_id, app_id)
 
 
 @router.get("/v1/sessions/{session_id}/events")
@@ -292,29 +265,27 @@ async def submit_message(
         await db.commit()
         await db.refresh(session)
 
-    state = _get_or_create_active_turn(session.id, app.id)
-    async with state.lock:
-        existing_turn_id = state.request_turns.get(body.request_id)
-        if existing_turn_id is not None:
-            return ChatMessageAccepted(turn_id=existing_turn_id, request_id=body.request_id)
-        if state.agent_task is not None and not state.agent_task.done():
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A turn is already in progress")
+    turn_id = str(uuid.uuid4())
+    resolved_turn_id, is_new = await turn_state_store.try_start_turn(
+        session_id=session.id,
+        app_id=app.id,
+        request_id=body.request_id,
+        turn_id=turn_id,
+    )
 
-        turn_id = str(uuid.uuid4())
-        state.turn_id = turn_id
-        state.request_id = body.request_id
-        state.request_turns[body.request_id] = turn_id
-        state.agent_task = asyncio.create_task(
+    if is_new:
+        key = _task_key(session.id, app.id)
+        _active_tasks[key] = asyncio.create_task(
             _run_turn(
                 session_id=session.id,
                 app_id=app.id,
                 request_id=body.request_id,
-                turn_id=turn_id,
+                turn_id=resolved_turn_id,
                 text=body.text,
             )
         )
 
-    return ChatMessageAccepted(turn_id=turn_id, request_id=body.request_id)
+    return ChatMessageAccepted(turn_id=resolved_turn_id, request_id=body.request_id)
 
 
 @router.post("/v1/sessions/{session_id}/tool-results")
@@ -330,12 +301,12 @@ async def submit_tool_result(
         app=app,
     )
 
-    state = _get_or_create_active_turn(session_id, app.id)
     dedupe_key = f"{body.turn_id}:{body.call_id}:{body.idempotency_key}"
-    async with state.lock:
-        if dedupe_key in state.tool_result_keys:
-            return {"status": "ok", "deduplicated": True}
-        state.tool_result_keys.add(dedupe_key)
+    is_dup = await turn_state_store.check_and_add_dedup_key(
+        session_id=session_id, app_id=app.id, key=dedupe_key,
+    )
+    if is_dup:
+        return {"status": "ok", "deduplicated": True}
 
     payload = {
         "call_id": body.call_id,
@@ -343,7 +314,7 @@ async def submit_tool_result(
         "result": body.result,
         "error": body.error,
     }
-    if not resolve_pending_tool_result(session_id, app.id, body.call_id, payload):
+    if not await resolve_pending_tool_result(session_id, app.id, body.call_id, payload):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pending tool call with this ID")
 
     return {"status": "ok", "deduplicated": False}
