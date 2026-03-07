@@ -6,8 +6,10 @@
 {$RESOLVEKIT_AGENT_HOST} {
 	reverse_proxy backend:8000 {
 		flush_interval -1
+		buffer_responses false
 		transport http {
-			read_timeout 300s
+			read_timeout 0
+			write_timeout 0
 		}
 	}
 }
