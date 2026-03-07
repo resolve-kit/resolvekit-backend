@@ -1,5 +1,10 @@
 {
 	email {$LETSENCRYPT_EMAIL}
+	# Preserve original client IP/proto when Caddy is used behind a private
+	# network edge proxy such as scout4me_balance nginx.
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 {$RESOLVEKIT_AGENT_HOST} {
