@@ -45,7 +45,7 @@ class _DummySender(orchestrator.MessageSender):
 async def test_run_agent_loop_maps_provider_failures_to_chat_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="You are support.",
         max_tool_rounds=3,

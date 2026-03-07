@@ -72,6 +72,7 @@ async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pyte
     session = SimpleNamespace(
         id=uuid.uuid4(),
         app_id=uuid.uuid4(),
+        locale="en",
         client_context={"platform": "ios", "os_name": "iOS", "os_version": "18.2"},
         llm_context={"location": {"city": "Vilnius", "country": "LT"}, "network_type": "wifi"},
     )

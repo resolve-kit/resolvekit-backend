@@ -98,7 +98,7 @@ class SessionOut(BaseModel):
     status: str
     last_activity_at: datetime
     created_at: datetime
-    ws_url: str | None = None
+    events_url: str | None = None
     chat_capability_token: str | None = None
     reused_active_session: bool = False
 
@@ -117,13 +117,6 @@ class MessageOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
-
-
-class SessionWSTicketOut(BaseModel):
-    ws_url: str
-    ws_ticket: str
-    expires_at: datetime
-
 
 class SessionContextOut(BaseModel):
     id: uuid.UUID

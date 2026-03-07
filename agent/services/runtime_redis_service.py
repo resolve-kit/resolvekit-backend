@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 from typing import Any
 
@@ -58,106 +57,7 @@ async def close_redis() -> None:
         _redis_client = None
 
 
-def _owner_key(session_id: str, app_id: str) -> str:
-    return f"rk:ws:owner:{session_id}:{app_id}"
+async def get_redis_client() -> Redis | None:
+    return await _get_redis()
 
 
-def _outbox_key(session_id: str, app_id: str) -> str:
-    return f"rk:ws:outbox:{session_id}:{app_id}"
-
-
-def _tool_result_key(session_id: str, app_id: str, call_id: str) -> str:
-    return f"rk:ws:tool_result:{session_id}:{app_id}:{call_id}"
-
-
-async def claim_or_get_owner(session_id: str, app_id: str, instance_id: str, ttl_seconds: int) -> str:
-    redis = await _get_redis()
-    if redis is None:
-        return instance_id
-
-    key = _owner_key(session_id, app_id)
-    if await redis.set(key, instance_id, ex=ttl_seconds, nx=True):
-        return instance_id
-
-    owner = await redis.get(key)
-    if owner == instance_id:
-        await redis.expire(key, ttl_seconds)
-        return instance_id
-    return owner or instance_id
-
-
-async def force_claim_owner(session_id: str, app_id: str, instance_id: str, ttl_seconds: int) -> None:
-    """Unconditionally claim WS ownership — newest connection always wins."""
-    redis = await _get_redis()
-    if redis is None:
-        return
-    key = _owner_key(session_id, app_id)
-    await redis.set(key, instance_id, ex=ttl_seconds)
-
-
-async def refresh_owner(session_id: str, app_id: str, instance_id: str, ttl_seconds: int) -> None:
-    redis = await _get_redis()
-    if redis is None:
-        return
-    key = _owner_key(session_id, app_id)
-    owner = await redis.get(key)
-    if owner == instance_id:
-        await redis.expire(key, ttl_seconds)
-
-
-async def push_outbox_frame(session_id: str, app_id: str, frame: dict[str, Any], ttl_seconds: int) -> None:
-    redis = await _get_redis()
-    if redis is None:
-        return
-    key = _outbox_key(session_id, app_id)
-    await redis.rpush(key, json.dumps(frame))
-    await redis.expire(key, ttl_seconds)
-
-
-async def pop_outbox_frames(session_id: str, app_id: str, max_items: int = 64) -> list[dict[str, Any]]:
-    redis = await _get_redis()
-    if redis is None:
-        return []
-    key = _outbox_key(session_id, app_id)
-    frames: list[dict[str, Any]] = []
-    for _ in range(max_items):
-        item = await redis.lpop(key)
-        if item is None:
-            break
-        try:
-            decoded = json.loads(item)
-        except Exception:
-            continue
-        if isinstance(decoded, dict):
-            frames.append(decoded)
-    return frames
-
-
-async def store_tool_result(
-    session_id: str,
-    app_id: str,
-    call_id: str,
-    payload: dict[str, Any],
-    ttl_seconds: int,
-) -> None:
-    redis = await _get_redis()
-    if redis is None:
-        return
-    key = _tool_result_key(session_id, app_id, call_id)
-    await redis.set(key, json.dumps(payload), ex=ttl_seconds)
-
-
-async def pop_tool_result(session_id: str, app_id: str, call_id: str) -> dict[str, Any] | None:
-    redis = await _get_redis()
-    if redis is None:
-        return None
-    key = _tool_result_key(session_id, app_id, call_id)
-    item = await redis.get(key)
-    if item is None:
-        return None
-    await redis.delete(key)
-    try:
-        decoded = json.loads(item)
-    except Exception:
-        return None
-    return decoded if isinstance(decoded, dict) else None

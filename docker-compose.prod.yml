@@ -165,7 +165,32 @@ services:
     networks:
       - resolvekit
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: resolvekit_prod_caddy
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - dashboard
+      - api
+      - website
+    ports:
+      - "${GATEWAY_HTTP_BIND_ADDR:-0.0.0.0}:${GATEWAY_HTTP_BIND_PORT:-80}:80"
+      - "${GATEWAY_HTTPS_BIND_ADDR:-0.0.0.0}:${GATEWAY_HTTPS_BIND_PORT:-443}:443"
+      - "${GATEWAY_HTTPS_BIND_ADDR:-0.0.0.0}:${GATEWAY_HTTPS_BIND_PORT:-443}:443/udp"
+    volumes:
+      - ./deploy/caddy/Caddyfile.prod:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    env_file: .env
+    networks:
+      - resolvekit
+
 networks:
   resolvekit:
     name: resolvekit_prod_default
     driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

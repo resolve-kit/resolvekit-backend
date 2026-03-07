@@ -1,9 +1,9 @@
 from pathlib import Path
 
 
-def test_agent_disables_legacy_ws_api_key_by_default() -> None:
+def test_agent_no_longer_exposes_legacy_ws_auth_flag() -> None:
     text = Path("agent/config.py").read_text(encoding="utf-8")
-    assert "allow_legacy_ws_api_key: bool = False" in text
+    assert "allow_legacy_ws_api_key" not in text
 
 
 def test_dashboard_api_client_does_not_blanket_whitelist_auth_prefix() -> None:

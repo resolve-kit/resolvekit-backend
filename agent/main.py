@@ -8,8 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from agent.config import settings
 from agent.database import async_session_factory
 from agent.routers import (
-    chat_http,
-    chat_ws,
+    chat_events,
     functions,
     sdk,
     sessions,
@@ -95,8 +94,7 @@ app.include_router(functions.sdk_router)
 app.include_router(sessions.sdk_router)
 
 # Chat runtime
-app.include_router(chat_ws.router)
-app.include_router(chat_http.router)
+app.include_router(chat_events.router)
 app.include_router(sdk.router)
 
 

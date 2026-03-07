@@ -55,7 +55,7 @@ def _response_with_final_text(text: str) -> SimpleNamespace:
 async def test_run_agent_loop_strict_scope_rejects_and_persists_message(monkeypatch: pytest.MonkeyPatch) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="My app helps users manage account settings.",
         scope_mode="strict",
@@ -119,7 +119,7 @@ async def test_run_agent_loop_strict_scope_uses_generic_rejection_when_router_re
 ) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="My app helps users manage account settings.",
         scope_mode="strict",
@@ -183,7 +183,7 @@ async def test_run_agent_loop_strict_scope_router_false_negative_direct_url_inte
 ) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="Scout4Me helps users monitor product URLs and manage tracked links.",
         scope_mode="strict",
@@ -256,7 +256,7 @@ async def test_run_agent_loop_strict_scope_router_false_negative_pronoun_followu
 ) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="Scout4Me helps users monitor product URLs and manage tracked links.",
         scope_mode="strict",
@@ -348,7 +348,7 @@ async def test_run_agent_loop_strict_scope_router_false_negative_url_only_follow
 ) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="Scout4Me helps users monitor product URLs and manage tracked links.",
         scope_mode="strict",
@@ -434,7 +434,7 @@ async def test_run_agent_loop_strict_scope_router_false_negative_brief_contextua
 ) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="Scout4Me helps users monitor product URLs and manage tracked links.",
         scope_mode="strict",
@@ -509,6 +509,7 @@ async def test_run_agent_loop_open_mode_continues_and_assembles_enriched_prompt(
     session = SimpleNamespace(
         id=uuid.uuid4(),
         app_id=uuid.uuid4(),
+        locale="en",
         client_context={
             "platform": "ios",
             "os_name": "iOS",
@@ -617,7 +618,7 @@ async def test_run_agent_loop_forces_kb_prefetch_for_support_contact_question_wh
 ) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="Our app has subscription and account support features.",
         scope_mode="strict",
@@ -676,7 +677,7 @@ async def test_run_agent_loop_drops_orphaned_tool_call_history_before_llm_call(
 ) -> None:
     db = _DummyDB()
     sender = _DummySender()
-    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4())
+    session = SimpleNamespace(id=uuid.uuid4(), app_id=uuid.uuid4(), locale="en")
     config = SimpleNamespace(
         system_prompt="Support assistant.",
         scope_mode="strict",

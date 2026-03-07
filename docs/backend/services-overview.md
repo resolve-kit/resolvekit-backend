@@ -5,64 +5,28 @@
 ResolveKit is split into four service roles:
 
 - `www` (`website/`, Next.js)
-  - Public marketing site.
 - `dash` (`dashboard/`, Next.js)
-  - Dashboard UI frontend.
 - `api` (`dashboard/`, Next.js Route Handlers under `/v1/*`)
-  - Dashboard control-plane API boundary.
-  - Implements control-plane routes directly and sets cookie sessions.
 - `agent` (`main.py` -> `agent/main.py`, FastAPI)
-  - Runtime API for SDK/chat only.
 - `knowledge_bases` (`knowledge_bases/main.py`, FastAPI)
-  - Internal KB ingestion and semantic retrieval service.
-
-Supporting infrastructure:
-
-- `db`: primary PostgreSQL for app/runtime/control-plane records.
-- `kb-db`: PostgreSQL for KB ingestion/search data.
-
-Docker composition is defined in [`docker-compose.yml`](../../docker-compose.yml).
-
-## Ownership Boundaries
 
 ## `agent` ownership
 
-- Public runtime ownership (SDK):
-  - `/v1/functions` SDK routes
-  - `/v1/sessions` SDK routes
-  - `/v1/sdk`
-  - `WS /v1/sessions/{session_id}/ws`
-  - `POST /v1/sessions/{session_id}/messages`
-  - `POST /v1/sessions/{session_id}/tool-results`
+Runtime ownership for SDK clients:
 
-## `api` ownership
-
-- External control-plane API origin for dashboard clients.
-- Route handlers:
-  - Next-owned direct implementations cover full dashboard `/v1/*` route surface.
-  - Uses Prisma for primary control-plane data operations.
-  - Uses direct KB service integration for knowledge-base and embedding-profile operations.
-  - Generic catch-all route forwarding is removed; all dashboard-used `/v1` paths are explicitly declared under `src/app/v1`.
-
-## `knowledge_bases` ownership
-
-- Internal API prefix: `/internal/*` (JWT-protected service-to-service calls).
-- Owns document ingestion, chunking, embedding generation, and search.
-
-## Primary Flow Patterns
-
-## Dashboard flow
-
-1. Browser app (`dash`) calls `/v1/*` on `api`.
-2. `api` route handlers validate session credentials and apply org/app authorization.
-3. `api` persists control-plane records directly to `db`.
-4. KB-related calls are performed from `api` to `knowledge_bases` using service JWT.
+- `/v1/functions`
+- `/v1/sessions`
+- `/v1/sdk/*`
+- `GET /v1/sessions/{session_id}/events`
+- `POST /v1/sessions/{session_id}/messages`
+- `POST /v1/sessions/{session_id}/tool-results`
 
 ## SDK runtime flow
 
-1. SDK calls `agent` runtime endpoints directly with app API key.
-2. `agent` orchestrator executes LLM + tool loop.
-3. Optional KB retrieval is fetched through `knowledge_bases`.
-4. Responses stream over WS/SSE back to SDK.
+1. SDK calls `agent` with an app API key.
+2. Backend creates or reuses a session and returns `events_url` plus `chat_capability_token`.
+3. SDK opens one persistent session event stream.
+4. User messages and tool results are submitted with HTTP POST requests.
+5. Responses, tool calls, completion, and recoverable errors are replayed over the event stream.
 
-See [Orchestrator Flow](orchestrator-flow.md) for detailed turn lifecycle.
+See [Orchestrator Flow](orchestrator-flow.md) for turn details.
