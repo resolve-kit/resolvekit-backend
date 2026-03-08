@@ -23,6 +23,8 @@ This package now serves two roles:
   - Dashboard session token settings.
 - `IAA_ENCRYPTION_KEY`
   - Fernet-compatible key for provider profile secret encryption/decryption.
+  - Required in production.
+  - In local `next dev` / Docker development, the dashboard can derive a stable fallback key from `IAA_JWT_SECRET` when this value is missing or invalid.
 - `IAA_KNOWLEDGE_BASES_BASE_URL`, `IAA_KNOWLEDGE_BASES_AUDIENCE`, `IAA_KNOWLEDGE_BASES_SIGNING_KEY`, `IAA_KNOWLEDGE_BASES_JWT_ALGORITHM`
   - KB internal service integration settings for dashboard API route handlers.
 - `IAA_CORS_ALLOWED_ORIGINS`

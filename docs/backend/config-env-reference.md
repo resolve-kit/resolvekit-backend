@@ -68,6 +68,8 @@ Settings are loaded via pydantic settings models:
   - Dashboard browser-session token settings.
 - `IAA_ENCRYPTION_KEY`
   - Used by dashboard API for encrypting/decrypting provider profile API keys (Fernet-compatible).
+  - Production must provide an explicit valid Fernet key.
+  - During local Next.js development, the dashboard can derive a stable fallback from `IAA_JWT_SECRET` when this value is missing or invalid.
 - `IAA_KNOWLEDGE_BASES_BASE_URL`
 - `IAA_KNOWLEDGE_BASES_AUDIENCE`
 - `IAA_KNOWLEDGE_BASES_SIGNING_KEY`
