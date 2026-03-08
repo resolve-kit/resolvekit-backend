@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { Link, useParams } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
@@ -326,16 +327,19 @@ export default function LlmConfig() {
         )}
 
         <div className="flex items-center justify-end pt-2 border-t border-border">
-          <Button
+          <ResolveKitAction
+            as={Button}
+            actionId="save-llm-config-btn"
+            actionRole="action"
+            description="Save LLM model and provider configuration"
             type="submit"
             variant="primary"
             size="md"
-            data-resolvekit-id="save-llm-config-btn"
             loading={isSaving}
             disabled={!isDirty || !draftProfileId || !draftModel.trim() || Boolean(visionModeValidationError)}
           >
-            Save LLM Config
-          </Button>
+            Save
+          </ResolveKitAction>
         </div>
       </form>
     </div>

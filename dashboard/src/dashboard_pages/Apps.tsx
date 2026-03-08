@@ -1,4 +1,5 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
@@ -284,10 +285,13 @@ export default function Apps() {
         title="Your Apps"
         subtitle="Manage embedded chat deployments and operator configuration readiness across your app portfolio."
         rightSlot={
-          <Button
+          <ResolveKitAction
+            as={Button}
+            actionId="create-app-btn"
+            actionRole="action"
+            description="Open form to create a new app workspace"
             variant="primary"
             size="md"
-            data-resolvekit-id="create-app-btn"
             className="w-full sm:w-auto"
             onClick={() => setShowCreate(!showCreate)}
             icon={
@@ -297,7 +301,7 @@ export default function Apps() {
             }
           >
             New App
-          </Button>
+          </ResolveKitAction>
         }
       />
 
@@ -326,14 +330,18 @@ export default function Apps() {
             />
           </div>
           <div className="flex gap-2">
-            <Button
+            <ResolveKitAction
+              as={Button}
+              actionId="create-app-submit"
+              actionRole="action"
+              description="Submit the create app form with the entered name and bundle ID"
               variant="primary"
               size="sm"
               onClick={createApp}
               loading={isCreating}
             >
               Create
-            </Button>
+            </ResolveKitAction>
             <Button
               variant="ghost"
               size="sm"

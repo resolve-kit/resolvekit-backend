@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
@@ -109,15 +110,18 @@ export default function ApiKeys() {
               onKeyDown={(e) => e.key === "Enter" && createKey()}
             />
           </div>
-          <Button
+          <ResolveKitAction
+            as={Button}
+            actionId="generate-api-key-btn"
+            actionRole="action"
+            description="Generate a new API key for this app"
             variant="primary"
             size="md"
-            data-resolvekit-id="generate-api-key-btn"
             onClick={createKey}
             loading={isGenerating}
           >
             Generate Key
-          </Button>
+          </ResolveKitAction>
         </div>
       </div>
 

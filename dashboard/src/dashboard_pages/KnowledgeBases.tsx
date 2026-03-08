@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ResolveKitAction } from "@resolvekit/nextjs/react";
 
 import { api, ApiError } from "../api/client";
 import {
@@ -977,7 +978,15 @@ export default function KnowledgeBases() {
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Button onClick={() => setIsCreateKbModalOpen(true)}>Create Knowledge Base</Button>
+          <ResolveKitAction
+            as={Button}
+            actionId="add-knowledge-base-btn"
+            actionRole="action"
+            description="Open form to add a new knowledge base"
+            onClick={() => setIsCreateKbModalOpen(true)}
+          >
+            Add Knowledge Base
+          </ResolveKitAction>
           <Button variant="outline" onClick={() => setIsEmbeddingModalOpen(true)}>
             Manage Embedding Profiles
           </Button>
