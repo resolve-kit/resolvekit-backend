@@ -13,6 +13,10 @@ This package now serves two roles:
   - Enables dashboard copilot widget integration (`true`/`false`).
 - `RESOLVEKIT_KEY`
   - Server-side ResolveKit API key used by the `/api/resolvekit/token` proxy route. Required when copilot is enabled.
+- `RESOLVEKIT_SERVER_AGENT_BASE_URL`
+  - Optional server-only override for the `/api/resolvekit/token` proxy route.
+  - It must use HTTPS unless it targets `localhost`.
+  - Use this in reverse-proxy or internal-network deployments where the dashboard server must reach the agent through a server-only URL.
 - `NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL`
   - Base URL for ResolveKit runtime endpoints consumed by the web SDK (normally `http://localhost:8000`).
 - `/api/resolvekit/token`

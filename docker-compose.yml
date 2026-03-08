@@ -129,11 +129,13 @@ services:
       npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false --no-save /tmp/resolvekit-nextjs-*.tgz &&
       npx prisma generate &&
       node -e \"require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');\" &&
+      node -e \"const net=require('net'); const close=(a,b)=>()=>{a.destroy(); b.destroy();}; net.createServer((client)=>{ const upstream=net.connect(8000,'backend'); client.pipe(upstream); upstream.pipe(client); client.on('error', close(client, upstream)); upstream.on('error', close(upstream, client)); }).listen(8000,'127.0.0.1');\" &
       npm run dev -- --hostname 0.0.0.0 --port 3000"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
       NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
       RESOLVEKIT_KEY: ${RESOLVEKIT_KEY:-}
+      RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://localhost:8000}
       NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
       IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
@@ -183,11 +185,13 @@ services:
       npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false --no-save /tmp/resolvekit-nextjs-*.tgz &&
       npx prisma generate &&
       node -e \"require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');\" &&
+      node -e \"const net=require('net'); const close=(a,b)=>()=>{a.destroy(); b.destroy();}; net.createServer((client)=>{ const upstream=net.connect(8000,'backend'); client.pipe(upstream); upstream.pipe(client); client.on('error', close(client, upstream)); upstream.on('error', close(upstream, client)); }).listen(8000,'127.0.0.1');\" &
       npm run dev -- --hostname 0.0.0.0 --port 3002"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
       NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
       RESOLVEKIT_KEY: ${RESOLVEKIT_KEY:-}
+      RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://localhost:8000}
       NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
       IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}

@@ -23,8 +23,11 @@ function resolveAllowedOrigins(): string[] {
   return [...origins];
 }
 
+const serverAgentBaseUrl = (process.env.RESOLVEKIT_SERVER_AGENT_BASE_URL ?? "").trim();
+const publicAgentBaseUrl = (process.env.NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL ?? "").trim();
+
 const handler = createResolveKitClientTokenHandler({
-  agentBaseUrl: process.env.NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL ?? "http://localhost:8000",
+  agentBaseUrl: serverAgentBaseUrl || publicAgentBaseUrl || "http://localhost:8000",
   resolveApiKey: () => process.env.RESOLVEKIT_KEY ?? null,
   authorizeRequest: async ({ request }) => (await getDeveloperFromRequest(request as NextRequest)) !== null,
   allowedOrigins: resolveAllowedOrigins(),

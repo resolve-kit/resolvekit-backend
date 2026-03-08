@@ -18,6 +18,7 @@ describe("ResolveKit dashboard integration source wiring", () => {
     expect(packageJson).not.toContain('"@resolvekit/sdk"');
 
     expect(envExample).toContain("RESOLVEKIT_KEY=iaa_your_key_here");
+    expect(envExample).toContain("RESOLVEKIT_SERVER_AGENT_BASE_URL=");
     expect(envExample).not.toContain("NEXT_PUBLIC_RESOLVEKIT_KEY=iaa_your_key_here");
     expect(envExample).not.toContain("RESOLVEKIT_WEB_SDK_PATH=../resolvekit-web-sdk");
   });

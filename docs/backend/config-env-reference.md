@@ -62,6 +62,10 @@ Settings are loaded via pydantic settings models:
   - Filesystem path to a local `resolvekit-nextjs-sdk` checkout used by docker compose and dashboard image builds to inject/build `@resolvekit/nextjs`.
 - `RESOLVEKIT_KEY`
   - Server-side ResolveKit API key used by the dashboard token proxy route. Do not expose it through `NEXT_PUBLIC_*`.
+- `RESOLVEKIT_SERVER_AGENT_BASE_URL`
+  - Optional server-only agent URL used by the dashboard token proxy route.
+  - Must use HTTPS unless it targets `localhost`.
+  - Useful in reverse-proxy or internal-network deployments where the dashboard server should use a server-only URL that differs from the browser-facing agent URL.
 - `IAA_JWT_SECRET`
 - `IAA_JWT_ALGORITHM`
 - `IAA_JWT_EXPIRE_MINUTES`
