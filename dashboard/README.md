@@ -11,10 +11,12 @@ This package now serves two roles:
   - Browser-facing API base URL used by dashboard client code.
 - `NEXT_PUBLIC_RESOLVEKIT_ENABLED`
   - Enables dashboard copilot widget integration (`true`/`false`).
-- `NEXT_PUBLIC_RESOLVEKIT_KEY`
-  - ResolveKit API key used by the web SDK provider. Required when copilot is enabled.
+- `RESOLVEKIT_KEY`
+  - Server-side ResolveKit API key used by the `/api/resolvekit/token` proxy route. Required when copilot is enabled.
 - `NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL`
   - Base URL for ResolveKit runtime endpoints consumed by the web SDK (normally `http://localhost:8000`).
+- `/api/resolvekit/token`
+  - Dashboard-owned token proxy route used by the browser SDK to mint client tokens without exposing `RESOLVEKIT_KEY`.
 - `DATABASE_URL`
   - Prisma connection string for control-plane DB operations.
 - `IAA_JWT_SECRET`, `IAA_JWT_ALGORITHM`, `IAA_JWT_EXPIRE_MINUTES`
