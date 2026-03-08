@@ -4,24 +4,17 @@ x-dashboard-build: &dashboard_build
   context: ./dashboard
   dockerfile: Dockerfile
   additional_contexts:
-    resolvekit_web_sdk: ${RESOLVEKIT_WEB_SDK_PATH:-../resolvekit-web-sdk}
+    resolvekit_nextjs_sdk: ${RESOLVEKIT_NEXTJS_SDK_PATH:?Set RESOLVEKIT_NEXTJS_SDK_PATH}
   args:
     NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.resolvekit-dev.example.com}
     NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-    NEXT_PUBLIC_RESOLVEKIT_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
     NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.resolvekit-dev.example.com}
-    NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-    NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
-    NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.resolvekit-dev.example.com}
 
 x-dashboard-runtime-env: &dashboard_runtime_env
   NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.resolvekit-dev.example.com}
   NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-  NEXT_PUBLIC_RESOLVEKIT_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
   NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.resolvekit-dev.example.com}
-  NEXT_PUBLIC_PLAYBOOK_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-  NEXT_PUBLIC_PLAYBOOK_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
-  NEXT_PUBLIC_PLAYBOOK_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.resolvekit-dev.example.com}
+  RESOLVEKIT_KEY: ${RESOLVEKIT_KEY:-}
   DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
   IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
   IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}

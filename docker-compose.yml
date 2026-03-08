@@ -111,25 +111,29 @@ services:
       - api
     command: >
       sh -c "rm -rf .next-dashboard &&
-      if [ ! -f /resolvekit-web-sdk/package.json ] || [ ! -d /resolvekit-web-sdk/dist ]; then
-      echo 'ERROR: Local resolvekit-web-sdk package.json/dist not found at /resolvekit-web-sdk.' &&
-      echo 'Set RESOLVEKIT_WEB_SDK_PATH and run npm --prefix ../resolvekit-web-sdk run build before docker compose up.' &&
+      if [ ! -f /resolvekit-nextjs-sdk/package.json ] || [ ! -d /resolvekit-nextjs-sdk/src ]; then
+      echo 'ERROR: Local resolvekit-nextjs-sdk package.json/src not found at /resolvekit-nextjs-sdk.' &&
+      echo 'Set RESOLVEKIT_NEXTJS_SDK_PATH to your SDK checkout before docker compose up.' &&
       exit 1;
       fi &&
-      rm -rf /app/node_modules/.resolvekit-web-sdk &&
-      mkdir -p /app/node_modules/.resolvekit-web-sdk &&
-      cp /resolvekit-web-sdk/package.json /app/node_modules/.resolvekit-web-sdk/package.json &&
-      cp -R /resolvekit-web-sdk/dist /app/node_modules/.resolvekit-web-sdk/dist &&
-      rm -rf /app/node_modules/@resolvekit/sdk &&
-      npm install --no-audit --no-fund --package-lock=false || true &&
-      npm install --no-audit --no-fund --package-lock=false --no-save /app/node_modules/.resolvekit-web-sdk &&
+      rm -rf /tmp/resolvekit-nextjs-sdk &&
+      mkdir -p /tmp/resolvekit-nextjs-sdk &&
+      cp /resolvekit-nextjs-sdk/package.json /tmp/resolvekit-nextjs-sdk/package.json &&
+      if [ -f /resolvekit-nextjs-sdk/package-lock.json ]; then cp /resolvekit-nextjs-sdk/package-lock.json /tmp/resolvekit-nextjs-sdk/package-lock.json; fi &&
+      cp -R /resolvekit-nextjs-sdk/src /tmp/resolvekit-nextjs-sdk/src &&
+      cp /resolvekit-nextjs-sdk/tsconfig.json /tmp/resolvekit-nextjs-sdk/tsconfig.json &&
+      npm --prefix /tmp/resolvekit-nextjs-sdk install --legacy-peer-deps --no-audit --no-fund --package-lock=false &&
+      npm --prefix /tmp/resolvekit-nextjs-sdk run build &&
+      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false || true &&
+      npm pack /tmp/resolvekit-nextjs-sdk --pack-destination /tmp &&
+      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false --no-save /tmp/resolvekit-nextjs-*.tgz &&
       npx prisma generate &&
-      node -e \"require.resolve('@resolvekit/sdk'); require.resolve('@resolvekit/sdk/react'); require.resolve('@resolvekit/sdk/react-router'); require.resolve('@resolvekit/sdk/starter');\" &&
+      node -e \"require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');\" &&
       npm run dev -- --hostname 0.0.0.0 --port 3000"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
       NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-      NEXT_PUBLIC_RESOLVEKIT_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
+      RESOLVEKIT_KEY: ${RESOLVEKIT_KEY:-}
       NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
       IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
@@ -145,7 +149,7 @@ services:
       WATCHPACK_POLLING: "true"
     volumes:
       - ./dashboard:/app
-      - ${RESOLVEKIT_WEB_SDK_PATH:-../resolvekit-web-sdk}:/resolvekit-web-sdk:ro
+      - ${RESOLVEKIT_NEXTJS_SDK_PATH:?Set RESOLVEKIT_NEXTJS_SDK_PATH}:/resolvekit-nextjs-sdk:ro
       - dashboard_node_modules:/app/node_modules
     ports:
       - "127.0.0.1:3000:3000"
@@ -161,25 +165,29 @@ services:
       - backend
     command: >
       sh -c "rm -rf .next-api &&
-      if [ ! -f /resolvekit-web-sdk/package.json ] || [ ! -d /resolvekit-web-sdk/dist ]; then
-      echo 'ERROR: Local resolvekit-web-sdk package.json/dist not found at /resolvekit-web-sdk.' &&
-      echo 'Set RESOLVEKIT_WEB_SDK_PATH and run npm --prefix ../resolvekit-web-sdk run build before docker compose up.' &&
+      if [ ! -f /resolvekit-nextjs-sdk/package.json ] || [ ! -d /resolvekit-nextjs-sdk/src ]; then
+      echo 'ERROR: Local resolvekit-nextjs-sdk package.json/src not found at /resolvekit-nextjs-sdk.' &&
+      echo 'Set RESOLVEKIT_NEXTJS_SDK_PATH to your SDK checkout before docker compose up.' &&
       exit 1;
       fi &&
-      rm -rf /app/node_modules/.resolvekit-web-sdk &&
-      mkdir -p /app/node_modules/.resolvekit-web-sdk &&
-      cp /resolvekit-web-sdk/package.json /app/node_modules/.resolvekit-web-sdk/package.json &&
-      cp -R /resolvekit-web-sdk/dist /app/node_modules/.resolvekit-web-sdk/dist &&
-      rm -rf /app/node_modules/@resolvekit/sdk &&
-      npm install --no-audit --no-fund --package-lock=false || true &&
-      npm install --no-audit --no-fund --package-lock=false --no-save /app/node_modules/.resolvekit-web-sdk &&
+      rm -rf /tmp/resolvekit-nextjs-sdk &&
+      mkdir -p /tmp/resolvekit-nextjs-sdk &&
+      cp /resolvekit-nextjs-sdk/package.json /tmp/resolvekit-nextjs-sdk/package.json &&
+      if [ -f /resolvekit-nextjs-sdk/package-lock.json ]; then cp /resolvekit-nextjs-sdk/package-lock.json /tmp/resolvekit-nextjs-sdk/package-lock.json; fi &&
+      cp -R /resolvekit-nextjs-sdk/src /tmp/resolvekit-nextjs-sdk/src &&
+      cp /resolvekit-nextjs-sdk/tsconfig.json /tmp/resolvekit-nextjs-sdk/tsconfig.json &&
+      npm --prefix /tmp/resolvekit-nextjs-sdk install --legacy-peer-deps --no-audit --no-fund --package-lock=false &&
+      npm --prefix /tmp/resolvekit-nextjs-sdk run build &&
+      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false || true &&
+      npm pack /tmp/resolvekit-nextjs-sdk --pack-destination /tmp &&
+      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false --no-save /tmp/resolvekit-nextjs-*.tgz &&
       npx prisma generate &&
-      node -e \"require.resolve('@resolvekit/sdk'); require.resolve('@resolvekit/sdk/react'); require.resolve('@resolvekit/sdk/react-router'); require.resolve('@resolvekit/sdk/starter');\" &&
+      node -e \"require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');\" &&
       npm run dev -- --hostname 0.0.0.0 --port 3002"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
       NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-      NEXT_PUBLIC_RESOLVEKIT_KEY: ${NEXT_PUBLIC_RESOLVEKIT_KEY:-}
+      RESOLVEKIT_KEY: ${RESOLVEKIT_KEY:-}
       NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
       IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
@@ -196,7 +204,7 @@ services:
       WATCHPACK_POLLING: "true"
     volumes:
       - ./dashboard:/app
-      - ${RESOLVEKIT_WEB_SDK_PATH:-../resolvekit-web-sdk}:/resolvekit-web-sdk:ro
+      - ${RESOLVEKIT_NEXTJS_SDK_PATH:?Set RESOLVEKIT_NEXTJS_SDK_PATH}:/resolvekit-nextjs-sdk:ro
       - api_node_modules:/app/node_modules
     ports:
       - "127.0.0.1:3002:3002"

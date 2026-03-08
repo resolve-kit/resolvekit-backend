@@ -58,8 +58,10 @@ Settings are loaded via pydantic settings models:
   - Dashboard API origin used from `dash` UI (for example: `https://api.<domain>`).
 - `DATABASE_URL`
   - Dashboard Next route handler DB connection string (Prisma).
-- `RESOLVEKIT_WEB_SDK_PATH`
-  - Filesystem path to local `resolvekit-web-sdk` repo used by docker compose (`docker-compose.yml` and `docker-compose.prod.yml`) to inject/build `@resolvekit/sdk`.
+- `RESOLVEKIT_NEXTJS_SDK_PATH`
+  - Filesystem path to a local `resolvekit-nextjs-sdk` checkout used by docker compose and dashboard image builds to inject/build `@resolvekit/nextjs`.
+- `RESOLVEKIT_KEY`
+  - Server-side ResolveKit API key used by the dashboard token proxy route. Do not expose it through `NEXT_PUBLIC_*`.
 - `IAA_JWT_SECRET`
 - `IAA_JWT_ALGORITHM`
 - `IAA_JWT_EXPIRE_MINUTES`
