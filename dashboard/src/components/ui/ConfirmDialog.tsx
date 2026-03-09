@@ -9,6 +9,9 @@ interface ConfirmDialogProps {
   description?: string;
   confirmLabel?: string;
   confirmVariant?: ConfirmVariant;
+  dialogId?: string;
+  confirmButtonId?: string;
+  cancelButtonId?: string;
   confirmTextRequired?: string;
   confirmTextLabel?: string;
   confirmTextPlaceholder?: string;
@@ -22,6 +25,9 @@ export function ConfirmDialog({
   description,
   confirmLabel = "Confirm",
   confirmVariant = "danger",
+  dialogId,
+  confirmButtonId,
+  cancelButtonId,
   confirmTextRequired,
   confirmTextLabel = "Type to confirm",
   confirmTextPlaceholder,
@@ -70,7 +76,7 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div data-resolvekit-id={dialogId} className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/28 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative w-full max-w-md glass-panel rounded-2xl p-6 animate-fade-in-up">
         <p className="text-[10px] uppercase tracking-[0.2em] text-subtle">Confirm action</p>
@@ -92,10 +98,16 @@ export function ConfirmDialog({
         )}
 
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onCancel} disabled={loading}>
+          <Button data-resolvekit-id={cancelButtonId} variant="ghost" onClick={onCancel} disabled={loading}>
             Cancel
           </Button>
-          <Button variant={confirmVariant} onClick={handleConfirm} loading={loading} disabled={!typedConfirmMatches}>
+          <Button
+            data-resolvekit-id={confirmButtonId}
+            variant={confirmVariant}
+            onClick={handleConfirm}
+            loading={loading}
+            disabled={!typedConfirmMatches}
+          >
             {confirmLabel}
           </Button>
         </div>

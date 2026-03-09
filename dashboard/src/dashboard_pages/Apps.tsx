@@ -374,8 +374,10 @@ export default function Apps() {
               i === 0 ? "" : i === 1 ? "delay-50" : i === 2 ? "delay-100" : "delay-150"
             }`}
           >
-            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+            <div className="absolute top-3 right-3 flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
               <button
+                data-resolvekit-id={`edit-app-${app.id}`}
+                aria-label={`Edit ${app.name} app`}
                 onClick={() => beginEdit(app)}
                 className="rounded p-1 text-subtle hover:text-body"
                 title="Rename / edit bundle ID"
@@ -389,6 +391,8 @@ export default function Apps() {
                 </svg>
               </button>
               <button
+                data-resolvekit-id={`delete-app-${app.id}`}
+                aria-label={`Delete ${app.name} app`}
                 onClick={() => setConfirmDeleteId(app.id)}
                 className="rounded p-1 text-subtle hover:text-danger"
                 title="Delete app"
@@ -501,10 +505,13 @@ export default function Apps() {
 
       <ConfirmDialog
         open={confirmDeleteId !== null && appToDelete !== null}
+        dialogId="delete-app-dialog"
         title="Delete App"
         description={`Are you sure you want to delete "${appToDelete?.name ?? "this app"}"? This will permanently remove all associated configuration, functions, sessions, and API keys.`}
         confirmLabel="Delete App"
         confirmVariant="danger"
+        confirmButtonId="delete-app-confirm-btn"
+        cancelButtonId="delete-app-cancel-btn"
         confirmTextRequired={appToDelete?.name ?? ""}
         confirmTextLabel="Type app name to confirm"
         confirmTextPlaceholder="Enter app name exactly"

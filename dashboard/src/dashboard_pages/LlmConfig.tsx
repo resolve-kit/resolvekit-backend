@@ -193,6 +193,7 @@ export default function LlmConfig() {
           </p>
           <Link
             to="/organization"
+            data-resolvekit-id="manage-org-profiles-btn"
             className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
           >
             Manage Profiles

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { api, ApiError } from "../api/client";
 import {
   Badge,
@@ -131,10 +132,11 @@ export default function Functions() {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div data-resolvekit-id="functions-list" className="space-y-3">
         {functions.map((fn) => (
           <div
             key={fn.id}
+            data-resolvekit-id={`function-card-${fn.id}`}
             className={`glass-panel rounded-xl p-4 transition-opacity ${
               !fn.is_active ? "opacity-50" : ""
             }`}
@@ -156,13 +158,17 @@ export default function Functions() {
                   </span>
                 </div>
               </div>
-              <Button
+              <ResolveKitAction
+                as={Button}
+                actionId={`toggle-function-${fn.id}`}
+                actionRole="action"
+                description={`${fn.is_active ? "Deactivate" : "Activate"} the ${fn.name} function`}
                 variant="ghost"
                 size="sm"
                 onClick={() => toggleActive(fn)}
               >
                 {fn.is_active ? "Deactivate" : "Activate"}
-              </Button>
+              </ResolveKitAction>
             </div>
 
             {/* SDK description */}
@@ -184,21 +190,29 @@ export default function Functions() {
                   placeholder="Override the description the LLM sees..."
                 />
                 <div className="flex gap-2 mt-3">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => saveOverride(fn)}
-                  >
-                    Save
-                  </Button>
+                    <ResolveKitAction
+                      as={Button}
+                      actionId={`save-function-override-${fn.id}`}
+                      actionRole="action"
+                      description={`Save the description override for ${fn.name}`}
+                      variant="primary"
+                      size="sm"
+                      onClick={() => saveOverride(fn)}
+                    >
+                      Save
+                    </ResolveKitAction>
                   {fn.description_override && (
-                    <Button
+                    <ResolveKitAction
+                      as={Button}
+                      actionId={`clear-function-override-${fn.id}`}
+                      actionRole="action"
+                      description={`Clear the description override for ${fn.name}`}
                       variant="danger"
                       size="sm"
                       onClick={() => clearOverride(fn)}
                     >
                       Clear
-                    </Button>
+                    </ResolveKitAction>
                   )}
                   <Button
                     variant="ghost"
@@ -222,6 +236,7 @@ export default function Functions() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      data-resolvekit-id={`edit-function-override-${fn.id}`}
                       onClick={() => startEditOverride(fn)}
                       className="mt-1"
                     >
@@ -230,6 +245,7 @@ export default function Functions() {
                   </div>
                 ) : (
                   <button
+                    data-resolvekit-id={`edit-function-override-${fn.id}`}
                     onClick={() => startEditOverride(fn)}
                     className="text-xs text-accent hover:text-accent-hover transition-colors"
                   >
@@ -244,6 +260,7 @@ export default function Functions() {
               <span>Timeout: {fn.timeout_seconds}s</span>
               {Object.keys(fn.parameters_schema).length > 0 && (
                 <button
+                  data-resolvekit-id={`toggle-function-schema-${fn.id}`}
                   onClick={() => toggleSchema(fn.id)}
                   className="flex items-center gap-1 text-subtle hover:text-body transition-colors"
                 >
@@ -280,14 +297,18 @@ export default function Functions() {
             <p className="text-xs mt-2 text-muted">
               Open your iOS app with SDK + API key configured to register functions here.
             </p>
-            <Button
+            <ResolveKitAction
+              as={Button}
+              actionId="open-ios-sdk-repo-btn"
+              actionRole="action"
+              description="Open the ResolveKit iOS SDK GitHub repository in a new tab"
               variant="outline"
               size="sm"
               className="mt-3"
               onClick={() => window.open(IOS_SDK_REPO_URL, "_blank", "noopener,noreferrer")}
             >
               Open iOS SDK GitHub repo
-            </Button>
+            </ResolveKitAction>
           </div>
         )}
       </div>
