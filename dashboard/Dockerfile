@@ -2,21 +2,9 @@ FROM node:22-alpine AS deps
 
 WORKDIR /app
 
-RUN apk add --no-cache git
-RUN git config --global url."https://github.com/".insteadOf ssh://git@github.com/ \
-  && git config --global url."https://github.com/".insteadOf git@github.com:
-
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY prisma ./prisma
-COPY --from=resolvekit_nextjs_sdk /package.json /resolvekit-nextjs-sdk/package.json
-COPY --from=resolvekit_nextjs_sdk /package-lock.json /resolvekit-nextjs-sdk/package-lock.json
-COPY --from=resolvekit_nextjs_sdk /src /resolvekit-nextjs-sdk/src
-COPY --from=resolvekit_nextjs_sdk /tsconfig.json /resolvekit-nextjs-sdk/tsconfig.json
-RUN npm --prefix /resolvekit-nextjs-sdk install --legacy-peer-deps --no-audit --no-fund --package-lock=false
-RUN npm --prefix /resolvekit-nextjs-sdk run build
-RUN npm install --legacy-peer-deps --no-audit --no-fund || true
-RUN npm pack /resolvekit-nextjs-sdk --pack-destination /tmp
-RUN npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false --no-save /tmp/resolvekit-nextjs-*.tgz
+RUN npm ci --legacy-peer-deps --no-audit --no-fund
 RUN node -e "require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');"
 
 FROM node:22-alpine AS build

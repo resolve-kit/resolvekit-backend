@@ -126,6 +126,7 @@ export default function ResolveKitCopilotProvider({ children }: { children: Reac
     const nextRuntime = new ResolveKitRuntime({
       baseUrl: RESOLVEKIT_AGENT_BASE_URL,
       authProvider: createClientTokenAuthProvider({ endpoint: "/api/resolvekit/token" }),
+      deviceIdPersistence: "localStorage",
       sdkVersion: SDK_VERSION,
       llmContextProvider: () => ({
         dashboard_app_id: boundAppIdRef.current ?? null,

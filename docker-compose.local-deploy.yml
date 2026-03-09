@@ -3,8 +3,6 @@ name: resolvekit-local-deploy
 x-dashboard-build: &dashboard_build
   context: ./dashboard
   dockerfile: Dockerfile
-  additional_contexts:
-    resolvekit_nextjs_sdk: ${RESOLVEKIT_NEXTJS_SDK_PATH:?Set RESOLVEKIT_NEXTJS_SDK_PATH}
   args:
     NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.resolvekit-dev.example.com}
     NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}

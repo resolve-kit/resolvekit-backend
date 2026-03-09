@@ -31,6 +31,7 @@ const handler = createResolveKitClientTokenHandler({
   resolveApiKey: () => process.env.RESOLVEKIT_KEY ?? null,
   authorizeRequest: async ({ request }) => (await getDeveloperFromRequest(request as NextRequest)) !== null,
   allowedOrigins: resolveAllowedOrigins(),
+  forwardOriginHeader: false,
 });
 
 export const dynamic = "force-dynamic";
