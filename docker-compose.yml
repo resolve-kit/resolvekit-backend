@@ -125,8 +125,8 @@ services:
       npm --prefix /tmp/resolvekit-nextjs-sdk install --legacy-peer-deps --no-audit --no-fund --package-lock=false &&
       npm --prefix /tmp/resolvekit-nextjs-sdk run build &&
       npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false || true &&
-      npm pack /tmp/resolvekit-nextjs-sdk --pack-destination /tmp &&
-      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false --no-save /tmp/resolvekit-nextjs-*.tgz &&
+      rm -rf /app/node_modules/@resolvekit/nextjs/dist &&
+      cp -r /tmp/resolvekit-nextjs-sdk/dist /app/node_modules/@resolvekit/nextjs/dist &&
       npx prisma generate &&
       node -e \"require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');\" &&
       node -e \"const net=require('net'); const close=(a,b)=>()=>{a.destroy(); b.destroy();}; net.createServer((client)=>{ const upstream=net.connect(8000,'backend'); client.pipe(upstream); upstream.pipe(client); client.on('error', close(client, upstream)); upstream.on('error', close(upstream, client)); }).listen(8000,'127.0.0.1');\" &
@@ -181,8 +181,8 @@ services:
       npm --prefix /tmp/resolvekit-nextjs-sdk install --legacy-peer-deps --no-audit --no-fund --package-lock=false &&
       npm --prefix /tmp/resolvekit-nextjs-sdk run build &&
       npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false || true &&
-      npm pack /tmp/resolvekit-nextjs-sdk --pack-destination /tmp &&
-      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false --no-save /tmp/resolvekit-nextjs-*.tgz &&
+      rm -rf /app/node_modules/@resolvekit/nextjs/dist &&
+      cp -r /tmp/resolvekit-nextjs-sdk/dist /app/node_modules/@resolvekit/nextjs/dist &&
       npx prisma generate &&
       node -e \"require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');\" &&
       node -e \"const net=require('net'); const close=(a,b)=>()=>{a.destroy(); b.destroy();}; net.createServer((client)=>{ const upstream=net.connect(8000,'backend'); client.pipe(upstream); upstream.pipe(client); client.on('error', close(client, upstream)); upstream.on('error', close(upstream, client)); }).listen(8000,'127.0.0.1');\" &

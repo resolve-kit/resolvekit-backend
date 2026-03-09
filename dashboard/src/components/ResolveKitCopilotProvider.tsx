@@ -126,7 +126,7 @@ function buildFunctions(
     },
     {
       name: "list_dashboard_routes",
-      description: "List dashboard routes, including onboarding and current-app destinations.",
+      description: "List dashboard routes with materialized paths and action ids per page. IMPORTANT: On the /apps page, edit-app-{appId} and delete-app-{appId} action IDs contain the real app UUID — extract it (everything after 'edit-app-') and pass it as appId to get fully-resolved paths to that app's sub-pages (api-keys, playbooks, llm, etc.). Do NOT click edit-app-* to navigate to app sub-pages — those buttons open a rename modal. Use the returned paths with navigate_route instead.",
       parametersSchema: {
         type: "object",
         properties: {
@@ -134,11 +134,20 @@ function buildFunctions(
             type: "string",
             description: "Route scope filter: all | onboarding | current-app",
           },
+          appId: {
+            type: "string",
+            description: "App workspace ID to materialize app-specific paths. You can extract this from edit-app-{appId} action IDs on the /apps page. If omitted, uses the currently bound app.",
+          },
         },
       },
       async invoke(argumentsPayload) {
         const requestedScope = typeof argumentsPayload.scope === "string" ? argumentsPayload.scope : "all";
-        const appId = boundAppIdRef.current ?? onboardingStateRef.current?.target_app_id ?? null;
+        const explicitAppId = typeof argumentsPayload.appId === "string" ? argumentsPayload.appId.trim() : "";
+        const appId =
+          explicitAppId ||
+          boundAppIdRef.current ||
+          onboardingStateRef.current?.target_app_id ||
+          null;
         return {
           routes: listDashboardRoutes({
             scope:
@@ -147,10 +156,7 @@ function buildFunctions(
           }).map((route) => ({
             id: route.id,
             label: route.label,
-            pathTemplate: route.pathTemplate,
             path: route.path,
-            requiresApp: route.requiresApp,
-            onboardingTags: [...route.onboardingTags],
             actionIds: [...route.actionIds],
           })),
         };
@@ -158,7 +164,7 @@ function buildFunctions(
     },
     {
       name: "get_dashboard_context",
-      description: "Describe the current dashboard route, active app binding, and relevant action ids.",
+      description: "Get the current page route, app binding, and the action ids annotated on this page. If the action you need is not listed in currentActionIds, use list_dashboard_routes to find the right page, navigate there, then call discover_page_actions. Note: on the /apps page, edit-app-{appId} actions open a rename modal — to reach app sub-pages like api-keys, extract the appId from the action ID and call list_dashboard_routes with it, then navigate_route.",
       parametersSchema: {
         type: "object",
         properties: {},
@@ -271,19 +277,41 @@ export default function ResolveKitCopilotProvider({ children }: { children: Reac
           current_path: currentPath,
           current_route_id: currentRoute?.id ?? null,
           current_route_label: currentRoute?.label ?? null,
+          current_page_action_ids: currentRoute?.actionIds ?? [],
           onboarding_target_app_id: boundAppIdRef.current ?? onboardingStateRef.current?.target_app_id ?? null,
           required_onboarding_step_ids: onboardingStateRef.current?.required_steps?.map((step) => step.id) ?? [],
         };
       },
       functions: buildFunctions(runtimeRef, pathnameRef, boundAppIdRef, onboardingStateRef),
       functionPacks: [
-        createBrowserToolsPack({
-          discoveryMode: "open",
-          navigationAdapter: {
-            push: (href) => navigateRef.current(href),
-            replace: (href) => navigateRef.current(href, { replace: true }),
-          },
-        }),
+        (() => {
+          const pack = createBrowserToolsPack({
+            discoveryMode: "annotatedOnly",
+            debugDiscovery: process.env.NODE_ENV === "development",
+            navigationAdapter: {
+              push: (href) => navigateRef.current(href),
+              replace: (href) => navigateRef.current(href, { replace: true }),
+            },
+          });
+          // Keep only the curated set of tools appropriate for this dashboard:
+          // - discover_page_actions: scan annotated elements on the current page
+          // - click_discovered_action / highlight_discovered_action: interact by data-resolvekit-id
+          // - navigate_route: cross-page navigation using paths from list_dashboard_routes
+          // - call_backend_api: server-side proxy calls
+          // Removed: navigate_discovered_route (requires annotated nav links, never has routes),
+          //          click_element / highlight_element (raw CSS selectors, LLM guesses wrong ids).
+          const ALLOWED = new Set([
+            "discover_page_actions",
+            "click_discovered_action",
+            "highlight_discovered_action",
+            "navigate_route",
+            "call_backend_api",
+          ]);
+          return {
+            ...pack,
+            functions: pack.functions.filter((fn) => ALLOWED.has(fn.name)),
+          };
+        })(),
       ],
     } satisfies ResolveKitConfiguration);
     runtimeRef.current = nextRuntime;
