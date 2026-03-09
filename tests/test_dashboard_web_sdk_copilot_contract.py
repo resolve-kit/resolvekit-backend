@@ -7,13 +7,14 @@ def test_dashboard_copilot_provider_component_exists() -> None:
 
     text = provider.read_text(encoding="utf-8")
     assert "ResolveKitProvider" in text
+    assert "ResolveKitWidget" in text
+    assert "ResolveKitDevtools" in text
     assert "ResolveKitApprovalWidget" not in text
-    assert "NEXT_PUBLIC_RESOLVEKIT_KEY" in text
-    assert "apiKey={RESOLVEKIT_API_KEY}" in text
-    assert "appId={boundAppId ?? undefined}" in text
+    assert "NEXT_PUBLIC_RESOLVEKIT_KEY" not in text
+    assert "createClientTokenAuthProvider({ endpoint: \"/api/resolvekit/token\" })" in text
+    assert "appId={boundAppId ?? undefined}" not in text
     assert "/v1/copilot/runtime-token" not in text
     assert 'mode: "tokenProvider"' not in text
-    assert "data-resolvekit-id" in text
 
 
 def test_dashboard_app_mounts_copilot_provider_inside_router() -> None:
@@ -25,7 +26,8 @@ def test_dashboard_app_mounts_copilot_provider_inside_router() -> None:
 def test_dashboard_env_example_has_playbook_api_key_vars() -> None:
     text = Path(".env.example").read_text(encoding="utf-8")
     assert "NEXT_PUBLIC_RESOLVEKIT_ENABLED" in text
-    assert "NEXT_PUBLIC_RESOLVEKIT_KEY" in text
+    assert "RESOLVEKIT_KEY" in text
+    assert "NEXT_PUBLIC_RESOLVEKIT_KEY" not in text
     assert "NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL" in text
     assert "IAA_DASHBOARD_RUNTIME_TOKEN_SECRET" not in text
     assert "IAA_DASHBOARD_RUNTIME_TOKEN_AUDIENCE" not in text
@@ -33,7 +35,8 @@ def test_dashboard_env_example_has_playbook_api_key_vars() -> None:
 
 def test_dashboard_readme_documents_playbook_api_key_config() -> None:
     text = Path("dashboard/README.md").read_text(encoding="utf-8")
-    assert "NEXT_PUBLIC_RESOLVEKIT_KEY" in text
+    assert "RESOLVEKIT_KEY" in text
+    assert "/api/resolvekit/token" in text
     assert "IAA_DASHBOARD_RUNTIME_TOKEN_SECRET" not in text
 
 

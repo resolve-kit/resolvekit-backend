@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { resolveDashboardEncryptionKey } from "./security";
 
 const FERNET_VERSION = 0x80;
 
@@ -13,7 +14,7 @@ function fromBase64(value: string): string {
 }
 
 function decodeFernetKey(): { signingKey: Buffer; encryptionKey: Buffer } {
-  const key = process.env.IAA_ENCRYPTION_KEY ?? "";
+  const key = resolveDashboardEncryptionKey();
   const raw = Buffer.from(toBase64(key), "base64");
   if (raw.length !== 32) {
     throw new Error("IAA_ENCRYPTION_KEY must be a valid Fernet key");
