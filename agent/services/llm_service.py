@@ -180,8 +180,11 @@ async def call_llm(
     provider = config.llm_provider
     model = config.llm_model
 
-    if provider and provider != "nexos" and "/" not in model:
-        model = f"{provider}/{model}"
+    LITELLM_PROVIDER_PREFIX: dict[str, str] = {"google": "gemini"}
+    if provider and provider != "nexos":
+        prefix = LITELLM_PROVIDER_PREFIX.get(provider, provider)
+        if not model.startswith(f"{prefix}/"):
+            model = f"{prefix}/{model}"
 
     if provider == "nexos":
         if not api_key:
