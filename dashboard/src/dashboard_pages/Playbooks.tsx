@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
@@ -237,7 +238,11 @@ export default function Playbooks() {
             Define guided workflows that orchestrate function sequences
           </p>
         </div>
-        <Button
+        <ResolveKitAction
+          as={Button}
+          actionId="new-playbook-btn"
+          actionRole="action"
+          description="Open form to create a new playbook"
           variant="primary"
           size="md"
           onClick={startCreate}
@@ -248,7 +253,7 @@ export default function Playbooks() {
           }
         >
           New Playbook
-        </Button>
+        </ResolveKitAction>
       </div>
       <OnboardingTipCard tipId="playbooks_tip" fallbackRoute={`/apps/${appId}/playbooks`} />
 

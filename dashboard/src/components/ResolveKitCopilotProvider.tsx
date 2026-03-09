@@ -1,26 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useMatch, useNavigate } from "react-router-dom";
 
+import {
+  ResolveKitRuntime,
+  createBrowserToolsPack,
+  createClientTokenAuthProvider,
+  type ResolveKitConfiguration,
+  type ResolveKitFunctionDefinition,
+} from "@resolvekit/nextjs/client";
+import { ResolveKitDevtools, ResolveKitProvider, ResolveKitWidget } from "@resolvekit/nextjs/react";
+
 import { api } from "../api/client";
-
-type SDKModule = typeof import("@resolvekit/sdk");
-type SDKReactModule = typeof import("@resolvekit/sdk/react");
-type SDKRouterModule = typeof import("@resolvekit/sdk/react-router");
-type SDKStarterModule = typeof import("@resolvekit/sdk/starter");
-
-type LoadedModules = {
-  sdk: SDKModule;
-  react: SDKReactModule;
-  router: SDKRouterModule;
-  starter: SDKStarterModule;
-};
-
-type AppSummary = {
-  id: string;
-  name: string;
-};
 
 type OnboardingState = {
   target_app_id: string | null;
@@ -28,12 +20,58 @@ type OnboardingState = {
 };
 
 const RESOLVEKIT_ENABLED = process.env.NEXT_PUBLIC_RESOLVEKIT_ENABLED === "true";
-const RESOLVEKIT_API_KEY = process.env.NEXT_PUBLIC_RESOLVEKIT_KEY ?? "";
 const RESOLVEKIT_AGENT_BASE_URL = process.env.NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL ?? "http://localhost:8000";
 const AUTO_OPEN_KEY = "resolvekit_copilot_auto_open_dismissed";
+const SDK_VERSION = "1.0.0";
 
 function isAuthRoute(pathname: string): boolean {
   return pathname === "/login";
+}
+
+function buildFunctions(
+  runtimeRef: RefObject<ResolveKitRuntime | null>,
+): ResolveKitFunctionDefinition[] {
+  return [
+    {
+      name: "create_app_workspace",
+      description: "Create a new app workspace in the dashboard.",
+      parametersSchema: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "App display name" },
+          bundleId: { type: "string", description: "Optional bundle identifier" },
+        },
+        required: ["name"],
+      },
+      requiresApproval: true,
+      async invoke(argumentsPayload) {
+        const name = typeof argumentsPayload.name === "string" ? argumentsPayload.name : "";
+        const bundleId =
+          typeof argumentsPayload.bundleId === "string" ? argumentsPayload.bundleId : undefined;
+        return api("/v1/apps", {
+          method: "POST",
+          body: JSON.stringify({ name, bundle_id: bundleId ?? null }),
+        });
+      },
+    },
+    {
+      name: "set_widget_appearance",
+      description: "Set copilot widget appearance mode to light, dark, or system.",
+      parametersSchema: {
+        type: "object",
+        properties: {
+          mode: { type: "string", description: "Appearance mode: light | dark | system" },
+        },
+        required: ["mode"],
+      },
+      requiresApproval: true,
+      async invoke(argumentsPayload) {
+        const mode = typeof argumentsPayload.mode === "string" ? argumentsPayload.mode : "system";
+        runtimeRef.current?.setAppearance(mode as "light" | "dark" | "system");
+        return { mode };
+      },
+    },
+  ];
 }
 
 export default function ResolveKitCopilotProvider({ children }: { children: ReactNode }) {
@@ -41,33 +79,21 @@ export default function ResolveKitCopilotProvider({ children }: { children: Reac
   const location = useLocation();
   const appRoute = useMatch("/apps/:appId/*");
   const [boundAppId, setBoundAppId] = useState<string | null>(null);
-  const [sdkModules, setSdkModules] = useState<LoadedModules | null>(null);
+  const navigateRef = useRef(navigate);
+  const boundAppIdRef = useRef(boundAppId);
+  const pathnameRef = useRef(location.pathname);
+  const runtimeRef = useRef<ResolveKitRuntime | null>(null);
 
   useEffect(() => {
-    if (!RESOLVEKIT_ENABLED || !RESOLVEKIT_API_KEY || isAuthRoute(location.pathname)) {
-      setSdkModules(null);
-      return;
-    }
+    navigateRef.current = navigate;
+  }, [navigate]);
 
-    let cancelled = false;
-    Promise.all([
-      import("@resolvekit/sdk"),
-      import("@resolvekit/sdk/react"),
-      import("@resolvekit/sdk/react-router"),
-      import("@resolvekit/sdk/starter"),
-    ])
-      .then(([sdk, react, router, starter]) => {
-        if (!cancelled) {
-          setSdkModules({ sdk, react, router, starter });
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setSdkModules(null);
-      });
+  useEffect(() => {
+    boundAppIdRef.current = boundAppId;
+  }, [boundAppId]);
 
-    return () => {
-      cancelled = true;
-    };
+  useEffect(() => {
+    pathnameRef.current = location.pathname;
   }, [location.pathname]);
 
   useEffect(() => {
@@ -96,95 +122,51 @@ export default function ResolveKitCopilotProvider({ children }: { children: Reac
     };
   }, [appRoute?.params.appId, location.pathname]);
 
-  const functions = useMemo(
-    () => {
-      if (!sdkModules) return [];
-      const ResolveKitSDK = sdkModules.sdk.default;
-      const fn = sdkModules.sdk.fn;
-      const createRouterFunctions = sdkModules.router.createRouterFunctions;
-      const createOnboardingFunctions = sdkModules.starter.createOnboardingFunctions;
-
-      return [
-        ...createRouterFunctions({
-          navigate: (path) => navigate(path),
-          getCurrentPath: () => location.pathname,
-          getCurrentAppId: () => boundAppId,
-        }),
-        ...createOnboardingFunctions({
-          getOnboardingStatus: () => api<OnboardingState>("/v1/organizations/onboarding"),
-          listApps: async () => {
-            const apps = await api<AppSummary[]>("/v1/apps");
-            return apps.map((app) => ({ id: app.id, name: app.name }));
+  const runtime = useMemo(() => {
+    const nextRuntime = new ResolveKitRuntime({
+      baseUrl: RESOLVEKIT_AGENT_BASE_URL,
+      authProvider: createClientTokenAuthProvider({ endpoint: "/api/resolvekit/token" }),
+      deviceIdPersistence: "localStorage",
+      sdkVersion: SDK_VERSION,
+      llmContextProvider: () => ({
+        dashboard_app_id: boundAppIdRef.current ?? null,
+        current_path: pathnameRef.current,
+      }),
+      functions: buildFunctions(runtimeRef),
+      functionPacks: [
+        createBrowserToolsPack({
+          discoveryMode: "open",
+          navigationAdapter: {
+            push: (href) => navigateRef.current(href),
+            replace: (href) => navigateRef.current(href, { replace: true }),
           },
         }),
-        fn(
-          async function createAppWorkspace({ name, bundleId }: { name: string; bundleId?: string }) {
-            return api("/v1/apps", {
-              method: "POST",
-              body: JSON.stringify({
-                name,
-                bundle_id: bundleId ?? null,
-              }),
-            });
-          },
-          {
-            name: "create_app_workspace",
-            description: "Create a new app workspace in the dashboard.",
-            parameters: {
-              name: { type: "string", description: "App display name" },
-              bundleId: { type: "string", description: "Optional bundle identifier", required: false },
-            },
-            requiresApproval: true,
-          },
-        ),
-        fn(
-          async function setWidgetAppearance({ mode }: { mode: "light" | "dark" | "system" }) {
-            ResolveKitSDK.setAppearance(mode);
-            return { mode };
-          },
-          {
-            name: "set_widget_appearance",
-            description: "Set copilot widget appearance mode to light, dark, or system.",
-            parameters: {
-              mode: { type: "string", description: "Appearance mode: light, dark, or system." },
-            },
-            requiresApproval: true,
-          },
-        ),
-      ];
-    },
-    [boundAppId, location.pathname, navigate, sdkModules],
-  );
+      ],
+    } satisfies ResolveKitConfiguration);
+    runtimeRef.current = nextRuntime;
+    return nextRuntime;
+  }, []);
 
   useEffect(() => {
-    if (!sdkModules) return;
-    const ResolveKitSDK = sdkModules.sdk.default;
-    if (!RESOLVEKIT_ENABLED || !RESOLVEKIT_API_KEY || isAuthRoute(location.pathname)) return;
-    if (localStorage.getItem(AUTO_OPEN_KEY) === "1") return;
+    void runtime.refreshSessionContext();
+  }, [boundAppId, location.pathname, runtime]);
+
+  const shouldDefaultOpen = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    if (localStorage.getItem(AUTO_OPEN_KEY) === "1") return false;
     localStorage.setItem(AUTO_OPEN_KEY, "1");
-    queueMicrotask(() => ResolveKitSDK.open());
-  }, [location.pathname, sdkModules]);
+    return true;
+  }, []);
 
-  if (!RESOLVEKIT_ENABLED || !RESOLVEKIT_API_KEY || isAuthRoute(location.pathname)) {
+  if (!RESOLVEKIT_ENABLED || isAuthRoute(location.pathname)) {
     return <>{children}</>;
   }
 
-  if (!sdkModules) {
-    return <>{children}</>;
-  }
-
-  const ResolveKitProvider = sdkModules.react.ResolveKitProvider;
   return (
-    <ResolveKitProvider
-      apiKey={RESOLVEKIT_API_KEY}
-      baseURL={RESOLVEKIT_AGENT_BASE_URL}
-      functions={functions}
-      position="bottom-right"
-      appId={boundAppId ?? undefined}
-      llmContext={boundAppId ? { dashboard_app_id: boundAppId } : undefined}
-    >
+    <ResolveKitProvider runtime={runtime} autoStart>
       {children}
-      <span data-resolvekit-id="copilot-widget-anchor" className="hidden" />
+      <ResolveKitWidget position="bottom-right" defaultOpen={shouldDefaultOpen} />
+      {process.env.NODE_ENV === "development" && <ResolveKitDevtools position="bottom-left" />}
     </ResolveKitProvider>
   );
 }

@@ -10,6 +10,7 @@ ResolveKit Backend provides the server-side runtime for embedded app assistants.
 ## Start Here
 
 1. Local stack (recommended):
+   - set `RESOLVEKIT_NEXTJS_SDK_PATH` to your local `resolvekit-nextjs-sdk` checkout
    - `docker compose up --build -d`
    - Backend health: `curl -s http://localhost:8000/health`
    - KB service status: `docker compose logs --tail=20 kb-service`
@@ -17,11 +18,12 @@ ResolveKit Backend provides the server-side runtime for embedded app assistants.
    - `uv run alembic upgrade head`
    - `uv run python main.py`
 3. Production stack:
-   - `npm --prefix ../resolvekit-web-sdk run build`
+   - set `RESOLVEKIT_NEXTJS_SDK_PATH` to your local `resolvekit-nextjs-sdk` checkout
    - `docker compose -f docker-compose.prod.yml --env-file .env up -d --build`
 4. Local deploy with Dockerized nginx (non-prod):
    - `cp .env.local-deploy.example .env.local-deploy`
    - configure public DNS + Let's Encrypt values in `.env.local-deploy`
+   - set `RESOLVEKIT_NEXTJS_SDK_PATH` to your local `resolvekit-nextjs-sdk` checkout
    - `docker compose -f docker-compose.local-deploy.yml --env-file .env --env-file .env.local-deploy up -d --build`
 
 ## Documentation Map
