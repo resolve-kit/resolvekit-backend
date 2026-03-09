@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Card } from "@/components/ui/card";
-import { iosSdkRepoUrl } from "@/lib/urls";
+import { iosSdkRepoUrl, nextjsSdkNpmUrl } from "@/lib/urls";
 
 type IntegrationStepId = "define-functions" | "configure-runtime" | "embed-chat";
 
@@ -144,7 +144,7 @@ export function SdkFlow() {
               This walkthrough is based on the real `resolvekit-ios-sdk` APIs and runtime lifecycle.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              iOS SDK is available now. Android, Next.js, React, React Native, and Flutter SDKs are coming soon.
+              iOS and Next.js SDKs are available now. Android, React Native, and Flutter SDKs are coming soon.
             </p>
 
             <div className="mt-5 space-y-2">
@@ -207,7 +207,7 @@ export function SdkFlow() {
           </div>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 flex flex-wrap gap-6">
           <Link
             href={iosSdkRepoUrl}
             target="_blank"
@@ -215,6 +215,14 @@ export function SdkFlow() {
             className="text-sm font-semibold text-primary hover:opacity-85"
           >
             Get iOS SDK on GitHub
+          </Link>
+          <Link
+            href={nextjsSdkNpmUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-semibold text-primary hover:opacity-85"
+          >
+            Get Next.js SDK on npm
           </Link>
         </div>
       </Card>

@@ -22,6 +22,7 @@ interface Fn {
 }
 
 const IOS_SDK_REPO_URL = "https://github.com/Nights-Are-Late/resolvekit-ios-sdk";
+const NEXTJS_SDK_NPM_URL = "https://www.npmjs.com/package/@resolvekit/nextjs";
 
 export default function Functions() {
   const { appId } = useParams();
@@ -295,20 +296,28 @@ export default function Functions() {
             </div>
             <p className="text-sm">No functions registered yet.</p>
             <p className="text-xs mt-2 text-muted">
-              Open your iOS app with SDK + API key configured to register functions here.
+              Open your app with the SDK + API key configured to register functions here.
             </p>
-            <ResolveKitAction
-              as={Button}
-              actionId="open-ios-sdk-repo-btn"
-              actionRole="action"
-              description="Open the ResolveKit iOS SDK GitHub repository in a new tab"
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => window.open(IOS_SDK_REPO_URL, "_blank", "noopener,noreferrer")}
-            >
-              Open iOS SDK GitHub repo
-            </ResolveKitAction>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <ResolveKitAction
+                as={Button}
+                actionId="open-ios-sdk-repo-btn"
+                actionRole="action"
+                description="Open the ResolveKit iOS SDK GitHub repository in a new tab"
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(IOS_SDK_REPO_URL, "_blank", "noopener,noreferrer")}
+              >
+                iOS SDK on GitHub
+              </ResolveKitAction>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(NEXTJS_SDK_NPM_URL, "_blank", "noopener,noreferrer")}
+              >
+                Next.js SDK on npm
+              </Button>
+            </div>
           </div>
         )}
       </div>
