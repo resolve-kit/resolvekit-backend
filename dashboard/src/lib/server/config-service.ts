@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "./prisma";
 import { decryptWithFernet } from "./fernet";
-import { inferModelCapabilities } from "./provider";
+import { inferModelCapabilities, isProviderModelAllowedForPersistence } from "./provider";
 
 const LLM_FIELDS = ["llmProfileId", "llmModel", "kbVisionMode"] as const;
 const PROMPT_FIELDS = ["systemPrompt", "scopeMode"] as const;
@@ -89,6 +89,9 @@ export async function updateConfigWithAudit(params: {
   updates: ConfigUpdateData;
 }) {
   const cfg = await getOrCreateConfig(params.appId);
+  const nextProfileId = Object.prototype.hasOwnProperty.call(params.updates, "llmProfileId")
+    ? (params.updates.llmProfileId ?? null)
+    : cfg.llmProfileId;
 
   if (Object.prototype.hasOwnProperty.call(params.updates, "llmModel") && !params.updates.llmModel) {
     throw new Error("LLM model is required");
@@ -101,10 +104,23 @@ export async function updateConfigWithAudit(params: {
     throw new Error("KB vision mode must be one of: ocr_safe, multimodal");
   }
 
+  let selectedProfile = null as Awaited<ReturnType<typeof getProfileForOrganization>>;
+  if (nextProfileId) {
+    selectedProfile = await getProfileForOrganization(params.organizationId, nextProfileId);
+  }
+
   if (params.updates.llmProfileId) {
-    const profile = await getProfileForOrganization(params.organizationId, params.updates.llmProfileId);
+    const profile = selectedProfile;
     if (!profile) {
       throw new Error("LLM profile not found");
+    }
+  }
+
+  const normalizedUpdates = { ...params.updates };
+  if (typeof normalizedUpdates.llmModel === "string") {
+    const runtimeProvider = selectedProfile?.provider ?? cfg.llmProvider;
+    if (!isProviderModelAllowedForPersistence(runtimeProvider, normalizedUpdates.llmModel)) {
+      throw new Error(`Selected model '${normalizedUpdates.llmModel}' is not a stable provider model id`);
     }
   }
 
@@ -123,7 +139,7 @@ export async function updateConfigWithAudit(params: {
 
   const next = {
     ...before,
-    ...params.updates,
+    ...normalizedUpdates,
   };
   const modelCapabilities = inferModelCapabilities(next.llmModel);
   if (next.kbVisionMode === "multimodal" && !modelCapabilities.multimodal_vision) {
@@ -139,7 +155,7 @@ export async function updateConfigWithAudit(params: {
 
   const updated = await prisma.agentConfig.update({
     where: { id: cfg.id },
-    data: params.updates,
+    data: normalizedUpdates,
   });
 
   const events: Array<{ eventType: string; diff: Record<string, unknown> }> = [];

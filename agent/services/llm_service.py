@@ -36,6 +36,14 @@ def build_tools(functions: list[RegisteredFunction]) -> list[dict[str, Any]]:
 NEXOS_DEFAULT_BASE = "https://api.nexos.ai/v1"
 logger = logging.getLogger(__name__)
 
+_LITELLM_PROVIDER_ALIASES = {
+    "google": "gemini",
+}
+
+_LITELLM_MODEL_ALIASES = {
+    "gemini-flash-lite-latest": "gemini-2.0-flash-lite",
+}
+
 
 def _normalize_api_key(raw_key: str) -> str:
     key = raw_key.strip()
@@ -64,6 +72,12 @@ def _content_to_text(content: Any) -> str:
                     parts.append(item["content"])
         return "\n".join(parts)
     return ""
+
+
+def _normalize_litellm_provider_model(provider: str | None, model: str) -> tuple[str | None, str]:
+    normalized_provider = _LITELLM_PROVIDER_ALIASES.get(provider or "", provider)
+    normalized_model = _LITELLM_MODEL_ALIASES.get(model, model)
+    return normalized_provider, normalized_model
 
 
 @dataclass
@@ -179,6 +193,7 @@ async def call_llm(
 
     provider = config.llm_provider
     model = config.llm_model
+    provider, model = _normalize_litellm_provider_model(provider, model)
 
     if provider and provider != "nexos" and "/" not in model:
         model = f"{provider}/{model}"

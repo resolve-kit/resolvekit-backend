@@ -353,7 +353,20 @@ function extractHttpErrorMessage(payload: unknown): string | null {
   return null;
 }
 
-function googleModelsToData(payload: unknown, mode: "chat" | "embedding"): Array<{ id: string; name: string }> {
+function isUnstableGoogleModelAlias(modelId: string): boolean {
+  return modelId.trim().toLowerCase().endsWith("-latest");
+}
+
+export function isProviderModelAllowedForPersistence(providerId: string, modelId: string): boolean {
+  const normalizedProvider = providerId.trim().toLowerCase();
+  const normalizedModel = modelId.trim();
+  if (normalizedProvider === "google") {
+    return !isUnstableGoogleModelAlias(normalizedModel);
+  }
+  return true;
+}
+
+export function googleModelsToData(payload: unknown, mode: "chat" | "embedding"): Array<{ id: string; name: string }> {
   if (!payload || typeof payload !== "object") return [];
   const models = (payload as { models?: unknown }).models;
   if (!Array.isArray(models)) return [];
@@ -378,6 +391,7 @@ function googleModelsToData(payload: unknown, mode: "chat" | "embedding"): Array
     if (!supportsMode) continue;
 
     const id = sourceName.startsWith("models/") ? sourceName.slice("models/".length) : sourceName;
+    if (isUnstableGoogleModelAlias(id)) continue;
     const displayName = record.displayName;
     out.push({ id, name: typeof displayName === "string" && displayName.trim() ? displayName : id });
   }
