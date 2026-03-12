@@ -158,6 +158,8 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit.app}
+      PRESENTATION_SLUG: ${PRESENTATION_SLUG:-}
+      PRESENTATION_PASSWORD: ${PRESENTATION_PASSWORD:-}
     ports:
       - "${WEBSITE_BIND_ADDR:-127.0.0.1}:${WEBSITE_BIND_PORT:-3001}:3000"
     networks:

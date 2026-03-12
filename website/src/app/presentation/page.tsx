@@ -3,8 +3,11 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getPresentationMediaPath } from "@/lib/presentation-access";
 import { cn } from "@/lib/utils";
 import { dashboardLoginUrl, dashboardRegisterUrl } from "@/lib/urls";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "ResolveKit | Presentation",
@@ -110,19 +113,19 @@ const DEMOS = [
   {
     title: "Embedded support inside the product",
     text: "The assistant lives where the problem happens, which shortens diagnosis and makes follow-through feel native instead of bolted on.",
-    src: "/presentation/MOV_6069.mp4",
+    fileName: "MOV_6069.mp4",
     aspect: "portrait",
   },
   {
     title: "",
     text: "",
-    src: "/presentation/MOV_2877.mp4",
+    fileName: "MOV_2877.mp4",
     aspect: "portrait",
   },
   {
     title: "Command center and LLM control",
     text: "The control plane is where teams tune prompts, models, limits, traces, and rollout behavior once usage becomes operationally important.",
-    src: "/presentation/ResolveKit_console_llms.mp4",
+    fileName: "ResolveKit_console_llms.mp4",
     aspect: "landscape",
   },
 ] as const;
@@ -383,7 +386,7 @@ export default function PresentationPage() {
           <DemoCard
             title={DEMOS[0].title}
             text={DEMOS[0].text}
-            src={DEMOS[0].src}
+            src={getPresentationMediaPath(DEMOS[0].fileName)}
             aspect={DEMOS[0].aspect}
             className="animate-fade-up [animation-delay:120ms]"
           />
@@ -461,14 +464,14 @@ export default function PresentationPage() {
           <DemoCard
             title={DEMOS[1].title}
             text={DEMOS[1].text}
-            src={DEMOS[1].src}
+            src={getPresentationMediaPath(DEMOS[1].fileName)}
             aspect={DEMOS[1].aspect}
             className="bg-[#120f0d]"
           />
           <DemoCard
             title={DEMOS[2].title}
             text={DEMOS[2].text}
-            src={DEMOS[2].src}
+            src={getPresentationMediaPath(DEMOS[2].fileName)}
             aspect={DEMOS[2].aspect}
             className="border-[#cdbda8] shadow-[0_28px_90px_-45px_rgba(24,18,14,0.55)]"
           />
