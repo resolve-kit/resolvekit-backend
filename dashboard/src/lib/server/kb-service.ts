@@ -2,9 +2,34 @@ import { SignJWT } from "jose";
 
 const KB_BASE_URL = (process.env.IAA_KNOWLEDGE_BASES_BASE_URL ?? "http://kb-service:8100").replace(/\/$/, "");
 const KB_AUDIENCE = process.env.IAA_KNOWLEDGE_BASES_AUDIENCE ?? "kb-service";
-const KB_SIGNING_KEY = process.env.IAA_KNOWLEDGE_BASES_SIGNING_KEY ?? "change-me-kb-service-signing-key";
 const KB_JWT_ALGORITHM = process.env.IAA_KNOWLEDGE_BASES_JWT_ALGORITHM ?? "HS256";
 const KB_TIMEOUT_MS = Math.floor(Number(process.env.IAA_KNOWLEDGE_BASES_TIMEOUT_SECONDS ?? "20") * 1000);
+
+const KB_INSECURE_KEY_VALUES = new Set(["", "change-me-kb-service-signing-key"]);
+
+function resolveKbSigningKey(): string {
+  const value = (process.env.IAA_KNOWLEDGE_BASES_SIGNING_KEY ?? "").trim();
+  if (KB_INSECURE_KEY_VALUES.has(value)) {
+    if (process.env.NODE_ENV === "test") {
+      return "test-only-kb-service-signing-key";
+    }
+    // Skip during `next build` — runtime secrets are not available at build time.
+    if (process.env.NEXT_PHASE !== "phase-production-build") {
+      throw new Error(
+        "IAA_KNOWLEDGE_BASES_SIGNING_KEY must be set to a secure non-default value",
+      );
+    }
+    // During build, use a placeholder that will be replaced at runtime.
+    return "build-phase-placeholder-kb-signing-key";
+  }
+  return value;
+}
+
+let _kbSigningKey: string | null = null;
+function getKbSigningKey(): string {
+  if (_kbSigningKey === null) _kbSigningKey = resolveKbSigningKey();
+  return _kbSigningKey;
+}
 
 type ActorContext = {
   orgId: string;
@@ -30,7 +55,7 @@ export class KBServiceError extends Error {
 }
 
 function jwtSecretBytes(): Uint8Array {
-  return new TextEncoder().encode(KB_SIGNING_KEY);
+  return new TextEncoder().encode(getKbSigningKey());
 }
 
 async function buildServiceToken(ctx: ActorContext): Promise<string> {

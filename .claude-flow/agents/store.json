@@ -1,0 +1,123 @@
+{
+  "agents": {
+    "security-coordinator": {
+      "agentId": "security-coordinator",
+      "agentType": "coordinator",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "opus"
+      },
+      "createdAt": "2026-03-11T22:44:23.886Z",
+      "domain": "security",
+      "model": "opus",
+      "modelRoutedBy": "explicit"
+    },
+    "agent-security-analyst": {
+      "agentId": "agent-security-analyst",
+      "agentType": "analyst",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "cwd": "/Users/t0405/Developer/resolvekit-backend",
+        "scope": "agent/",
+        "focus": [
+          "auth",
+          "input-validation",
+          "injection",
+          "rate-limiting",
+          "session-security",
+          "websocket-security"
+        ],
+        "model": "opus"
+      },
+      "createdAt": "2026-03-11T22:44:28.526Z",
+      "domain": "security",
+      "model": "opus",
+      "modelRoutedBy": "explicit"
+    },
+    "dashboard-security-analyst": {
+      "agentId": "dashboard-security-analyst",
+      "agentType": "analyst",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "cwd": "/Users/t0405/Developer/resolvekit-backend",
+        "scope": "dashboard/src/app/v1/",
+        "focus": [
+          "auth",
+          "csrf",
+          "input-validation",
+          "api-key-security",
+          "session-handling",
+          "secrets-exposure"
+        ],
+        "model": "opus"
+      },
+      "createdAt": "2026-03-11T22:44:31.189Z",
+      "domain": "security",
+      "model": "opus",
+      "modelRoutedBy": "explicit"
+    },
+    "sec-arch-1": {
+      "agentId": "sec-arch-1",
+      "agentType": "security-architect",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "sonnet"
+      },
+      "createdAt": "2026-03-11T22:52:30.000Z",
+      "domain": "security",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    },
+    "sec-coder-1": {
+      "agentId": "sec-coder-1",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "sonnet"
+      },
+      "createdAt": "2026-03-11T22:52:30.039Z",
+      "domain": "backend",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    },
+    "sec-tester-1": {
+      "agentId": "sec-tester-1",
+      "agentType": "tester",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-11T22:52:30.041Z",
+      "domain": "qa",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
+    },
+    "sec-reviewer-1": {
+      "agentId": "sec-reviewer-1",
+      "agentType": "reviewer",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "sonnet"
+      },
+      "createdAt": "2026-03-11T22:52:30.043Z",
+      "domain": "security",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    }
+  },
+  "version": "3.0.0"
+}

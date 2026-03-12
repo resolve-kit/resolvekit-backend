@@ -1,0 +1,45 @@
+{
+  "tasks": {
+    "task-1773269101712-w06png": {
+      "taskId": "task-1773269101712-w06png",
+      "type": "research",
+      "description": "Security audit and hardening of agent FastAPI Python service: auth middleware, sessions, WebSocket, SSE, tool-results, SDK endpoints. Fix all critical/high OWASP Top 10 issues.",
+      "priority": "critical",
+      "status": "completed",
+      "progress": 100,
+      "assignedTo": [
+        "agent-security-analyst"
+      ],
+      "tags": [
+        "security",
+        "fastapi",
+        "python",
+        "owasp"
+      ],
+      "createdAt": "2026-03-11T22:45:01.712Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    "task-1773269103516-ft9aq5": {
+      "taskId": "task-1773269103516-ft9aq5",
+      "type": "research",
+      "description": "Security audit and hardening of dashboard Next.js service: auth routes, API key management, org management, CSRF, session handling, secrets exposure. Fix all critical/high OWASP Top 10 issues.",
+      "priority": "critical",
+      "status": "pending",
+      "progress": 0,
+      "assignedTo": [
+        "dashboard-security-analyst"
+      ],
+      "tags": [
+        "security",
+        "nextjs",
+        "typescript",
+        "owasp"
+      ],
+      "createdAt": "2026-03-11T22:45:03.516Z",
+      "startedAt": null,
+      "completedAt": null
+    }
+  },
+  "version": "3.0.0"
+}

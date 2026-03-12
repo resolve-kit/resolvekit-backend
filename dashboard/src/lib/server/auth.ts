@@ -25,7 +25,21 @@ function getJwtSecret(): string {
   return _jwtSecret;
 }
 
-const JWT_ALGORITHM = process.env.IAA_JWT_ALGORITHM ?? "HS256";
+const ALLOWED_JWT_ALGORITHMS = new Set(["HS256", "HS384", "HS512"]);
+
+function resolveJwtAlgorithm(): string {
+  const raw = (process.env.IAA_JWT_ALGORITHM ?? "").trim();
+  // Fall back to HS256 when the env var is absent or empty (e.g. during build).
+  if (!raw) return "HS256";
+  if (!ALLOWED_JWT_ALGORITHMS.has(raw)) {
+    throw new Error(
+      `IAA_JWT_ALGORITHM must be one of: ${[...ALLOWED_JWT_ALGORITHMS].join(", ")}. Got: "${raw}"`,
+    );
+  }
+  return raw;
+}
+
+const JWT_ALGORITHM = resolveJwtAlgorithm();
 const JWT_EXPIRE_MINUTES = Number(process.env.IAA_JWT_EXPIRE_MINUTES ?? "1440");
 
 export type AuthDeveloper = {

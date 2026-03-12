@@ -14,6 +14,8 @@ from agent.services.sdk_client_token_service import issue_sdk_client_token
 
 router = APIRouter(prefix="/v1/sdk", tags=["sdk"])
 _sdk_client_token_rate_limit: dict[str, deque[float]] = defaultdict(deque)
+_RATE_LIMIT_MAX_TRACKED_KEYS = 50_000  # cap to prevent unbounded memory growth
+_RATE_LIMIT_WINDOW_SECONDS = 60.0
 
 
 def _normalize_origin(value: str) -> str:
@@ -27,12 +29,21 @@ def _is_allowed_origin(origin: str) -> bool:
 
 def _enforce_client_token_rate_limit(*, app_id: str, client_host: str) -> None:
     now = time.time()
-    window_seconds = 60.0
     limit = max(1, int(settings.sdk_client_token_rate_limit_per_minute))
     key = f"{app_id}:{client_host}"
+
+    # Evict stale entries to bound memory growth when tracking limit is reached
+    if len(_sdk_client_token_rate_limit) >= _RATE_LIMIT_MAX_TRACKED_KEYS and key not in _sdk_client_token_rate_limit:
+        stale_keys = [
+            k for k, dq in _sdk_client_token_rate_limit.items()
+            if dq and (now - dq[-1]) >= _RATE_LIMIT_WINDOW_SECONDS
+        ]
+        for stale in stale_keys[:max(1, len(stale_keys))]:
+            del _sdk_client_token_rate_limit[stale]
+
     bucket = _sdk_client_token_rate_limit[key]
 
-    while bucket and (now - bucket[0]) >= window_seconds:
+    while bucket and (now - bucket[0]) >= _RATE_LIMIT_WINDOW_SECONDS:
         bucket.popleft()
 
     if len(bucket) >= limit:

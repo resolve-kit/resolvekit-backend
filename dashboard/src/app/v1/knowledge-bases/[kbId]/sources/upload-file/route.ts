@@ -7,6 +7,9 @@ import { KBServiceError, kbSourcesAddUploadFile } from "@/lib/server/kb-service"
 
 export const dynamic = "force-dynamic";
 
+// 50 MB upload limit
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+
 function actorContext(developer: { organizationId: string | null; id: string; role: string }) {
   if (!developer.organizationId) throw new Error("Organization not found");
   return {
@@ -30,6 +33,10 @@ export async function POST(
 
   const file = form.get("file");
   if (!(file instanceof File)) return detail(422, "File is required");
+
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return detail(413, `File size exceeds the maximum allowed size of ${MAX_FILE_SIZE_BYTES / (1024 * 1024)} MB`);
+  }
 
   const filename = (file.name ?? "").trim();
   if (!filename) return detail(422, "Uploaded file must have a name");
