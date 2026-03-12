@@ -39,6 +39,10 @@ function shouldUseSameOriginAuthRoute(path: string): boolean {
   return SESSION_COOKIE_BOUND_AUTH_ROUTES.has(normalizePath(path));
 }
 
+function shouldAttachBearerToken(path: string): boolean {
+  return !shouldUseSameOriginAuthRoute(path);
+}
+
 function toRequestUrl(path: string): string {
   return shouldUseSameOriginAuthRoute(path) ? path : `${BASE}${path}`;
 }
@@ -106,7 +110,7 @@ export async function api<T = unknown>(
     headers["Content-Type"] = "application/json";
   }
   const token = getToken();
-  if (token) {
+  if (token && shouldAttachBearerToken(path)) {
     headers["Authorization"] = `Bearer ${token}`;
   }
   const res = await fetch(toRequestUrl(path), {

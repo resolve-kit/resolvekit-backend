@@ -100,6 +100,7 @@ def validate_chat_capability_token(
             token.strip(),
             _chat_capability_secret(),
             algorithms=[settings.jwt_algorithm],
+            options={"require": ["exp", "nbf", "iat", "sid", "aid", "iv"]},
         )
     except JWTError as exc:
         logger.info(

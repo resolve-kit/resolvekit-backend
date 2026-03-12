@@ -223,6 +223,8 @@ services:
     command: sh -c "npm install --no-audit --no-fund && npm run dev -- --hostname 0.0.0.0 --port 3001"
     environment:
       NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-http://localhost:3000}
+      PRESENTATION_SLUG: ${PRESENTATION_SLUG:-}
+      PRESENTATION_PASSWORD: ${PRESENTATION_PASSWORD:-}
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
     volumes:

@@ -1,11 +1,12 @@
 import asyncio
 import json
+import time
 import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,11 +35,23 @@ from agent.services.turn_state_service import turn_state_store
 
 router = APIRouter(tags=["chat-events"])
 
+_MAX_MESSAGE_TEXT_BYTES = 32_768  # 32 KB hard cap on user message text
+_MAX_TOOL_ERROR_LENGTH = 4_096   # 4 KB cap on tool error strings
+_SSE_MAX_DURATION_SECONDS = 300  # 5-minute hard cap per SSE connection
+_SSE_POLL_TIMEOUT_SECONDS = 15.0
+
 
 class ChatMessageBody(BaseModel):
-    text: str
+    text: str = Field(min_length=1, max_length=_MAX_MESSAGE_TEXT_BYTES)
     request_id: str = Field(min_length=1, max_length=255)
     locale: str | None = None
+
+    @field_validator("text")
+    @classmethod
+    def validate_text_utf8_size(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > _MAX_MESSAGE_TEXT_BYTES:
+            raise ValueError(f"String should have at most {_MAX_MESSAGE_TEXT_BYTES} bytes")
+        return value
 
 
 class ChatMessageAccepted(BaseModel):
@@ -50,10 +63,10 @@ class ChatMessageAccepted(BaseModel):
 class ToolResultBody(BaseModel):
     turn_id: str
     idempotency_key: str = Field(min_length=1, max_length=255)
-    call_id: str
-    status: str
+    call_id: str = Field(min_length=1, max_length=255)
+    status: str = Field(min_length=1, max_length=32)
     result: Any | None = None
-    error: str | None = None
+    error: str | None = Field(default=None, max_length=_MAX_TOOL_ERROR_LENGTH)
 
 
 _active_tasks: dict[tuple[str, str], asyncio.Task] = {}
@@ -214,14 +227,19 @@ async def stream_events(
 
     async def generate():
         last_event_id = cursor
+        deadline = time.monotonic() + _SSE_MAX_DURATION_SECONDS
         yield ": connected\n\n"
-        while True:
+        while time.monotonic() < deadline:
+            remaining = deadline - time.monotonic()
+            poll_timeout = min(_SSE_POLL_TIMEOUT_SECONDS, remaining)
+            if poll_timeout <= 0:
+                break
             try:
                 events = await event_stream_store.wait_for_events(
                     session_id=session.id,
                     app_id=app.id,
                     after_event_id=last_event_id,
-                    timeout=15.0,
+                    timeout=poll_timeout,
                 )
             except TimeoutError:
                 yield ": keep-alive\n\n"

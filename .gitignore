@@ -38,3 +38,15 @@ deploy/local-nginx/logs/
 
 # Git worktrees
 .worktrees/
+
+# Codex local configuration
+.codex/
+
+# Claude Flow runtime data
+.claude-flow/data/
+.claude-flow/logs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
