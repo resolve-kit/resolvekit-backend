@@ -114,8 +114,8 @@ const DEMOS = [
     aspect: "portrait",
   },
   {
-    title: "Operator-grade mobile workflow",
-    text: "ResolveKit is not just a chat UI. It is a product surface that can carry context, approvals, and guided action cleanly on mobile.",
+    title: "",
+    text: "",
     src: "/presentation/MOV_2877.mp4",
     aspect: "portrait",
   },
@@ -216,6 +216,47 @@ function InsightCard({
     <Card className={cn("border-[#d7ccbb] bg-[rgba(255,251,245,0.9)] p-5", className)}>
       <h3 className="text-lg font-semibold leading-tight text-[#171412]">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-[#5d544b]">{text}</p>
+    </Card>
+  );
+}
+
+function WhyNowCard({
+  className,
+  columns = false,
+}: {
+  className?: string;
+  columns?: boolean;
+}) {
+  return (
+    <Card
+      className={cn(
+        "border-[#d7ccbb] bg-[linear-gradient(180deg,rgba(255,251,245,0.98),rgba(245,238,228,0.96))] p-5 text-[#1d2436]",
+        className,
+      )}
+    >
+      <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">Why now</p>
+      <div className={cn("mt-4 gap-3", columns ? "grid lg:grid-cols-3" : "space-y-4")}>
+        <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
+          <p className="text-4xl font-semibold text-[#1e2d4a]">$250M</p>
+          <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
+            Intercom announced a $250M financing in March 2026 around the Customer Agent story. Capital is validating
+            the category, but the product surface is still open.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
+          <p className="text-base font-semibold text-[#1e2d4a]">Category shift</p>
+          <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
+            Support is moving from deflection software to agents that can diagnose, act, and confirm resolution.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
+          <p className="text-base font-semibold text-[#1e2d4a]">ResolveKit wedge</p>
+          <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
+            If developer experience is great and pricing stays fair, ResolveKit remains relevant even as chat UI
+            becomes a commodity.
+          </p>
+        </div>
+      </div>
     </Card>
   );
 }
@@ -339,36 +380,18 @@ export default function PresentationPage() {
             </div>
           </Card>
 
-          <Card className="border-[#d7ccbb] bg-[linear-gradient(180deg,rgba(255,251,245,0.98),rgba(245,238,228,0.96))] p-5 text-[#1d2436] animate-fade-up [animation-delay:120ms]">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">Why now</p>
-            <div className="mt-4 space-y-4">
-              <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
-                <p className="text-4xl font-semibold text-[#1e2d4a]">$250M</p>
-                <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
-                  Intercom announced a $250M financing in March 2026 around the Customer Agent story. Capital is
-                  validating the category, but the product surface is still open.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
-                <p className="text-base font-semibold text-[#1e2d4a]">Category shift</p>
-                <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
-                  Support is moving from deflection software to agents that can diagnose, act, and confirm resolution.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
-                <p className="text-base font-semibold text-[#1e2d4a]">ResolveKit wedge</p>
-                <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
-                  If developer experience is great and pricing stays fair, ResolveKit remains relevant even as chat UI
-                  becomes a commodity.
-                </p>
-              </div>
-            </div>
-          </Card>
+          <DemoCard
+            title={DEMOS[0].title}
+            text={DEMOS[0].text}
+            src={DEMOS[0].src}
+            aspect={DEMOS[0].aspect}
+            className="animate-fade-up [animation-delay:120ms]"
+          />
         </section>
 
         <section
           id="product"
-          className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[rgba(255,250,243,0.74)] p-4 sm:p-6 lg:mt-10 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
+          className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[rgba(255,250,243,0.74)] p-4 sm:p-6 lg:mt-10 lg:grid-cols-[minmax(220px,0.54fr)_minmax(0,1.46fr)] lg:gap-8 lg:p-8"
         >
           <SectionHeading
             index="01"
@@ -376,7 +399,7 @@ export default function PresentationPage() {
             title="A support agent that is part of the product, not bolted onto it."
             text="The differentiator is not that ResolveKit can answer questions. The differentiator is that it sits inside the workflow, sees more context, can take approved action, and leaves behind an operator-grade command trace."
           />
-          <div className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="grid gap-4 xl:grid-cols-2">
               {PRODUCT_POINTS.map((point, index) => (
                 <InsightCard
@@ -387,11 +410,7 @@ export default function PresentationPage() {
                 />
               ))}
             </div>
-            <div className="grid gap-4 xl:grid-cols-2">
-              {DEMOS.slice(0, 2).map((demo) => (
-                <DemoCard key={demo.src} title={demo.title} text={demo.text} src={demo.src} aspect={demo.aspect} />
-              ))}
-            </div>
+            <WhyNowCard />
           </div>
         </section>
 
@@ -434,10 +453,25 @@ export default function PresentationPage() {
                   ever begins.
                 </p>
               </Card>
-
-              <DemoCard title={DEMOS[2].title} text={DEMOS[2].text} src={DEMOS[2].src} aspect={DEMOS[2].aspect} />
             </div>
           </div>
+        </section>
+
+        <section className="mt-8 grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)] xl:gap-6">
+          <DemoCard
+            title={DEMOS[1].title}
+            text={DEMOS[1].text}
+            src={DEMOS[1].src}
+            aspect={DEMOS[1].aspect}
+            className="bg-[#120f0d]"
+          />
+          <DemoCard
+            title={DEMOS[2].title}
+            text={DEMOS[2].text}
+            src={DEMOS[2].src}
+            aspect={DEMOS[2].aspect}
+            className="border-[#cdbda8] shadow-[0_28px_90px_-45px_rgba(24,18,14,0.55)]"
+          />
         </section>
 
         <section
