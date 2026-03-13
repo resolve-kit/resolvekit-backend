@@ -10,8 +10,8 @@ import { dashboardRegisterUrl } from "@/lib/urls";
 export const SECTION_LINKS = [
   { href: "#product", label: "What It Is" },
   { href: "#validation", label: "Validation" },
-  { href: "#market", label: "Market" },
   { href: "#gtm", label: "Go-to-market" },
+  { href: "#market", label: "Market" },
   { href: "#competition", label: "Competition" },
 ] as const;
 

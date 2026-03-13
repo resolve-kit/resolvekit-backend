@@ -87,18 +87,18 @@ const MARKET_SIGNALS = [
 const PRODUCT_GAPS = [
   {
     eyebrow: "Context gap",
-    question: "Does it know what screen the user is on?",
-    text: "Their chatbot retrieves from a help center. ResolveKit is embedded in the product — it sees the app state, the user's current flow, visual context, and real product docs. That's the difference between a guess and a diagnosis.",
+    statement: "Embedded in the product, not bolted on top of it.",
+    text: "Their chatbot retrieves from a help center. ResolveKit sees the app state, the user's flow, and real product docs. Guess vs. diagnosis.",
   },
   {
     eyebrow: "Action gap",
-    question: "Can it take action in the product?",
-    text: "Their chatbot describes the next step. ResolveKit does the next step — via approved tools, inside the app, with a trace. That moves the product from answer engine to resolution engine.",
+    statement: "Does the fix, not just describes it.",
+    text: "Their chatbot describes the next step. ResolveKit does it — via approved tools, inside the app, with a trace.",
   },
   {
     eyebrow: "Operator gap",
-    question: "Do you have a trace of what it decided and why?",
-    text: "Their chatbot is a black box. ResolveKit gives traces, approvals, prompt controls, and rollout governance. Once teams care about what the AI does in production, that's not optional.",
+    statement: "Full trace, approvals, and prompt controls.",
+    text: "Their chatbot is a black box. ResolveKit gives traces, approvals, and prompt controls. In production, that's not optional.",
   },
 ] as const;
 
@@ -250,7 +250,7 @@ function SectionHeading({
   index: string;
   eyebrow: string;
   title: string;
-  text: string;
+  text?: string;
 }) {
   return (
     <div className="lg:sticky lg:top-28">
@@ -261,7 +261,7 @@ function SectionHeading({
           <h2 className="text-3xl font-semibold leading-[0.98] text-[#171412] md:text-5xl" style={headingStyle}>
             {title}
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-[#544c45] md:text-lg">{text}</p>
+          {text && <p className="mt-4 text-base leading-relaxed text-[#544c45] md:text-lg">{text}</p>}
         </div>
       </div>
     </div>
@@ -303,22 +303,21 @@ function WhyNowCard({
       <div className={cn("mt-4 gap-3", columns ? "grid lg:grid-cols-3" : "space-y-4")}>
         <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
           <p className="text-4xl font-semibold text-[#1e2d4a]">$250M</p>
-          <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
-            Intercom announced a $250M financing in March 2026 around the Customer Agent story. Capital is validating
-            the category, but the product surface is still open.
+          <p className="mt-2 text-sm leading-relaxed text-[#5b5249]">
+            Intercom raised $250M in March 2026 around the Customer Agent story. Capital is validating the category.
+            The product surface is still open.
           </p>
         </div>
         <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
           <p className="text-base font-semibold text-[#1e2d4a]">Category shift</p>
-          <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
-            Support is moving from deflection software to agents that can diagnose, act, and confirm resolution.
+          <p className="mt-2 text-sm leading-relaxed text-[#5b5249]">
+            Support is moving from deflection to agents that diagnose, act, and resolve.
           </p>
         </div>
         <div className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
           <p className="text-base font-semibold text-[#1e2d4a]">ResolveKit wedge</p>
-          <p className="mt-2 text-base leading-relaxed text-[#5b5249]">
-            If developer experience is great and pricing stays fair, ResolveKit remains relevant even as chat UI
-            becomes a commodity.
+          <p className="mt-2 text-sm leading-relaxed text-[#5b5249]">
+            Good DX and fair pricing win installs before chat UI becomes a commodity.
           </p>
         </div>
       </div>
@@ -429,32 +428,20 @@ export default function PresentationPage() {
           <SectionHeading
             index="01"
             eyebrow="What the product is"
-            title="Everyone has a chatbot. Ask them these three questions."
-            text="Most support products now ship an AI box. The surface alone is no longer a moat. ResolveKit wins on the three dimensions where that box comes up short — and where the switch becomes obvious."
+            title="A chatbot tells users what to do. ResolveKit does it for them."
+            text="Three dimensions where existing tools come up short — and where the switch becomes obvious."
           />
-          <div className="space-y-4">
-            <Card className="border-[#d6c7b4] bg-[linear-gradient(145deg,rgba(255,251,245,0.98),rgba(243,235,224,0.96))] p-7 sm:p-8">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[#9e7c4a]">The case</p>
-              <blockquote
-                className="mt-4 text-2xl font-semibold leading-snug text-[#171412] sm:text-3xl"
-                style={headingStyle}
-              >
-                A chatbot tells users what to do. ResolveKit does it for them — from inside the app, with the context
-                of what they were actually trying to accomplish.
-              </blockquote>
-            </Card>
-
-            <div className="grid gap-4 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               {PRODUCT_GAPS.map((gap) => (
                 <Card key={gap.eyebrow} className="border-[#d7ccbb] bg-[rgba(255,251,245,0.9)] p-5">
                   <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">{gap.eyebrow}</p>
-                  <h3 className="mt-3 text-xl font-semibold leading-tight text-[#171412]">{gap.question}</h3>
+                  <h3 className="mt-3 text-base font-semibold leading-snug text-[#171412]">{gap.statement}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[#5d544b]">{gap.text}</p>
                 </Card>
               ))}
             </div>
-
-            <WhyNowCard columns />
+            <WhyNowCard />
           </div>
         </section>
 
@@ -572,7 +559,7 @@ export default function PresentationPage() {
 
         <section
           id="market"
-          className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[rgba(255,250,243,0.74)] p-4 sm:p-6 lg:mt-10 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
+          className="mt-8 grid min-h-[220px] gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[rgba(255,250,243,0.74)] p-4 sm:p-6 lg:mt-10 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
         >
           <SectionHeading
             index="04"
