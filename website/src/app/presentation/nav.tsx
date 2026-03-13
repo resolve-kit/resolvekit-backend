@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export const SECTION_LINKS = [
 
 export function PresentationNav() {
   const [active, setActive] = useState("");
+  const navLinksRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ids = SECTION_LINKS.map((l) => l.href.slice(1));
@@ -37,6 +38,13 @@ export function PresentationNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Scroll active pill into view on mobile
+  useEffect(() => {
+    if (!active || !navLinksRef.current) return;
+    const pill = navLinksRef.current.querySelector<HTMLElement>(`a[href="#${active}"]`);
+    pill?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [active]);
+
   return (
     <header className="sticky top-3 z-40">
       <div className="rounded-[1.6rem] border border-[#d7ccbb]/90 bg-[rgba(250,245,236,0.92)] px-4 py-3 shadow-card backdrop-blur md:px-5">
@@ -55,7 +63,7 @@ export function PresentationNav() {
             <p className="hidden text-[11px] uppercase tracking-[0.24em] text-[#7b7165] sm:block">Category brief</p>
           </div>
 
-          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2">
+          <div ref={navLinksRef} className="flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2">
             {SECTION_LINKS.map((link) => {
               const isActive = active === link.href.slice(1);
               return (

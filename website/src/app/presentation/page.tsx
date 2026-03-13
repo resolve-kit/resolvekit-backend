@@ -469,22 +469,25 @@ export default function PresentationPage() {
             text="The demo was built for a Surfshark internal hackathon, placed first, and the team is now evaluating production deployment. Early signal that the problem is real and the product works."
           />
           <div className="space-y-4">
-            <Card className="border-[#3a2e1a] bg-[#1a1209] p-7 text-[#f6efe4]">
+            <Card
+              className="border-[#3a2e1a] p-7"
+              style={{ backgroundColor: "#1c1209", color: "#f6efe4" }}
+            >
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-[#3d3020] bg-white/5 p-5">
+                <div className="rounded-2xl border border-[#3d3020] p-5" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
                   <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">Hackathon</p>
                   <p className="mt-3 text-6xl font-semibold text-[#e8a838]" style={headingStyle}>1st</p>
-                  <p className="mt-2 text-lg font-semibold leading-tight text-[#f5f0e8]">Surfshark internal hackathon</p>
-                  <p className="mt-2 text-sm leading-relaxed text-[#a89880]">
+                  <p className="mt-2 text-lg font-semibold leading-tight text-white">Surfshark internal hackathon</p>
+                  <p className="mt-2 text-sm leading-relaxed" style={{ color: "#a89880" }}>
                     Won Surfshark&apos;s internal AI hackathon. The demo competed against other internal projects.
                   </p>
                 </div>
-                <div className="rounded-2xl border border-[#3d3020] bg-white/5 p-5">
+                <div className="rounded-2xl border border-[#3d3020] p-5" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
                   <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">What came next</p>
-                  <p className="mt-3 text-xl font-semibold leading-tight text-[#f5f0e8]">
+                  <p className="mt-3 text-xl font-semibold leading-tight text-white">
                     Surfshark is evaluating production deployment
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed text-[#a89880]">
+                  <p className="mt-3 text-sm leading-relaxed" style={{ color: "#a89880" }}>
                     The team that ran the hackathon is interested in shipping it. First real signal the problem is worth
                     solving.
                   </p>
