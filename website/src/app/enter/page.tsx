@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   PRESENTATION_ACCESS_COOKIE_NAME,
-  getPublicPresentationPath,
   hasValidPresentationAccessCookie,
   isPresentationAccessConfigured,
   sanitizePresentationReturnPath,
@@ -38,7 +37,6 @@ export default async function PresentationAccessPage({
   }
 
   const isConfigured = isPresentationAccessConfigured();
-  const publicPresentationPath = getPublicPresentationPath();
   const showInvalidPassword = params.error === "invalid";
   const showConfigError = params.error === "config" || !isConfigured;
 
@@ -47,39 +45,19 @@ export default async function PresentationAccessPage({
       <div className="mx-auto flex min-h-screen max-w-[1180px] items-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid w-full gap-6 lg:grid-cols-[minmax(0,1.08fr)_420px] lg:gap-8">
           <Card className="border-[#d6c7b4] bg-[linear-gradient(145deg,rgba(255,251,245,0.98),rgba(243,235,224,0.96))] p-8 sm:p-10">
-            <p className="text-[11px] uppercase tracking-[0.34em] text-[#7d7365]">Protected presentation</p>
             <h1
-              className="mt-4 max-w-3xl text-4xl font-semibold leading-[0.94] tracking-[-0.04em] text-[#171412] sm:text-6xl"
+              className="mt-2 max-w-3xl text-5xl font-semibold leading-[0.94] tracking-[-0.04em] text-[#171412] sm:text-7xl lg:text-[5.6rem]"
               style={{ fontFamily: "\"Iowan Old Style\", \"Palatino Linotype\", \"Book Antiqua\", serif" }}
             >
-              Enter the access code to open the private ResolveKit presentation.
+              AI Support Agent that can solve on-device problems
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-[#584f47] sm:text-lg">
-              The presentation route and all embedded demo videos are protected at request level. Once access is
-              granted, the page and media load normally behind a temporary secure cookie.
-            </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <Card className="border-[#d7ccbb] bg-white/72 p-5">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">What is protected</p>
-                <p className="mt-3 text-base leading-relaxed text-[#4f473f]">
-                  The investor pitch page, all three demo videos, and the opaque presentation path.
-                </p>
-              </Card>
-              <Card className="border-[#d7ccbb] bg-white/72 p-5">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">After access</p>
-                <p className="mt-3 text-base leading-relaxed text-[#4f473f]">
-                  You will be redirected to the protected presentation route
-                  {publicPresentationPath ? ` at ${publicPresentationPath}` : ""}.
-                </p>
-              </Card>
-            </div>
           </Card>
 
           <Card className="border-[#d7ccbb] bg-[rgba(255,251,245,0.96)] p-6 sm:p-7">
             <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">Access required</p>
             <h2 className="mt-3 text-2xl font-semibold leading-tight text-[#1e2d4a]">Enter password</h2>
             <p className="mt-3 text-base leading-relaxed text-[#5b5249]">
-              Use the presentation password to unlock the route and stream the demo media.
+              Enter password to see more.
             </p>
 
             <form action={submitPresentationAccess} className="mt-6 space-y-4">
