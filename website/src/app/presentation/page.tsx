@@ -173,14 +173,14 @@ const COMPETITORS = [
 
 const DEMOS = [
   {
-    title: "",
-    text: "",
+    title: "Embedded support inside the product",
+    text: "The assistant lives where the problem happens, which shortens diagnosis and makes follow-through feel native instead of bolted on.",
     fileName: "MOV_2877.mp4",
     aspect: "portrait",
   },
   {
-    title: "Embedded support inside the product",
-    text: "The assistant lives where the problem happens, which shortens diagnosis and makes follow-through feel native instead of bolted on.",
+    title: "",
+    text: "",
     fileName: "MOV_6069.mp4",
     aspect: "portrait",
   },
