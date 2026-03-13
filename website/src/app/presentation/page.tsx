@@ -471,10 +471,10 @@ export default function PresentationPage() {
             text="Most support products now ship an AI box. The surface alone is no longer a moat. ResolveKit wins on the three dimensions where that box comes up short — and where the switch becomes obvious."
           />
           <div className="space-y-4">
-            <Card className="border-[#1a1714] bg-[#171412] p-7 sm:p-8">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">The case</p>
+            <Card className="border-[#d6c7b4] bg-[linear-gradient(145deg,rgba(255,251,245,0.98),rgba(243,235,224,0.96))] p-7 sm:p-8">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[#9e7c4a]">The case</p>
               <blockquote
-                className="mt-4 text-2xl font-semibold leading-snug text-[#f6efe4] sm:text-3xl"
+                className="mt-4 text-2xl font-semibold leading-snug text-[#171412] sm:text-3xl"
                 style={headingStyle}
               >
                 A chatbot tells users what to do. ResolveKit does it for them — from inside the app, with the context
@@ -503,8 +503,8 @@ export default function PresentationPage() {
           <SectionHeading
             index="02"
             eyebrow="Validation"
-            title="A working demo. A hackathon win. A production team ready to ship."
-            text="Not a prototype. Not a pitch deck. A working product that placed first in Surfshark's internal AI hackathon and immediately attracted production interest from a company with millions of active users."
+            title="Won Surfshark's internal AI hackathon. Production interest followed."
+            text="The demo was built for a Surfshark internal hackathon, placed first, and the team is now evaluating production deployment. Early signal that the problem is real and the product works."
           />
           <div className="space-y-4">
             <Card className="border-[#3a2e1a] bg-[#1a1209] p-7 text-[#f6efe4]">
@@ -512,19 +512,19 @@ export default function PresentationPage() {
                 <div className="rounded-2xl border border-[#3d3020] bg-white/5 p-5">
                   <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">Hackathon</p>
                   <p className="mt-3 text-6xl font-semibold text-[#e8a838]" style={headingStyle}>1st</p>
-                  <p className="mt-2 text-lg font-semibold leading-tight">Surfshark AI Hackathon</p>
+                  <p className="mt-2 text-lg font-semibold leading-tight text-[#f5f0e8]">Surfshark internal hackathon</p>
                   <p className="mt-2 text-sm leading-relaxed text-[#a89880]">
-                    The working demo placed first competing against teams from across the Tesonet group.
+                    Won Surfshark&apos;s internal AI hackathon. The demo competed against other internal projects.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[#3d3020] bg-white/5 p-5">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">Production intent</p>
-                  <p className="mt-3 text-xl font-semibold leading-tight">
-                    Surfshark is eager to launch this in production
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">What came next</p>
+                  <p className="mt-3 text-xl font-semibold leading-tight text-[#f5f0e8]">
+                    Surfshark is evaluating production deployment
                   </p>
                   <p className="mt-3 text-sm leading-relaxed text-[#a89880]">
-                    Direct validation from a product team with millions of active users. The use case is proven. The
-                    demand is real.
+                    The team that ran the hackathon is interested in shipping it. First real signal the problem is worth
+                    solving.
                   </p>
                 </div>
               </div>
