@@ -17,9 +17,23 @@ export const metadata: Metadata = {
 
 const SECTION_LINKS = [
   { href: "#product", label: "What It Is" },
+  { href: "#validation", label: "Validation" },
   { href: "#market", label: "Market" },
   { href: "#gtm", label: "Go-to-market" },
   { href: "#competition", label: "Competition" },
+] as const;
+
+const SYNERGIES = [
+  {
+    label: "Inference",
+    title: "Nexos.ai as the inference backbone",
+    text: "Nexos.ai, the group's primary inference provider, is a natural infrastructure partner. The stack can run natively against the same provider already powering Tesonet products — no new vendor, lower latency, shared cost base.",
+  },
+  {
+    label: "Ecosystem",
+    title: "One SDK. Every Tesonet product.",
+    text: "Tesonet operates multiple consumer and B2B products. A standardized embedded support layer gives every product in the portfolio the same best-in-class support UX — with shared infrastructure, shared tooling, and compounding network effects.",
+  },
 ] as const;
 
 const TAM_FRAMES = [
@@ -483,11 +497,60 @@ export default function PresentationPage() {
         </section>
 
         <section
+          id="validation"
+          className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[rgba(255,250,243,0.74)] p-4 sm:p-6 lg:mt-10 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
+        >
+          <SectionHeading
+            index="02"
+            eyebrow="Validation"
+            title="A working demo. A hackathon win. A production team ready to ship."
+            text="Not a prototype. Not a pitch deck. A working product that placed first in Surfshark's internal AI hackathon and immediately attracted production interest from a company with millions of active users."
+          />
+          <div className="space-y-4">
+            <Card className="border-[#3a2e1a] bg-[#1a1209] p-7 text-[#f6efe4]">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-[#3d3020] bg-white/5 p-5">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">Hackathon</p>
+                  <p className="mt-3 text-6xl font-semibold text-[#e8a838]" style={headingStyle}>1st</p>
+                  <p className="mt-2 text-lg font-semibold leading-tight">Surfshark AI Hackathon</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[#a89880]">
+                    The working demo placed first competing against teams from across the Tesonet group.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[#3d3020] bg-white/5 p-5">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">Production intent</p>
+                  <p className="mt-3 text-xl font-semibold leading-tight">
+                    Surfshark is eager to launch this in production
+                  </p>
+                  <p className="mt-3 text-sm leading-relaxed text-[#a89880]">
+                    Direct validation from a product team with millions of active users. The use case is proven. The
+                    demand is real.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.94)] p-6">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[#977c57]">Possible synergies</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {SYNERGIES.map((s) => (
+                  <div key={s.label} className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.68)] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-[#b08b52]">{s.label}</p>
+                    <h3 className="mt-2 text-lg font-semibold text-[#1e2d4a]">{s.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-[#5b5249]">{s.text}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        <section
           id="gtm"
           className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d6cab9] bg-[linear-gradient(180deg,rgba(255,252,247,0.82),rgba(242,234,222,0.92))] p-4 sm:p-6 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
         >
           <SectionHeading
-            index="02"
+            index="03"
             eyebrow="Go-to-market"
             title="Lead with developers, prove value in-product, then expand where the workflow gets sticky."
             text="The right motion is freemium, product-led, and usage-aware. A PostHog-style entry point wins the first install. The control plane, approvals, traces, and multi-app rollout create the expansion path once teams trust the product in production."
@@ -547,7 +610,7 @@ export default function PresentationPage() {
           className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[rgba(255,250,243,0.74)] p-4 sm:p-6 lg:mt-10 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
         >
           <SectionHeading
-            index="03"
+            index="04"
             eyebrow="Market"
             title="A $50B software category is shifting from deflection to resolution."
             text="The customer service software market is large and well-funded. The interesting motion is not that the market exists — it is that the underlying model is changing: from ticket management and chat deflection to agents that diagnose, act, and confirm resolution. That shift is where the category is being repriced."
@@ -624,7 +687,7 @@ export default function PresentationPage() {
           className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8cdbf] bg-[rgba(251,247,240,0.82)] p-4 sm:p-6 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
         >
           <SectionHeading
-            index="04"
+            index="05"
             eyebrow="Competition"
             title="The market is crowded with chat surfaces. The durable wedge is ownership of product context and action."
             text="There are real competitors, real budgets, and increasingly mature pricing models. But most vendors still optimize around the helpdesk, not the in-product experience. ResolveKit’s opening is to own the embedded layer that makes the assistant both more useful and more persistent."
