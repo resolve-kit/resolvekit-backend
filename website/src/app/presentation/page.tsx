@@ -76,22 +76,21 @@ const MARKET_SIGNALS = [
   },
 ] as const;
 
-const PRODUCT_POINTS = [
+const PRODUCT_GAPS = [
   {
-    title: "Everyone has a chatbot.",
-    text: "Most support products now ship an AI box. That surface alone is no longer a moat.",
+    eyebrow: "Context gap",
+    question: "Does it know what screen the user is on?",
+    text: "Their chatbot retrieves from a help center. ResolveKit is embedded in the product — it sees the app state, the user's current flow, visual context, and real product docs. That's the difference between a guess and a diagnosis.",
   },
   {
-    title: "ResolveKit closes the context gap.",
-    text: "ResolveKit is an SDK with a multimodal knowledge base, so the agent is embedded into the product and grounded in UI state, screenshots, docs, and real app flows instead of generic help-center retrieval alone.",
+    eyebrow: "Action gap",
+    question: "Can it take action in the product?",
+    text: "Their chatbot describes the next step. ResolveKit does the next step — via approved tools, inside the app, with a trace. That moves the product from answer engine to resolution engine.",
   },
   {
-    title: "ResolveKit closes the action gap.",
-    text: "Approved tools let the assistant do the fix, not just describe the next step. That moves the product from answer engine to resolution engine.",
-  },
-  {
-    title: "Deeper integration compounds stickiness.",
-    text: "Once the assistant is wired into app surfaces, operator controls, approvals, traces, and backend actions, it is materially harder to rip out than a widget-first bot.",
+    eyebrow: "Operator gap",
+    question: "Do you have a trace of what it decided and why?",
+    text: "Their chatbot is a black box. ResolveKit gives traces, approvals, prompt controls, and rollout governance. Once teams care about what the AI does in production, that's not optional.",
   },
 ] as const;
 
@@ -454,21 +453,32 @@ export default function PresentationPage() {
           <SectionHeading
             index="01"
             eyebrow="What the product is"
-            title="A support agent that is part of the product, not bolted onto it."
-            text="The differentiator is not that ResolveKit can answer questions. The differentiator is that it sits inside the workflow, sees more context, can take approved action, and leaves behind an operator-grade command trace."
+            title="Everyone has a chatbot. Ask them these three questions."
+            text="Most support products now ship an AI box. The surface alone is no longer a moat. ResolveKit wins on the three dimensions where that box comes up short — and where the switch becomes obvious."
           />
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="grid gap-4 xl:grid-cols-2">
-              {PRODUCT_POINTS.map((point, index) => (
-                <InsightCard
-                  key={point.title}
-                  title={point.title}
-                  text={point.text}
-                  className={index === 0 ? "xl:col-span-2" : ""}
-                />
+          <div className="space-y-4">
+            <Card className="border-[#1a1714] bg-[#171412] p-7 sm:p-8">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[#d0b58a]">The case</p>
+              <blockquote
+                className="mt-4 text-2xl font-semibold leading-snug text-[#f6efe4] sm:text-3xl"
+                style={headingStyle}
+              >
+                A chatbot tells users what to do. ResolveKit does it for them — from inside the app, with the context
+                of what they were actually trying to accomplish.
+              </blockquote>
+            </Card>
+
+            <div className="grid gap-4 xl:grid-cols-3">
+              {PRODUCT_GAPS.map((gap) => (
+                <Card key={gap.eyebrow} className="border-[#d7ccbb] bg-[rgba(255,251,245,0.9)] p-5">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">{gap.eyebrow}</p>
+                  <h3 className="mt-3 text-xl font-semibold leading-tight text-[#171412]">{gap.question}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#5d544b]">{gap.text}</p>
+                </Card>
               ))}
             </div>
-            <WhyNowCard />
+
+            <WhyNowCard columns />
           </div>
         </section>
 
