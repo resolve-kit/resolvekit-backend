@@ -17,8 +17,63 @@ export const metadata: Metadata = {
 
 const SECTION_LINKS = [
   { href: "#product", label: "What It Is" },
+  { href: "#market", label: "Market" },
   { href: "#gtm", label: "Go-to-market" },
   { href: "#competition", label: "Competition" },
+] as const;
+
+const TAM_FRAMES = [
+  {
+    frame: "Agentic AI",
+    current: "$5–7B",
+    projection: "$47–52B",
+    cagr: "~46%",
+    source: "MarketsandMarkets / Precedence",
+  },
+  {
+    frame: "AI Customer Service",
+    current: "$12–13B",
+    projection: "$47–84B",
+    cagr: "23–26%",
+    source: "MarketsandMarkets / Grand View Research",
+  },
+  {
+    frame: "Customer Service Software (total)",
+    current: "$50B",
+    projection: "$95B",
+    cagr: "11%",
+    source: "Mordor Intelligence",
+  },
+] as const;
+
+const MARKET_STATS = [
+  {
+    title: "80%",
+    text: "of common customer service issues resolved autonomously by 2029 — Gartner, March 2025",
+  },
+  {
+    title: "40%",
+    text: "of enterprise apps will have task-specific AI agents by 2026, up from <5% today — Gartner, August 2025",
+  },
+  {
+    title: "33%",
+    text: "of enterprise software will have agentic AI capabilities by 2028 (vs <1% in 2024) — Gartner",
+  },
+  {
+    title: "91%",
+    text: "of customer service leaders are under pressure to implement AI in 2026 — Gartner survey, Feb 2026",
+  },
+] as const;
+
+const MARKET_SIGNALS = [
+  {
+    title: "$0.50 vs $6.00",
+    text: "Cost per AI interaction vs human agent — a 12x difference that makes the economics compelling at scale.",
+  },
+  {
+    title: "$80B",
+    text: "Projected contact center labor savings by 2026 — Gartner (2023).",
+  },
 ] as const;
 
 const PRODUCT_POINTS = [
@@ -478,11 +533,88 @@ export default function PresentationPage() {
         </section>
 
         <section
+          id="market"
+          className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[rgba(255,250,243,0.74)] p-4 sm:p-6 lg:mt-10 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
+        >
+          <SectionHeading
+            index="03"
+            eyebrow="Market"
+            title="A $50B software category is shifting from deflection to resolution."
+            text="The customer service software market is large and well-funded. The interesting motion is not that the market exists — it is that the underlying model is changing: from ticket management and chat deflection to agents that diagnose, act, and confirm resolution. That shift is where the category is being repriced."
+          />
+          <details className="group self-start">
+            <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-[#d7ccbb] bg-[rgba(255,251,245,0.9)] px-5 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="text-sm font-medium text-[#5d544b]">View market data &amp; analysis</span>
+              <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0 text-[#9e927f] transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </summary>
+            <div className="mt-4 space-y-4">
+              <Card className="overflow-hidden border-[#d2c5b5] bg-white/88 p-0">
+                <div className="border-b border-[#e0d5c7] px-5 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#897b6a]">Market sizing frames</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[#5f554b]">
+                    Three framing options depending on how investors want to anchor the opportunity.
+                  </p>
+                </div>
+                <div className="divide-y divide-[#e9dfd3]">
+                  <div className="grid gap-3 px-5 py-3 md:grid-cols-[minmax(0,1.4fr)_100px_120px_80px_minmax(0,1fr)] md:gap-4">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Frame</p>
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">2024/2025</p>
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">2030</p>
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">CAGR</p>
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Source</p>
+                  </div>
+                  {TAM_FRAMES.map((row) => (
+                    <div key={row.frame} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1.4fr)_100px_120px_80px_minmax(0,1fr)] md:gap-4">
+                      <p className="text-sm font-medium text-[#2a241d]">{row.frame}</p>
+                      <p className="text-sm text-[#5b5248]">{row.current}</p>
+                      <p className="text-sm text-[#5b5248]">{row.projection}</p>
+                      <p className="text-sm text-[#5b5248]">{row.cagr}</p>
+                      <p className="text-sm text-[#5b5248]">{row.source}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-[#e0d5c7] bg-[rgba(250,245,235,0.8)] px-5 py-4">
+                  <p className="text-sm leading-relaxed text-[#5b5248]">
+                    <span className="font-semibold text-[#2a241d]">Recommended frame:</span> Agentic AI (~46% CAGR) is the most defensible framing for a resolution-first product.
+                  </p>
+                </div>
+              </Card>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {MARKET_STATS.map((stat) => (
+                  <InsightCard key={stat.title} title={stat.title} text={stat.text} />
+                ))}
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+                <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.94)] p-6 text-[#2f2a25]">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#977c57]">The gap</p>
+                  <h3 className="mt-3 text-2xl font-semibold leading-tight text-[#24324c]" style={headingStyle}>
+                    No analyst report isolates &ldquo;embedded in-product support SDK&rdquo; as its own market category — that category doesn&apos;t exist yet.
+                  </h3>
+                  <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#4a4138]">
+                    That is both the opportunity and the challenge. The TAM numbers above describe the market ResolveKit sits inside. The embedded SDK layer — where the assistant lives in the app, sees product context, and can take approved action — is an emerging wedge within that market. ResolveKit&apos;s bet is to own that layer before it becomes a named category.
+                  </p>
+                </Card>
+
+                <div className="space-y-4">
+                  {MARKET_SIGNALS.map((signal) => (
+                    <InsightCard key={signal.title} title={signal.title} text={signal.text} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section
           id="competition"
           className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8cdbf] bg-[rgba(251,247,240,0.82)] p-4 sm:p-6 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
         >
           <SectionHeading
-            index="03"
+            index="04"
             eyebrow="Competition"
             title="The market is crowded with chat surfaces. The durable wedge is ownership of product context and action."
             text="There are real competitors, real budgets, and increasingly mature pricing models. But most vendors still optimize around the helpdesk, not the in-product experience. ResolveKit’s opening is to own the embedded layer that makes the assistant both more useful and more persistent."
