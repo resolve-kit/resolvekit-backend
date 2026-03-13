@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getPresentationMediaPath } from "@/lib/presentation-access";
 import { cn } from "@/lib/utils";
-import { dashboardLoginUrl, dashboardRegisterUrl } from "@/lib/urls";
+import { dashboardLoginUrl } from "@/lib/urls";
+
+
+import { PresentationNav } from "./nav";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +16,6 @@ export const metadata: Metadata = {
   description:
     "ResolveKit presentation: product thesis, go-to-market, and competitive landscape for the embedded AI support category.",
 };
-
-const SECTION_LINKS = [
-  { href: "#product", label: "What It Is" },
-  { href: "#validation", label: "Validation" },
-  { href: "#market", label: "Market" },
-  { href: "#gtm", label: "Go-to-market" },
-  { href: "#competition", label: "Competition" },
-] as const;
 
 const SYNERGIES = [
   {
@@ -383,39 +377,7 @@ export default function PresentationPage() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f6f0e7_0%,#efe6d9_52%,#ede7df_100%)] text-[#171412]">
       <div className="mx-auto max-w-[1360px] px-4 pb-16 pt-4 sm:px-6 sm:pb-24 sm:pt-6 lg:px-8">
-        <header className="sticky top-3 z-40">
-          <div className="rounded-[1.6rem] border border-[#d7ccbb]/90 bg-[rgba(250,245,236,0.92)] px-4 py-3 shadow-card backdrop-blur md:px-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-3">
-                <Link
-                  href="/"
-                  className="inline-flex items-end leading-none"
-                  aria-label="RESOLVEkit"
-                  style={{ fontFamily: "\"Mona Sans\", \"Avenir Next\", sans-serif" }}
-                >
-                  <span className="text-[20px] font-normal uppercase tracking-[0.2em] text-[#0d2f57]">RESOLVE</span>
-                  <span className="ml-[0.12em] text-[10px] font-normal tracking-[0.2em] text-black">kit</span>
-                </Link>
-                <span className="hidden h-4 w-px bg-[#c9baa5] lg:block" />
-                <p className="text-[11px] uppercase tracking-[0.24em] text-[#7b7165]">Category brief</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {SECTION_LINKS.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="rounded-full border border-[#d5c7b4] bg-white/70 px-3 py-1.5 text-xs font-semibold tracking-[0.14em] text-[#5b5249] transition hover:border-[#111] hover:text-[#111]"
-                  >
-                    {link.label}
-                  </a>
-                ))}
-                <a href={dashboardRegisterUrl} className="hidden sm:block">
-                  <Button className="bg-[#121212] text-white hover:bg-[#24211d] hover:text-white">Start Free</Button>
-                </a>
-              </div>
-            </div>
-          </div>
-        </header>
+        <PresentationNav />
 
         <section className="grid gap-6 pt-8 lg:grid-cols-[minmax(0,1.1fr)_380px] lg:gap-8 lg:pt-12">
           <Card className="overflow-hidden border-[#d6c7b4] bg-[linear-gradient(145deg,rgba(255,251,245,0.98),rgba(243,235,224,0.96))] p-6 sm:p-8 lg:p-10">
