@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { KBServiceError, kbUsageSummary } from "./kb-service";
+import { coerceDbNumber } from "./numbers";
 import { prisma } from "./prisma";
 import { lookupModelPricing, type ModelPricing } from "./provider";
 
@@ -69,15 +70,6 @@ const EMPTY_SUMMARY: SessionCostSummary = {
   warnings: [],
   breakdown: [],
 };
-
-function toNumber(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return 0;
-}
 
 function modelKey(provider: string, model: string): string {
   return `${provider.trim().toLowerCase()}::${model.trim()}`;
@@ -241,10 +233,10 @@ export async function loadCoreSessionUsageRows(
       provider: row.provider,
       model: row.model,
       operation: row.operation,
-      input_tokens: toNumber(row.input_tokens),
-      output_tokens: toNumber(row.output_tokens),
-      image_count: toNumber(row.image_count),
-      event_count: toNumber(row.event_count),
+      input_tokens: coerceDbNumber(row.input_tokens),
+      output_tokens: coerceDbNumber(row.output_tokens),
+      image_count: coerceDbNumber(row.image_count),
+      event_count: coerceDbNumber(row.event_count),
     }));
 }
 
@@ -310,10 +302,10 @@ export async function loadKbSessionUsageRows(
         provider: typeof record.provider === "string" && record.provider.trim() ? record.provider : "unknown",
         model: typeof record.model === "string" && record.model.trim() ? record.model : "unknown",
         operation: typeof record.operation === "string" && record.operation.trim() ? record.operation : "kb_context_search",
-        input_tokens: toNumber(record.input_tokens),
-        output_tokens: toNumber(record.output_tokens),
-        image_count: toNumber(record.image_count),
-        event_count: toNumber(record.event_count),
+        input_tokens: coerceDbNumber(record.input_tokens),
+        output_tokens: coerceDbNumber(record.output_tokens),
+        image_count: coerceDbNumber(record.image_count),
+        event_count: coerceDbNumber(record.event_count),
       });
     }
 

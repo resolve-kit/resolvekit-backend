@@ -10,6 +10,7 @@ from agent.database import async_session_factory
 from agent.routers import (
     chat_events,
     functions,
+    pricing,
     sdk,
     sessions,
 )
@@ -96,6 +97,7 @@ app.include_router(sessions.sdk_router)
 # Chat runtime
 app.include_router(chat_events.router)
 app.include_router(sdk.router)
+app.include_router(pricing.router)
 
 
 @app.get("/health")

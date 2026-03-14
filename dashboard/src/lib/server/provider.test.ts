@@ -36,21 +36,65 @@ describe("provider model normalization", () => {
     ]);
   });
 
-  it("returns curated pricing for stable non-openrouter models without requiring network", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
+  it("resolves non-openrouter pricing through the runtime pricing endpoint", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        provider: "gemini",
+        model: "gemini-2.5-flash-lite",
+        pricing: {
+          input_per_million_usd: 0.1,
+          output_per_million_usd: 0.4,
+          image_per_thousand_usd: null,
+          source: "litellm",
+        },
+      }),
+    } as Response);
 
-    await expect(lookupModelPricing("openai", "gpt-4o")).resolves.toMatchObject({
-      input_per_million_usd: expect.any(Number),
-      output_per_million_usd: expect.any(Number),
-      source: "catalog",
-    });
-    await expect(lookupModelPricing("google", "gemini-2.0-flash-lite")).resolves.toMatchObject({
-      input_per_million_usd: expect.any(Number),
-      output_per_million_usd: expect.any(Number),
-      source: "catalog",
+    await expect(lookupModelPricing("gemini", "gemini/gemini-2.5-flash-lite")).resolves.toEqual({
+      input_per_million_usd: 0.1,
+      output_per_million_usd: 0.4,
+      image_per_thousand_usd: null,
+      source: "litellm",
     });
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [requestUrl] = fetchSpy.mock.calls[0];
+    expect(String(requestUrl)).toContain("/v1/pricing/model");
+    expect(String(requestUrl)).toContain("provider=gemini");
+    expect(String(requestUrl)).toContain("model=gemini-2.5-flash-lite");
+
+    fetchSpy.mockRestore();
+  });
+
+  it("uses the OpenRouter catalog for openrouter pricing", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: "google/gemini-2.5-flash-lite",
+            name: "Gemini 2.5 Flash Lite",
+            pricing: {
+              prompt: "0.0000001",
+              completion: "0.0000004",
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    await expect(lookupModelPricing("openrouter", "google/gemini-2.5-flash-lite")).resolves.toEqual({
+      input_per_million_usd: 0.1,
+      output_per_million_usd: 0.4,
+      image_per_thousand_usd: null,
+      source: "openrouter",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [requestUrl] = fetchSpy.mock.calls[0];
+    expect(String(requestUrl)).toBe("https://openrouter.ai/api/v1/models");
+
     fetchSpy.mockRestore();
   });
 });

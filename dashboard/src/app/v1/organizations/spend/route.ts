@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { getDeveloperFromRequest } from "@/lib/server/auth";
 import { detail } from "@/lib/server/http";
 import { KBServiceError, kbList, kbUsageSummary } from "@/lib/server/kb-service";
+import { coerceDbNumber } from "@/lib/server/numbers";
 import { lookupModelPricing, type ModelPricing } from "@/lib/server/provider";
 import { prisma } from "@/lib/server/prisma";
 
@@ -25,15 +26,6 @@ function parseOptionalIsoDate(raw: string | null): Date | null {
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
-}
-
-function toNumber(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return 0;
 }
 
 function modelKey(provider: string, model: string): string {
@@ -106,10 +98,10 @@ export async function GET(request: NextRequest) {
       knowledge_base_id: null,
       provider: row.provider,
       model: row.model,
-      input_tokens: toNumber(row.input_tokens),
-      output_tokens: toNumber(row.output_tokens),
-      image_count: toNumber(row.image_count),
-      event_count: toNumber(row.event_count),
+      input_tokens: coerceDbNumber(row.input_tokens),
+      output_tokens: coerceDbNumber(row.output_tokens),
+      image_count: coerceDbNumber(row.image_count),
+      event_count: coerceDbNumber(row.event_count),
     });
   }
 
@@ -135,10 +127,10 @@ export async function GET(request: NextRequest) {
         knowledge_base_id: typeof record.knowledge_base_id === "string" ? record.knowledge_base_id : null,
         provider: typeof record.provider === "string" && record.provider.trim() ? record.provider : "unknown",
         model: typeof record.model === "string" && record.model.trim() ? record.model : "unknown",
-        input_tokens: toNumber(record.input_tokens),
-        output_tokens: toNumber(record.output_tokens),
-        image_count: toNumber(record.image_count),
-        event_count: toNumber(record.event_count),
+        input_tokens: coerceDbNumber(record.input_tokens),
+        output_tokens: coerceDbNumber(record.output_tokens),
+        image_count: coerceDbNumber(record.image_count),
+        event_count: coerceDbNumber(record.event_count),
       });
     }
   } catch (error) {

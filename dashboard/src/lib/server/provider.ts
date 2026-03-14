@@ -20,26 +20,6 @@ export type ModelPricing = {
   source: string;
 };
 
-const STATIC_MODEL_PRICING: Record<string, Record<string, Omit<ModelPricing, "source">>> = {
-  openai: {
-    "gpt-4o": { input_per_million_usd: 2.5, output_per_million_usd: 10, image_per_thousand_usd: null },
-    "gpt-4o-mini": { input_per_million_usd: 0.15, output_per_million_usd: 0.6, image_per_thousand_usd: null },
-    "gpt-4-turbo": { input_per_million_usd: 10, output_per_million_usd: 30, image_per_thousand_usd: null },
-    "gpt-3.5-turbo": { input_per_million_usd: 0.5, output_per_million_usd: 1.5, image_per_thousand_usd: null },
-  },
-  anthropic: {
-    "claude-opus-4-5": { input_per_million_usd: 15, output_per_million_usd: 75, image_per_thousand_usd: null },
-    "claude-sonnet-4-5": { input_per_million_usd: 3, output_per_million_usd: 15, image_per_thousand_usd: null },
-    "claude-haiku-3-5": { input_per_million_usd: 0.8, output_per_million_usd: 4, image_per_thousand_usd: null },
-  },
-  google: {
-    "gemini-2.0-flash": { input_per_million_usd: 0.1, output_per_million_usd: 0.4, image_per_thousand_usd: null },
-    "gemini-2.0-flash-lite": { input_per_million_usd: 0.075, output_per_million_usd: 0.3, image_per_thousand_usd: null },
-    "gemini-1.5-pro": { input_per_million_usd: 1.25, output_per_million_usd: 5, image_per_thousand_usd: null },
-    "gemini-1.5-flash": { input_per_million_usd: 0.075, output_per_million_usd: 0.3, image_per_thousand_usd: null },
-  },
-};
-
 export type ModelCapabilities = {
   ocr_compatible: boolean;
   multimodal_vision: boolean;
@@ -154,6 +134,19 @@ type OpenRouterCatalogModel = {
 
 let openRouterCatalogCache: { expiresAt: number; items: OpenRouterCatalogModel[] } | null = null;
 const OPENROUTER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const serverAgentBaseUrl = (process.env.RESOLVEKIT_SERVER_AGENT_BASE_URL ?? "").trim();
+const publicAgentBaseUrl = (process.env.NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL ?? "").trim();
+
+type RuntimePricingLookupResponse = {
+  provider?: string;
+  model?: string;
+  pricing?: ModelPricing | null;
+};
+
+function scaleUsdRate(value: number | null, multiplier: number): number | null {
+  if (value == null) return null;
+  return Math.round((value * multiplier) * 1_000_000_000_000) / 1_000_000_000_000;
+}
 
 function _parseOpenRouterPricing(raw: unknown): ModelPricing | null {
   if (!raw || typeof raw !== "object") return null;
@@ -166,9 +159,9 @@ function _parseOpenRouterPricing(raw: unknown): ModelPricing | null {
   const completion = typeof completionRaw === "string" || typeof completionRaw === "number" ? Number(completionRaw) : NaN;
   const image = typeof imageRaw === "string" || typeof imageRaw === "number" ? Number(imageRaw) : NaN;
 
-  const promptRate = Number.isFinite(prompt) ? prompt * 1_000_000 : null;
-  const completionRate = Number.isFinite(completion) ? completion * 1_000_000 : null;
-  const imageRate = Number.isFinite(image) ? image * 1_000 : null;
+  const promptRate = Number.isFinite(prompt) ? scaleUsdRate(prompt, 1_000_000) : null;
+  const completionRate = Number.isFinite(completion) ? scaleUsdRate(completion, 1_000_000) : null;
+  const imageRate = Number.isFinite(image) ? scaleUsdRate(image, 1_000) : null;
 
   if (promptRate === null && completionRate === null && imageRate === null) {
     return null;
@@ -287,32 +280,51 @@ function _openRouterPricingForModel(
   return null;
 }
 
+function normalizePricingLookupProvider(providerId: string): string {
+  const normalized = providerId.trim().toLowerCase();
+  if (normalized === "google") return "gemini";
+  return normalized;
+}
+
 function normalizePricingLookupModel(providerId: string, modelId: string): string {
-  const provider = providerId.trim().toLowerCase();
+  const provider = normalizePricingLookupProvider(providerId);
   let normalized = modelId.trim();
   if (!normalized) return normalized;
 
   if (provider !== "openrouter" && normalized.includes("/")) {
     const maybePrefixed = normalized.split("/", 2);
-    if (maybePrefixed.length === 2 && maybePrefixed[0].trim().toLowerCase() === provider) {
+    const prefix = maybePrefixed[0].trim().toLowerCase();
+    const equivalentPrefixes = new Set<string>([provider]);
+    if (provider === "gemini") equivalentPrefixes.add("google");
+    if (maybePrefixed.length === 2 && equivalentPrefixes.has(prefix)) {
       normalized = maybePrefixed[1].trim();
     }
-  }
-  if (provider === "google" && normalized.startsWith("gemini/")) {
-    normalized = normalized.slice("gemini/".length);
   }
   return normalized;
 }
 
-function lookupStaticModelPricing(providerId: string, modelId: string): ModelPricing | null {
-  const provider = providerId.trim().toLowerCase();
-  const normalizedModel = normalizePricingLookupModel(provider, modelId);
-  const pricing = STATIC_MODEL_PRICING[provider]?.[normalizedModel] ?? null;
-  if (!pricing) return null;
-  return {
-    ...pricing,
-    source: "catalog",
-  };
+function resolveAgentBaseUrl(): string {
+  return serverAgentBaseUrl || publicAgentBaseUrl || "http://localhost:8000";
+}
+
+async function fetchRuntimeModelPricing(providerId: string, modelId: string): Promise<ModelPricing | null> {
+  const normalizedProvider = normalizePricingLookupProvider(providerId);
+  const normalizedModel = normalizePricingLookupModel(normalizedProvider, modelId);
+  if (!normalizedProvider || !normalizedModel) return null;
+
+  const url = new URL("/v1/pricing/model", resolveAgentBaseUrl());
+  url.searchParams.set("provider", normalizedProvider);
+  url.searchParams.set("model", normalizedModel);
+
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  }).catch(() => null);
+  if (!response?.ok) return null;
+
+  const payload = await response.json().catch(() => null) as RuntimePricingLookupResponse | null;
+  if (!payload?.pricing) return null;
+  return payload.pricing;
 }
 
 async function enrichModelsWithOpenRouterPricing(
@@ -357,12 +369,12 @@ export function inferModelCapabilities(
 }
 
 export async function lookupModelPricing(providerId: string, modelId: string): Promise<ModelPricing | null> {
-  const normalizedProvider = providerId.trim().toLowerCase();
+  const normalizedProvider = normalizePricingLookupProvider(providerId);
   const normalizedModel = normalizePricingLookupModel(normalizedProvider, modelId);
   if (!normalizedProvider || !normalizedModel) return null;
-  const staticPricing = lookupStaticModelPricing(normalizedProvider, normalizedModel);
-  if (staticPricing) return staticPricing;
-  if (normalizedProvider !== "openrouter") return null;
+  if (normalizedProvider !== "openrouter") {
+    return fetchRuntimeModelPricing(normalizedProvider, normalizedModel);
+  }
   try {
     const catalog = await fetchOpenRouterCatalog();
     return _openRouterPricingForModel(normalizedProvider, normalizedModel, catalog);
