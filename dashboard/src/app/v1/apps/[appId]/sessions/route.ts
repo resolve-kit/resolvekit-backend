@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDeveloperFromRequest } from "@/lib/server/auth";
 import { getOwnedAppOrNull } from "@/lib/server/apps";
 import { detail } from "@/lib/server/http";
+import { loadSessionCostSummariesForSessions } from "@/lib/server/session-costs";
 import { prisma } from "@/lib/server/prisma";
 import { sessionOut } from "@/lib/server/serializers";
 
@@ -43,5 +44,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ app
     take: limit,
   });
 
-  return NextResponse.json(sessions.map(sessionOut));
+  const summariesBySessionId = await loadSessionCostSummariesForSessions(
+    developer.organizationId,
+    app.id,
+    sessions.map((session) => session.id),
+  );
+
+  return NextResponse.json(
+    sessions.map((session) => sessionOut(session, summariesBySessionId.get(session.id) ?? null)),
+  );
 }

@@ -392,7 +392,7 @@ export async function kbSearch(ctx: ActorContext, kbId: string, payload: { query
 
 export async function kbUsageSummary(
   ctx: ActorContext,
-  payload: { from_ts: string; to_ts: string },
+  payload: { from_ts: string; to_ts: string; app_id?: string; session_id?: string },
 ) {
   return callInternal(
     "/internal/usage/summary",
@@ -400,6 +400,8 @@ export async function kbUsageSummary(
       organization_id: ctx.orgId,
       from_ts: payload.from_ts,
       to_ts: payload.to_ts,
+      ...(payload.app_id ? { app_id: payload.app_id } : {}),
+      ...(payload.session_id ? { session_id: payload.session_id } : {}),
     },
     ctx,
   );

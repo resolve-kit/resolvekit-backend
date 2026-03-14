@@ -35,6 +35,7 @@ def test_dashboard_next_has_remaining_control_plane_routes() -> None:
         "dashboard/src/app/v1/apps/[appId]/playbooks/[playbookId]/route.ts",
         "dashboard/src/app/v1/apps/[appId]/playbooks/[playbookId]/functions/route.ts",
         "dashboard/src/app/v1/apps/[appId]/sessions/route.ts",
+        "dashboard/src/app/v1/apps/[appId]/sessions/[sessionId]/costs/route.ts",
         "dashboard/src/app/v1/apps/[appId]/sessions/[sessionId]/messages/route.ts",
         "dashboard/src/app/v1/apps/[appId]/audit-events/route.ts",
         "dashboard/src/app/v1/apps/[appId]/chat-theme/route.ts",

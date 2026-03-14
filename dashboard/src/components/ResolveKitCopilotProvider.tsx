@@ -307,9 +307,10 @@ export default function ResolveKitCopilotProvider({ children }: { children: Reac
             "navigate_route",
             "call_backend_api",
           ]);
+          const packFunctions = Array.isArray(pack.functions) ? pack.functions : [];
           return {
             ...pack,
-            functions: pack.functions.filter((fn) => ALLOWED.has(fn.name)),
+            functions: packFunctions.filter((fn) => ALLOWED.has(fn.name)),
           };
         })(),
       ],

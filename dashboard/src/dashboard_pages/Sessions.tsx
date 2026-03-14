@@ -13,6 +13,7 @@ interface Session {
   created_at: string;
   client_context?: Record<string, string | null>;
   llm_context?: Record<string, unknown>;
+  cost_summary?: SessionCostSummary | null;
 }
 
 interface Message {
@@ -23,6 +24,31 @@ interface Message {
   tool_calls: Array<Record<string, unknown>> | Record<string, unknown> | null;
   tool_call_id: string | null;
   created_at: string;
+}
+
+interface SessionCostBreakdown {
+  category: string;
+  provider: string;
+  model: string;
+  operation: string;
+  estimated_cost_usd: number;
+  input_tokens: number;
+  output_tokens: number;
+  image_count: number;
+  event_count: number;
+  unpriced_event_count: number;
+}
+
+interface SessionCostSummary {
+  estimated_cost_usd: number;
+  input_tokens: number;
+  output_tokens: number;
+  image_count: number;
+  event_count: number;
+  unpriced_event_count: number;
+  partial: boolean;
+  warnings: string[];
+  breakdown: SessionCostBreakdown[];
 }
 
 type ToolCallRecord = {
@@ -53,6 +79,19 @@ function statusVariant(status: string): "active" | "expired" | "closed" | "defau
 }
 
 const PAGE_SIZE = 25;
+
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+}
+
+function labelForCategory(category: string): string {
+  if (category === "assistant") return "Assistant";
+  if (category === "router") return "Router";
+  if (category === "kb_context") return "KB Context";
+  if (category === "tool_description") return "Tool Description";
+  if (category === "embeddings") return "Embeddings";
+  return "Other";
+}
 
 function ToolCallCard({ calls }: { calls: unknown }) {
   const [expanded, setExpanded] = useState(false);
@@ -253,6 +292,9 @@ export default function Sessions() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesError, setMessagesError] = useState<string | null>(null);
+  const [selectedCostSummary, setSelectedCostSummary] = useState<SessionCostSummary | null>(null);
+  const [costsLoading, setCostsLoading] = useState(false);
+  const [costsError, setCostsError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -296,6 +338,9 @@ export default function Sessions() {
       setMessages([]);
       setMessagesError(null);
       setMessagesLoading(true);
+      setSelectedCostSummary(sessions.find((entry) => entry.id === sessionId)?.cost_summary ?? null);
+      setCostsError(null);
+      setCostsLoading(true);
 
       if (pollRef.current) {
         clearInterval(pollRef.current);
@@ -303,11 +348,19 @@ export default function Sessions() {
       }
 
       try {
-        const loadedMessages = await api<Message[]>(
-          `/v1/apps/${appId}/sessions/${sessionId}/messages`,
-          { signal: controller.signal }
-        );
+        const [loadedMessages, loadedCosts] = await Promise.all([
+          api<Message[]>(
+            `/v1/apps/${appId}/sessions/${sessionId}/messages`,
+            { signal: controller.signal }
+          ),
+          api<SessionCostSummary>(
+            `/v1/apps/${appId}/sessions/${sessionId}/costs`,
+            { signal: controller.signal }
+          ),
+        ]);
         setMessages(loadedMessages);
+        setSelectedCostSummary(loadedCosts);
+        setCostsLoading(false);
 
         const session = sessions.find((entry) => entry.id === sessionId);
         if (session?.status === "active") {
@@ -323,6 +376,8 @@ export default function Sessions() {
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;
         setMessagesError(err instanceof ApiError ? err.detail : "Failed to load messages");
+        setCostsError(err instanceof ApiError ? err.detail : "Failed to load session costs");
+        setCostsLoading(false);
       } finally {
         setMessagesLoading(false);
       }
@@ -412,6 +467,11 @@ export default function Sessions() {
                   {session.status}
                 </Badge>
               </div>
+              {session.cost_summary && (
+                <p className="text-sm font-semibold text-body mb-1">
+                  {formatUsd(session.cost_summary.estimated_cost_usd)}
+                </p>
+              )}
               {session.device_id && <p className="text-xs text-subtle truncate mb-1">{session.device_id}</p>}
               <p className="text-xs text-muted">{new Date(session.last_activity_at).toLocaleString()}</p>
             </button>
@@ -456,6 +516,45 @@ export default function Sessions() {
                     {selectedSession.status}
                   </Badge>
                 </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                  <span>
+                    Cost: {costsLoading && !selectedCostSummary ? "Loading..." : formatUsd(selectedCostSummary?.estimated_cost_usd ?? 0)}
+                  </span>
+                  <span>
+                    Tokens: {(selectedCostSummary?.input_tokens ?? 0).toLocaleString()} in / {(selectedCostSummary?.output_tokens ?? 0).toLocaleString()} out
+                  </span>
+                  <span>
+                    Events: {(selectedCostSummary?.event_count ?? 0).toLocaleString()}
+                  </span>
+                </div>
+                {costsError && (
+                  <p className="mt-2 text-xs text-danger">{costsError}</p>
+                )}
+                {selectedCostSummary?.warnings?.length ? (
+                  <div className="mt-2 space-y-1">
+                    {selectedCostSummary.warnings.map((warning) => (
+                      <p key={warning} className="text-xs text-warning">
+                        {warning}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {selectedCostSummary?.breakdown?.length ? (
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {selectedCostSummary.breakdown.map((row) => (
+                      <div key={`${row.category}-${row.provider}-${row.model}-${row.operation}`} className="rounded-lg border border-border bg-surface px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-body">{labelForCategory(row.category)}</p>
+                          <p className="text-xs text-body">{formatUsd(row.estimated_cost_usd)}</p>
+                        </div>
+                        <p className="text-[11px] text-subtle">{row.provider}/{row.model}</p>
+                        <p className="text-[11px] text-muted">
+                          {row.input_tokens.toLocaleString()} in · {row.output_tokens.toLocaleString()} out · {row.event_count.toLocaleString()} events
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 {selectedSession.client_context && (
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(selectedSession.client_context)

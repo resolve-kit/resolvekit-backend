@@ -20,6 +20,26 @@ export type ModelPricing = {
   source: string;
 };
 
+const STATIC_MODEL_PRICING: Record<string, Record<string, Omit<ModelPricing, "source">>> = {
+  openai: {
+    "gpt-4o": { input_per_million_usd: 2.5, output_per_million_usd: 10, image_per_thousand_usd: null },
+    "gpt-4o-mini": { input_per_million_usd: 0.15, output_per_million_usd: 0.6, image_per_thousand_usd: null },
+    "gpt-4-turbo": { input_per_million_usd: 10, output_per_million_usd: 30, image_per_thousand_usd: null },
+    "gpt-3.5-turbo": { input_per_million_usd: 0.5, output_per_million_usd: 1.5, image_per_thousand_usd: null },
+  },
+  anthropic: {
+    "claude-opus-4-5": { input_per_million_usd: 15, output_per_million_usd: 75, image_per_thousand_usd: null },
+    "claude-sonnet-4-5": { input_per_million_usd: 3, output_per_million_usd: 15, image_per_thousand_usd: null },
+    "claude-haiku-3-5": { input_per_million_usd: 0.8, output_per_million_usd: 4, image_per_thousand_usd: null },
+  },
+  google: {
+    "gemini-2.0-flash": { input_per_million_usd: 0.1, output_per_million_usd: 0.4, image_per_thousand_usd: null },
+    "gemini-2.0-flash-lite": { input_per_million_usd: 0.075, output_per_million_usd: 0.3, image_per_thousand_usd: null },
+    "gemini-1.5-pro": { input_per_million_usd: 1.25, output_per_million_usd: 5, image_per_thousand_usd: null },
+    "gemini-1.5-flash": { input_per_million_usd: 0.075, output_per_million_usd: 0.3, image_per_thousand_usd: null },
+  },
+};
+
 export type ModelCapabilities = {
   ocr_compatible: boolean;
   multimodal_vision: boolean;
@@ -267,6 +287,34 @@ function _openRouterPricingForModel(
   return null;
 }
 
+function normalizePricingLookupModel(providerId: string, modelId: string): string {
+  const provider = providerId.trim().toLowerCase();
+  let normalized = modelId.trim();
+  if (!normalized) return normalized;
+
+  if (provider !== "openrouter" && normalized.includes("/")) {
+    const maybePrefixed = normalized.split("/", 2);
+    if (maybePrefixed.length === 2 && maybePrefixed[0].trim().toLowerCase() === provider) {
+      normalized = maybePrefixed[1].trim();
+    }
+  }
+  if (provider === "google" && normalized.startsWith("gemini/")) {
+    normalized = normalized.slice("gemini/".length);
+  }
+  return normalized;
+}
+
+function lookupStaticModelPricing(providerId: string, modelId: string): ModelPricing | null {
+  const provider = providerId.trim().toLowerCase();
+  const normalizedModel = normalizePricingLookupModel(provider, modelId);
+  const pricing = STATIC_MODEL_PRICING[provider]?.[normalizedModel] ?? null;
+  if (!pricing) return null;
+  return {
+    ...pricing,
+    source: "catalog",
+  };
+}
+
 async function enrichModelsWithOpenRouterPricing(
   providerId: string,
   models: ModelInfo[],
@@ -310,8 +358,11 @@ export function inferModelCapabilities(
 
 export async function lookupModelPricing(providerId: string, modelId: string): Promise<ModelPricing | null> {
   const normalizedProvider = providerId.trim().toLowerCase();
-  const normalizedModel = modelId.trim();
+  const normalizedModel = normalizePricingLookupModel(normalizedProvider, modelId);
   if (!normalizedProvider || !normalizedModel) return null;
+  const staticPricing = lookupStaticModelPricing(normalizedProvider, normalizedModel);
+  if (staticPricing) return staticPricing;
+  if (normalizedProvider !== "openrouter") return null;
   try {
     const catalog = await fetchOpenRouterCatalog();
     return _openRouterPricingForModel(normalizedProvider, normalizedModel, catalog);

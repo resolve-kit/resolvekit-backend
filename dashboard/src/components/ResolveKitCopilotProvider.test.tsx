@@ -16,6 +16,11 @@ const createClientTokenAuthProvider = vi.fn((options?: { endpoint?: string }) =>
 const createBrowserToolsPack = vi.fn((options?: unknown) => ({
   kind: "browser-tools-pack",
   options,
+  functions: [
+    { name: "discover_page_actions" },
+    { name: "navigate_route" },
+    { name: "click_element" },
+  ],
 }));
 
 const runtimeInstances: MockRuntime[] = [];
@@ -157,7 +162,7 @@ describe("ResolveKitCopilotProvider", () => {
     expect(createClientTokenAuthProvider).toHaveBeenCalledWith({ endpoint: "/api/resolvekit/token" });
     expect(createBrowserToolsPack).toHaveBeenCalledTimes(1);
     expect(createBrowserToolsPack.mock.calls[0]?.[0]).toMatchObject({
-      discoveryMode: "open",
+      discoveryMode: "annotatedOnly",
       navigationAdapter: {
         push: expect.any(Function),
         replace: expect.any(Function),
@@ -178,7 +183,7 @@ describe("ResolveKitCopilotProvider", () => {
     });
 
     const llmContextProvider = runtime.config.llmContextProvider as () => Record<string, unknown>;
-    expect(llmContextProvider()).toEqual({
+    expect(llmContextProvider()).toMatchObject({
       dashboard_app_id: "app-123",
       current_path: "/apps/app-123/llm",
       current_route_id: "app-llm",
@@ -186,6 +191,23 @@ describe("ResolveKitCopilotProvider", () => {
       onboarding_target_app_id: "app-123",
       required_onboarding_step_ids: ["org_llm_provider", "create_app"],
     });
+    expect(llmContextProvider().current_page_action_ids).toEqual(
+      expect.arrayContaining([
+        "llm-config-form",
+        "save-llm-config-btn",
+        "manage-org-profiles-btn",
+      ]),
+    );
+
+    expect(runtime.config.functionPacks).toEqual([
+      expect.objectContaining({
+        kind: "browser-tools-pack",
+        functions: [
+          { name: "discover_page_actions" },
+          { name: "navigate_route" },
+        ],
+      }),
+    ]);
 
     const functions = runtime.config.functions as Array<{
       name: string;

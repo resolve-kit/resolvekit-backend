@@ -14,7 +14,7 @@ describe("ResolveKit dashboard integration source wiring", () => {
     const packageJson = readDashboardFile("package.json");
     const envExample = readDashboardFile("../.env.example");
 
-    expect(packageJson).toContain('"@resolvekit/nextjs": "^1.0.0"');
+    expect(packageJson).toContain('"@resolvekit/nextjs": "^1.0.4"');
     expect(packageJson).not.toContain('"@resolvekit/sdk"');
 
     expect(envExample).toContain("RESOLVEKIT_KEY=iaa_your_key_here");

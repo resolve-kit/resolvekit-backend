@@ -8,11 +8,13 @@ import { cn } from "@/lib/utils";
 import { dashboardRegisterUrl } from "@/lib/urls";
 
 export const SECTION_LINKS = [
-  { href: "#product", label: "What It Is" },
-  { href: "#validation", label: "Validation" },
-  { href: "#gtm", label: "Go-to-market" },
+  { href: "#product", label: "Solution" },
+  { href: "#validation", label: "Proof" },
+  { href: "#gtm", label: "Growth" },
   { href: "#market", label: "Market" },
-  { href: "#competition", label: "Competition" },
+  { href: "#competition", label: "Position" },
+  { href: "#economics", label: "Economics" },
+  { href: "#relevance", label: "Durability" },
 ] as const;
 
 export function PresentationNav() {

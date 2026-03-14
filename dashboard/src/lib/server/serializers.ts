@@ -39,7 +39,7 @@ export function sessionOut(session: {
   llmContext: unknown;
   availableFunctionNames: unknown;
   locale: string;
-}) {
+}, costSummary?: unknown) {
   return {
     id: session.id,
     app_id: session.appId,
@@ -54,6 +54,7 @@ export function sessionOut(session: {
     status: session.status,
     last_activity_at: session.lastActivityAt,
     created_at: session.createdAt,
+    cost_summary: costSummary ?? null,
     ws_url: null,
     chat_capability_token: null,
     reused_active_session: false,

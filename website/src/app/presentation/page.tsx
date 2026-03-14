@@ -14,19 +14,19 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "ResolveKit | Presentation",
   description:
-    "ResolveKit presentation: product thesis, go-to-market, and competitive landscape for the embedded AI support category.",
+    "ResolveKit business case: embedded AI support that resolves problems inside the product, not outside it.",
 };
 
 const SYNERGIES = [
   {
     label: "Inference",
     title: "Nexos.ai as the inference backbone",
-    text: "Nexos.ai, the group's primary inference provider, is a natural infrastructure partner. The stack can run natively against the same provider already powering Tesonet products — no new vendor, lower latency, shared cost base.",
+    text: "The stack can run on the same inference layer already used across the group, which lowers rollout friction and keeps cost discipline high.",
   },
   {
     label: "Ecosystem",
     title: "One SDK. Every Tesonet product.",
-    text: "Tesonet operates multiple consumer and B2B products. A standardized embedded support layer gives every product in the portfolio the same best-in-class support UX — with shared infrastructure, shared tooling, and compounding network effects.",
+    text: "A shared embedded support layer can be reused across products, turning one implementation into a repeatable platform advantage.",
   },
 ] as const;
 
@@ -76,47 +76,47 @@ const MARKET_STATS = [
 const MARKET_SIGNALS = [
   {
     title: "$0.50 vs $6.00",
-    text: "Cost per AI interaction vs human agent — a 12x difference that makes the economics compelling at scale.",
+    text: "AI interactions are already dramatically cheaper than human support, which is why the category economics are shifting so quickly.",
   },
   {
     title: "$80B",
-    text: "Projected contact center labor savings by 2026 — Gartner (2023).",
+    text: "Projected contact center labor savings by 2026, showing why buyers are actively repricing support around automation.",
   },
 ] as const;
 
 const PRODUCT_GAPS = [
   {
     eyebrow: "Context gap",
-    statement: "Embedded in the product, not bolted on top of it.",
-    text: "Their chatbot retrieves from a help center. ResolveKit sees the app state, the user's flow, and real product docs. Guess vs. diagnosis.",
+    statement: "Product context beats help-center guessing.",
+    text: "ResolveKit sees the app state and user flow. Traditional support tools mostly see documentation.",
   },
   {
     eyebrow: "Action gap",
-    statement: "Does the fix, not just describes it.",
-    text: "Their chatbot describes the next step. ResolveKit does it — via approved tools, inside the app, with a trace.",
+    statement: "Action matters more than explanation.",
+    text: "ResolveKit can trigger approved actions inside the product instead of stopping at instructions.",
   },
   {
     eyebrow: "Operator gap",
-    statement: "Full trace, approvals, and prompt controls.",
-    text: "Their chatbot is a black box. ResolveKit gives traces, approvals, and prompt controls. In production, that's not optional.",
+    statement: "Production systems need operator control.",
+    text: "Traces, approvals, and controls turn support AI from a black box into something teams can actually trust.",
   },
 ] as const;
 
 const GTM_STEPS = [
   {
     phase: "Land",
-    title: "Developers install the SDK to solve an immediate support bottleneck",
-    text: "The first win is fast: ship embedded support inside the app, reduce back-and-forth, and show real product-aware resolution quickly.",
+    title: "Developers install the SDK to solve one clear support problem",
+    text: "The first win is simple: get support into the product and reduce resolution time fast.",
   },
   {
     phase: "Expand",
     title: "Support and product teams adopt the command layer",
-    text: "Once the agent is live, prompts, approvals, traces, multilingual behavior, and model controls become cross-functional operating surface area.",
+    text: "Once live, prompts, approvals, traces, and controls become an operating surface, not a side feature.",
   },
   {
     phase: "Standardize",
-    title: "ResolveKit becomes infrastructure across apps, flows, and teams",
-    text: "The wedge grows from one use case to the control plane for every in-product support experience the company owns.",
+    title: "ResolveKit becomes infrastructure across apps and teams",
+    text: "The wedge expands from one workflow into the control plane for in-product support everywhere.",
   },
 ] as const;
 
@@ -124,17 +124,17 @@ const PRICE_TRACKS = [
   {
     label: "Freemium",
     title: "PostHog-style entry point",
-    text: "A generous free tier removes adoption friction and lets engineering teams prove value before budget conversations start.",
+    text: "A generous free tier removes friction and lets teams prove value before procurement gets involved.",
   },
   {
     label: "Usage",
     title: "Meter after the workflow is real",
-    text: "Charge when teams depend on higher-volume resolution, more apps, or deeper operational controls rather than at install time.",
+    text: "Charge once teams depend on real resolution volume and deeper controls, not at install time.",
   },
   {
     label: "Enterprise",
     title: "Expand on governance and reliability",
-    text: "Enterprise value comes from auditability, advanced controls, compliance expectations, and production-grade rollout support.",
+    text: "Enterprise value comes from governance, reliability, compliance, and rollout support.",
   },
 ] as const;
 
@@ -168,6 +168,106 @@ const COMPETITORS = [
     rate: "Custom outcome-based pricing",
     strength: "Premium enterprise positioning and managed-service depth.",
     gap: "Great for large brands, less natural for fast-moving product teams that want ownership and speed.",
+  },
+] as const;
+
+const ECONOMICS_PROOF = [
+  {
+    label: "Blended delivery cost",
+    value: "~$0.004",
+    text: "Across four realistic resolution flows, Gemini 2.5 Flash-Lite with caching lands around $0.0037 fully loaded per resolved issue.",
+  },
+  {
+    label: "Premium-model cost",
+    value: "~10x higher",
+    text: "The same blended workload on Gemini 3.1 Pro Preview is about $0.0376 per resolution, so premium routing should stay selective.",
+  },
+  {
+    label: "Price position",
+    value: "$0.20 vs $0.99",
+    text: "A $0.20 ResolveKit usage price stays far below Intercom Fin's public $0.99 per resolution benchmark.",
+  },
+] as const;
+
+const ECONOMICS_IMPLICATIONS = [
+  "Cheap delivery cost leaves room to price below incumbents.",
+  "The margin story comes from workflow value, not from reselling expensive tokens.",
+  "Premium models stay available for edge cases without changing the default economics.",
+] as const;
+
+const ECONOMICS_INCLUDED = [
+  {
+    title: "What is included",
+    text: "Model usage, prompt caching, KB fetches, tool-result handling, event writes, and a conservative delivery overhead buffer.",
+  },
+  {
+    title: "What is excluded",
+    text: "Fixed engineering payroll, sales, support, and one-time KB indexing are kept out of this runtime delivery estimate.",
+  },
+  {
+    title: "Model note",
+    text: "Google shut down Gemini 3 Pro Preview on March 9, 2026, so the premium comparison uses Gemini 3.1 Pro Preview.",
+  },
+] as const;
+
+const ECONOMICS_SCENARIOS = [
+  {
+    title: "FAQ policy clarification",
+    flow: "KB search, 3 supporting snippets, no action tool.",
+    flash: "$0.0020 cached",
+    flashNoCache: "$0.0024 no cache",
+    premium: "$0.0234 cached",
+  },
+  {
+    title: "Login recovery with account lookup",
+    flow: "KB retrieval, account-status tool call, reset-link action.",
+    flash: "$0.0034 cached",
+    flashNoCache: "$0.0041 no cache",
+    premium: "$0.0362 cached",
+  },
+  {
+    title: "Feature setup with guided web navigation",
+    flow: "KB retrieval, current-section detection, guided navigation, completion confirmation.",
+    flash: "$0.0048 cached",
+    flashNoCache: "$0.0058 no cache",
+    premium: "$0.0478 cached",
+  },
+  {
+    title: "Technical sync issue with screenshot",
+    flow: "Multimodal KB retrieval, screenshot interpretation, status tools, remediation.",
+    flash: "$0.0068 cached",
+    flashNoCache: "$0.0078 no cache",
+    premium: "$0.0600 cached",
+  },
+] as const;
+
+const ECONOMICS_MODEL_SUMMARY = [
+  {
+    model: "Gemini 2.5 Flash-Lite",
+    cached: "$0.0037",
+    noCache: "$0.0044",
+    monthly: "$36.99 per 10,000 resolutions",
+  },
+  {
+    model: "Gemini 3.1 Pro Preview",
+    cached: "$0.0376",
+    noCache: "$0.0590",
+    monthly: "$375.76 per 10,000 resolutions",
+  },
+] as const;
+
+const RELEVANCE_PILLARS = [
+  {
+    title: "Embedded context compounds",
+    text: "As the integration deepens, product context becomes more useful and harder to replace.",
+  },
+  {
+    title: "Action + auditability",
+    text: "Approved actions, live traces, and controls make this a production system, not a chat veneer.",
+  },
+  {
+    title: "PMF has to be renewed",
+    text: "AI features get copied quickly. The defense is to keep widening the gap on workflow ownership and clarity.",
   },
 ] as const;
 
@@ -246,14 +346,16 @@ function SectionHeading({
   eyebrow,
   title,
   text,
+  className,
 }: {
   index: string;
   eyebrow: string;
   title: string;
   text?: string;
+  className?: string;
 }) {
   return (
-    <div className="lg:sticky lg:top-28">
+    <div className={cn("lg:sticky lg:top-28", className)}>
       <p className="text-[11px] uppercase tracking-[0.28em] text-[#6d665c]">{eyebrow}</p>
       <div className="mt-3 flex items-start gap-4">
         <span className="text-xs font-semibold tracking-[0.3em] text-[#9e927f]">{index}</span>
@@ -383,24 +485,23 @@ export default function PresentationPage() {
             <div className="max-w-4xl animate-fade-up">
               <p className="text-[11px] uppercase tracking-[0.34em] text-[#7d7365]">ResolveKit thesis</p>
               <h1 className="mt-4 max-w-5xl text-4xl font-semibold leading-[0.92] tracking-[-0.04em] text-[#171412] sm:text-6xl lg:text-[5.6rem]" style={headingStyle}>
-                Everyone has a chatbot.
+                Support is moving into the product.
                 <br />
-                The wedge now is embedded resolution.
+                ResolveKit is the embedded resolution layer.
               </h1>
               <p className="mt-6 max-w-3xl text-base leading-relaxed text-[#584f47] sm:text-lg">
-                ResolveKit is an SDK with a multimodal knowledge base for products that want more than a widget. The
-                assistant lives inside the app, understands the user&apos;s flow, can reason over product docs and visual
-                context, can propose approved actions, and gives operators a live trace of what the model saw, decided,
-                and executed.
+                ResolveKit is an SDK for products that want support to happen where the problem happens. It lives inside
+                the app, understands context, can trigger approved actions, and gives teams full visibility into what the
+                system saw, decided, and did.
               </p>
               <PlatformMarks />
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#product">
-                  <Button className="bg-[#171412] text-white hover:bg-[#2b241d] hover:text-white">See the product case</Button>
+                  <Button className="bg-[#171412] text-white hover:bg-[#2b241d] hover:text-white">See the business case</Button>
                 </a>
                 <a href="#competition">
                   <Button variant="outline" className="border-[#bcae99] bg-white/70">
-                    See the market map
+                    See the market context
                   </Button>
                 </a>
                 <a href={dashboardLoginUrl}>
@@ -427,9 +528,9 @@ export default function PresentationPage() {
         >
           <SectionHeading
             index="01"
-            eyebrow="What the product is"
-            title="A chatbot tells users what to do. ResolveKit does it for them."
-            text="Three dimensions where existing tools come up short — and where the switch becomes obvious."
+            eyebrow="What changes"
+            title="Most support tools explain the issue. ResolveKit resolves it in-product."
+            text="The case for the product is straightforward: better context, real action, and operator control."
           />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-4">
@@ -451,9 +552,9 @@ export default function PresentationPage() {
         >
           <SectionHeading
             index="02"
-            eyebrow="Validation"
-            title="Won Surfshark's internal AI hackathon. Production interest followed."
-            text="The demo was built for a Surfshark internal hackathon, placed first, and the team is now evaluating production deployment. Early signal that the problem is real and the product works."
+            eyebrow="Proof"
+            title="There is already credible proof that the problem is real."
+            text="The product has already won internal validation and created follow-on interest in production deployment."
           />
           <div className="space-y-4">
             <Card
@@ -466,7 +567,7 @@ export default function PresentationPage() {
                   <p className="mt-3 text-6xl font-semibold text-[#e8a838]" style={headingStyle}>1st</p>
                   <p className="mt-2 text-lg font-semibold leading-tight text-white">Surfshark internal hackathon</p>
                   <p className="mt-2 text-sm leading-relaxed" style={{ color: "#a89880" }}>
-                    Won Surfshark&apos;s internal AI hackathon. The demo competed against other internal projects.
+                    The demo won against other internal projects, which is a strong early signal that the use case matters.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[#3d3020] p-5" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
@@ -475,8 +576,7 @@ export default function PresentationPage() {
                     Surfshark is evaluating production deployment
                   </p>
                   <p className="mt-3 text-sm leading-relaxed" style={{ color: "#a89880" }}>
-                    The team that ran the hackathon is interested in shipping it. First real signal the problem is worth
-                    solving.
+                    The team is now evaluating whether to ship it, which turns the demo from an idea into a real business conversation.
                   </p>
                 </div>
               </div>
@@ -504,8 +604,8 @@ export default function PresentationPage() {
           <SectionHeading
             index="03"
             eyebrow="Go-to-market"
-            title="Lead with developers, prove value in-product, then expand where the workflow gets sticky."
-            text="The right motion is freemium, product-led, and usage-aware. A PostHog-style entry point wins the first install. The control plane, approvals, traces, and multi-app rollout create the expansion path once teams trust the product in production."
+            title="Start with developers. Expand through workflow ownership."
+            text="The adoption path is simple: land through the SDK, prove value inside the product, then expand as more workflows depend on it."
           />
           <div className="space-y-4">
             <div className="grid gap-4 xl:grid-cols-3">
@@ -520,7 +620,7 @@ export default function PresentationPage() {
 
             <div className="space-y-4">
               <Card className="border-[#d7ccbb] bg-[linear-gradient(180deg,rgba(255,251,245,0.98),rgba(245,238,228,0.96))] p-5 text-[#1d2436]">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">Pricing motion</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#b08b52]">Commercial motion</p>
                 <div className="mt-4 grid gap-3 xl:grid-cols-3">
                   {PRICE_TRACKS.map((track) => (
                     <div key={track.label} className="rounded-2xl border border-[#ded2c1] bg-[rgba(255,255,255,0.72)] p-4">
@@ -531,9 +631,7 @@ export default function PresentationPage() {
                   ))}
                 </div>
                 <p className="mt-4 text-base leading-relaxed text-[#5b5249]">
-                  The strategic point is simple: if the onboarding path is lightweight, the developer surface is
-                  excellent, and the pricing curve feels fair, ResolveKit can win installs before a heavy sales process
-                  ever begins.
+                  The commercial point is simple: lightweight onboarding and fair pricing make adoption easier before any heavy sales process starts.
                 </p>
               </Card>
             </div>
@@ -564,8 +662,8 @@ export default function PresentationPage() {
           <SectionHeading
             index="04"
             eyebrow="Market"
-            title="A $50B software category is shifting from deflection to resolution."
-            text="The customer service software market is large and well-funded. The interesting motion is not that the market exists — it is that the underlying model is changing: from ticket management and chat deflection to agents that diagnose, act, and confirm resolution. That shift is where the category is being repriced."
+            title="A large software category is being repriced around resolution."
+            text="The important shift is not that the market exists. It is that buyers are moving from ticketing and deflection toward diagnosis, action, and confirmed resolution."
           />
           <details className="group self-start">
             <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-[#d7ccbb] bg-[rgba(255,251,245,0.9)] px-5 py-3 [&::-webkit-details-marker]:hidden">
@@ -579,7 +677,7 @@ export default function PresentationPage() {
                 <div className="border-b border-[#e0d5c7] px-5 py-4">
                   <p className="text-[10px] uppercase tracking-[0.28em] text-[#897b6a]">Market sizing frames</p>
                   <p className="mt-2 text-sm leading-relaxed text-[#5f554b]">
-                    Three framing options depending on how investors want to anchor the opportunity.
+                    Three simple ways to size the opportunity.
                   </p>
                 </div>
                 <div className="divide-y divide-[#e9dfd3]">
@@ -602,7 +700,7 @@ export default function PresentationPage() {
                 </div>
                 <div className="border-t border-[#e0d5c7] bg-[rgba(250,245,235,0.8)] px-5 py-4">
                   <p className="text-sm leading-relaxed text-[#5b5248]">
-                    <span className="font-semibold text-[#2a241d]">Recommended frame:</span> Agentic AI (~46% CAGR) is the most defensible framing for a resolution-first product.
+                    <span className="font-semibold text-[#2a241d]">Recommended frame:</span> Agentic AI is the cleanest way to frame a resolution-first product.
                   </p>
                 </div>
               </Card>
@@ -617,10 +715,10 @@ export default function PresentationPage() {
                 <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.94)] p-6 text-[#2f2a25]">
                   <p className="text-[10px] uppercase tracking-[0.28em] text-[#977c57]">The gap</p>
                   <h3 className="mt-3 text-2xl font-semibold leading-tight text-[#24324c]" style={headingStyle}>
-                    No analyst report isolates &ldquo;embedded in-product support SDK&rdquo; as its own market category — that category doesn&apos;t exist yet.
+                    The broader category exists. The embedded layer is still open.
                   </h3>
                   <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#4a4138]">
-                    That is both the opportunity and the challenge. The TAM numbers above describe the market ResolveKit sits inside. The embedded SDK layer — where the assistant lives in the app, sees product context, and can take approved action — is an emerging wedge within that market. ResolveKit&apos;s bet is to own that layer before it becomes a named category.
+                    ResolveKit sits inside a large existing software market, but its specific wedge is not yet owned: the in-product layer where support understands context and can take approved action.
                   </p>
                 </Card>
 
@@ -641,8 +739,8 @@ export default function PresentationPage() {
           <SectionHeading
             index="05"
             eyebrow="Competition"
-            title="The market is crowded with chat surfaces. The durable wedge is ownership of product context and action."
-            text="There are real competitors, real budgets, and increasingly mature pricing models. But most vendors still optimize around the helpdesk, not the in-product experience. ResolveKit’s opening is to own the embedded layer that makes the assistant both more useful and more persistent."
+            title="Incumbents own helpdesks. ResolveKit owns the in-product workflow."
+            text="There are real competitors and real budgets in this category. The difference is that most vendors still optimize around the helpdesk, not the product experience itself."
           />
           <div className="space-y-4">
             <Card className="overflow-hidden border-[#d2c5b5] bg-white/88 p-0">
@@ -679,12 +777,12 @@ export default function PresentationPage() {
               <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.94)] p-6 text-[#2f2a25]">
                 <p className="text-[10px] uppercase tracking-[0.28em] text-[#977c57]">ResolveKit position</p>
                 <h3 className="mt-3 text-2xl font-semibold leading-tight text-[#24324c]" style={headingStyle}>
-                  Chat is the commodity. Integration depth is the product.
+                  Chat is becoming standard. Workflow ownership is the product.
                 </h3>
                 <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#4a4138]">
-                  If every vendor can generate decent conversational output, the question becomes: who owns the real
-                  workflow? ResolveKit wins where teams want the assistant embedded in the app, connected to actual
-                  product behavior, governed with approvals, and priced in a way that does not punish early adoption.
+                  If every vendor can generate decent conversational output, the real question becomes who owns the
+                  workflow. ResolveKit wins where teams want support embedded in the app, connected to product behavior,
+                  governed with approvals, and easy to adopt commercially.
                 </p>
               </Card>
 
@@ -692,8 +790,197 @@ export default function PresentationPage() {
                 <p className="text-[10px] uppercase tracking-[0.28em] text-[#8e816f]">What matters</p>
                 <ul className="mt-4 space-y-3 text-base leading-relaxed text-[#463d35]">
                   <li>Developer experience has to feel faster than buying a helpdesk.</li>
-                  <li>Pricing has to feel fair before the workflow is proven.</li>
-                  <li>Once the integration goes deeper, stickiness improves naturally.</li>
+                  <li>Pricing has to feel fair before value is proven.</li>
+                  <li>Deeper integration creates stickiness naturally.</li>
+                </ul>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="economics"
+          className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[linear-gradient(180deg,rgba(255,252,247,0.82),rgba(244,236,225,0.92))] p-4 sm:p-6 xl:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] xl:gap-10 xl:p-8"
+        >
+          <SectionHeading
+            index="06"
+            eyebrow="Unit economics"
+            title="The delivery cost is measured in cents. The value captured is much higher."
+            text="ResolveKit is inexpensive to operate, which creates room to price below incumbents without weakening the business case."
+            className="lg:static xl:sticky xl:top-28"
+          />
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              {ECONOMICS_PROOF.map((item) => (
+                <Card key={item.label} className="border-[#d7ccbb] bg-white/84 p-5">
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-[#8e816f]">{item.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-[#1e2d4a]" style={headingStyle}>
+                    {item.value}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-[#5d544b]">{item.text}</p>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.94)] p-6 text-[#2f2a25]">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#977c57]">What this means</p>
+                <h3 className="mt-3 text-2xl font-semibold leading-tight text-[#24324c]" style={headingStyle}>
+                  Model cost is not the bottleneck. Workflow value is.
+                </h3>
+                <ul className="mt-4 space-y-3 text-base leading-relaxed text-[#4a4138]">
+                  {ECONOMICS_IMPLICATIONS.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </Card>
+
+              <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.92)] p-5">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#8e816f]">Rule of thumb</p>
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl border border-[#e4d9cb] bg-white/80 p-4">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Default model</p>
+                    <p className="mt-2 text-lg font-semibold text-[#1e2d4a]">Gemini 2.5 Flash-Lite</p>
+                    <p className="mt-2 text-sm leading-relaxed text-[#5b5248]">
+                      Cheap enough to be the default for normal support and action workflows.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-[#e4d9cb] bg-white/80 p-4">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Escalation model</p>
+                    <p className="mt-2 text-lg font-semibold text-[#1e2d4a]">Gemini 3.1 Pro Preview</p>
+                    <p className="mt-2 text-sm leading-relaxed text-[#5b5248]">
+                      Keep for harder multimodal or reasoning-heavy edge cases where the extra cost is justified.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-2xl border border-[#d2c5b5] bg-white/88 px-5 py-4 [&::-webkit-details-marker]:hidden">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#897b6a]">Proof layer</p>
+                  <p className="mt-2 text-sm font-medium text-[#5f554b]">Show calculations and assumptions</p>
+                </div>
+                <svg
+                  viewBox="0 0 20 20"
+                  className="h-4 w-4 shrink-0 text-[#9e927f] transition-transform duration-200 group-open:rotate-180"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </summary>
+
+              <div className="mt-4 space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  {ECONOMICS_INCLUDED.map((item) => (
+                    <Card key={item.title} className="border-[#d7ccbb] bg-white/84 p-5">
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-[#8e816f]">{item.title}</p>
+                      <p className="mt-3 text-sm leading-relaxed text-[#5d544b]">{item.text}</p>
+                    </Card>
+                  ))}
+                </div>
+
+                <Card className="overflow-hidden border-[#d2c5b5] bg-white/88 p-0">
+                  <div className="border-b border-[#e0d5c7] px-5 py-4">
+                    <p className="text-[10px] uppercase tracking-[0.28em] text-[#897b6a]">Blended model view</p>
+                    <p className="mt-2 text-sm leading-relaxed text-[#5f554b]">
+                      The table below summarizes cached and non-cached delivery cost across the full scenario mix.
+                    </p>
+                  </div>
+                  <div className="grid gap-4 px-5 py-5 lg:grid-cols-2">
+                    {ECONOMICS_MODEL_SUMMARY.map((model) => (
+                      <div key={model.model} className="rounded-2xl border border-[#e9dfd3] bg-[rgba(255,251,245,0.82)] p-5">
+                        <p className="text-lg font-semibold text-[#2a241d]">{model.model}</p>
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-4">
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Cached cost</p>
+                            <p className="mt-2 text-2xl font-semibold text-[#1e2d4a]" style={headingStyle}>
+                              {model.cached}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-4">
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">No-cache cost</p>
+                            <p className="mt-2 text-2xl font-semibold text-[#1e2d4a]" style={headingStyle}>
+                              {model.noCache}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="mt-4 text-sm leading-relaxed text-[#5b5248]">{model.monthly}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {ECONOMICS_SCENARIOS.map((scenario) => (
+                    <Card key={scenario.title} className="border-[#d7ccbb] bg-[rgba(255,251,245,0.9)] p-5">
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-[#8e816f]">Scenario</p>
+                      <h3 className="mt-3 text-lg font-semibold leading-tight text-[#171412]">{scenario.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-[#5d544b]">{scenario.flow}</p>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-3">
+                          <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Flash-Lite</p>
+                          <p className="mt-2 text-sm font-semibold text-[#1e2d4a]">{scenario.flash}</p>
+                        </div>
+                        <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-3">
+                          <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">No cache</p>
+                          <p className="mt-2 text-sm font-semibold text-[#1e2d4a]">{scenario.flashNoCache}</p>
+                        </div>
+                        <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-3">
+                          <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Premium</p>
+                          <p className="mt-2 text-sm font-semibold text-[#1e2d4a]">{scenario.premium}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section
+          id="relevance"
+          className="mt-8 grid gap-6 scroll-mt-28 rounded-[2rem] border border-[#d8ccbc] bg-[rgba(250,246,239,0.86)] p-4 sm:p-6 lg:grid-cols-[minmax(280px,0.72fr)_minmax(0,1.28fr)] lg:gap-10 lg:p-8"
+        >
+          <SectionHeading
+            index="07"
+            eyebrow="Durability"
+            title="The durable moat is workflow ownership, not chatbot quality."
+            text="As chat quality improves everywhere, the defensible layer shifts toward embedded context, action depth, and operator control."
+          />
+          <div className="space-y-4">
+            <div className="grid gap-4 xl:grid-cols-3">
+              {RELEVANCE_PILLARS.map((pillar) => (
+                <Card key={pillar.title} className="border-[#d7ccbb] bg-[rgba(255,251,245,0.9)] p-5">
+                  <h3 className="text-lg font-semibold leading-tight text-[#171412]">{pillar.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#5d544b]">{pillar.text}</p>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.94)] p-6 text-[#2f2a25]">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#977c57]">PMF half-life</p>
+                <h3 className="mt-3 text-2xl font-semibold leading-tight text-[#24324c]" style={headingStyle}>
+                  Chat quality improves everywhere. Embedded workflow control does not.
+                </h3>
+                <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#4a4138]">
+                  Many vendors can improve conversational quality. Far fewer can own product state, trigger approved
+                  actions, preserve auditability, and give teams an operator-grade command layer. That is the durable layer.
+                </p>
+              </Card>
+
+              <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.92)] p-5">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#8e816f]">Bottom line</p>
+                <ul className="mt-4 space-y-3 text-base leading-relaxed text-[#463d35]">
+                  <li>The moat is not the chatbot UI.</li>
+                  <li>The moat is the SDK-level integration and permissioned action surface.</li>
+                  <li>The moat strengthens as operators depend on traces, controls, and workflow ownership.</li>
                 </ul>
               </Card>
             </div>
