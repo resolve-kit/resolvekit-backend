@@ -173,86 +173,19 @@ const COMPETITORS = [
 
 const ECONOMICS_PROOF = [
   {
-    label: "Blended delivery cost",
-    value: "~$0.004",
-    text: "Across four realistic resolution flows, Gemini 2.5 Flash-Lite with caching lands around $0.0037 fully loaded per resolved issue.",
+    label: "Delivery cost ceiling",
+    value: "$0.02",
+    text: "10-turn session with KB retrieval, tool calls, and multimodal content. The realistic ceiling for the most demanding conversations.",
   },
   {
-    label: "Premium-model cost",
-    value: "~10x higher",
-    text: "The same blended workload on Gemini 3.1 Pro Preview is about $0.0376 per resolution, so premium routing should stay selective.",
+    label: "Delivery margin floor",
+    value: "10×",
+    text: "At $0.20 per resolution, the delivery cost is one-tenth the price even in the heaviest case — before any fixed-cost leverage at scale.",
   },
   {
-    label: "Price position",
+    label: "Market position",
     value: "$0.20 vs $0.99",
-    text: "A $0.20 ResolveKit usage price stays far below Intercom Fin's public $0.99 per resolution benchmark.",
-  },
-] as const;
-
-const ECONOMICS_IMPLICATIONS = [
-  "Cheap delivery cost leaves room to price below incumbents.",
-  "The margin story comes from workflow value, not from reselling expensive tokens.",
-  "Premium models stay available for edge cases without changing the default economics.",
-] as const;
-
-const ECONOMICS_INCLUDED = [
-  {
-    title: "What is included",
-    text: "Model usage, prompt caching, KB fetches, tool-result handling, event writes, and a conservative delivery overhead buffer.",
-  },
-  {
-    title: "What is excluded",
-    text: "Fixed engineering payroll, sales, support, and one-time KB indexing are kept out of this runtime delivery estimate.",
-  },
-  {
-    title: "Model note",
-    text: "Google shut down Gemini 3 Pro Preview on March 9, 2026, so the premium comparison uses Gemini 3.1 Pro Preview.",
-  },
-] as const;
-
-const ECONOMICS_SCENARIOS = [
-  {
-    title: "FAQ policy clarification",
-    flow: "KB search, 3 supporting snippets, no action tool.",
-    flash: "$0.0020 cached",
-    flashNoCache: "$0.0024 no cache",
-    premium: "$0.0234 cached",
-  },
-  {
-    title: "Login recovery with account lookup",
-    flow: "KB retrieval, account-status tool call, reset-link action.",
-    flash: "$0.0034 cached",
-    flashNoCache: "$0.0041 no cache",
-    premium: "$0.0362 cached",
-  },
-  {
-    title: "Feature setup with guided web navigation",
-    flow: "KB retrieval, current-section detection, guided navigation, completion confirmation.",
-    flash: "$0.0048 cached",
-    flashNoCache: "$0.0058 no cache",
-    premium: "$0.0478 cached",
-  },
-  {
-    title: "Technical sync issue with screenshot",
-    flow: "Multimodal KB retrieval, screenshot interpretation, status tools, remediation.",
-    flash: "$0.0068 cached",
-    flashNoCache: "$0.0078 no cache",
-    premium: "$0.0600 cached",
-  },
-] as const;
-
-const ECONOMICS_MODEL_SUMMARY = [
-  {
-    model: "Gemini 2.5 Flash-Lite",
-    cached: "$0.0037",
-    noCache: "$0.0044",
-    monthly: "$36.99 per 10,000 resolutions",
-  },
-  {
-    model: "Gemini 3.1 Pro Preview",
-    cached: "$0.0376",
-    noCache: "$0.0590",
-    monthly: "$375.76 per 10,000 resolutions",
+    text: "A $0.20 per-resolution price sits 80% below Intercom Fin's $0.99 benchmark while maintaining strong delivery economics.",
   },
 ] as const;
 
@@ -805,8 +738,8 @@ export default function PresentationPage() {
           <SectionHeading
             index="06"
             eyebrow="Unit economics"
-            title="The delivery cost is measured in cents. The value captured is much higher."
-            text="ResolveKit is inexpensive to operate, which creates room to price below incumbents without weakening the business case."
+            title="A demanding conversation costs under two cents to deliver."
+            text="Built on Gemini 2.5 Flash-Lite. Even a 10-turn session with KB retrieval, tool calls, and multimodal content stays well below $0.02 — creating durable room to price below incumbents."
             className="lg:static xl:sticky xl:top-28"
           />
           <div className="space-y-4">
@@ -822,124 +755,65 @@ export default function PresentationPage() {
               ))}
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.94)] p-6 text-[#2f2a25]">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#977c57]">What this means</p>
-                <h3 className="mt-3 text-2xl font-semibold leading-tight text-[#24324c]" style={headingStyle}>
-                  Model cost is not the bottleneck. Workflow value is.
-                </h3>
-                <ul className="mt-4 space-y-3 text-base leading-relaxed text-[#4a4138]">
-                  {ECONOMICS_IMPLICATIONS.map((point) => (
-                    <li key={point}>{point}</li>
-                  ))}
-                </ul>
-              </Card>
-
-              <Card className="border-[#d4c7b6] bg-[rgba(255,252,247,0.92)] p-5">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#8e816f]">Rule of thumb</p>
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl border border-[#e4d9cb] bg-white/80 p-4">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Default model</p>
-                    <p className="mt-2 text-lg font-semibold text-[#1e2d4a]">Gemini 2.5 Flash-Lite</p>
-                    <p className="mt-2 text-sm leading-relaxed text-[#5b5248]">
-                      Cheap enough to be the default for normal support and action workflows.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-[#e4d9cb] bg-white/80 p-4">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Escalation model</p>
-                    <p className="mt-2 text-lg font-semibold text-[#1e2d4a]">Gemini 3.1 Pro Preview</p>
-                    <p className="mt-2 text-sm leading-relaxed text-[#5b5248]">
-                      Keep for harder multimodal or reasoning-heavy edge cases where the extra cost is justified.
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            <details className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between rounded-2xl border border-[#d2c5b5] bg-white/88 px-5 py-4 [&::-webkit-details-marker]:hidden">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#897b6a]">Proof layer</p>
-                  <p className="mt-2 text-sm font-medium text-[#5f554b]">Show calculations and assumptions</p>
-                </div>
-                <svg
-                  viewBox="0 0 20 20"
-                  className="h-4 w-4 shrink-0 text-[#9e927f] transition-transform duration-200 group-open:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  aria-hidden="true"
-                >
-                  <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </summary>
-
-              <div className="mt-4 space-y-4">
-                <div className="grid gap-4 md:grid-cols-3">
-                  {ECONOMICS_INCLUDED.map((item) => (
-                    <Card key={item.title} className="border-[#d7ccbb] bg-white/84 p-5">
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-[#8e816f]">{item.title}</p>
-                      <p className="mt-3 text-sm leading-relaxed text-[#5d544b]">{item.text}</p>
-                    </Card>
-                  ))}
-                </div>
-
-                <Card className="overflow-hidden border-[#d2c5b5] bg-white/88 p-0">
-                  <div className="border-b border-[#e0d5c7] px-5 py-4">
-                    <p className="text-[10px] uppercase tracking-[0.28em] text-[#897b6a]">Blended model view</p>
-                    <p className="mt-2 text-sm leading-relaxed text-[#5f554b]">
-                      The table below summarizes cached and non-cached delivery cost across the full scenario mix.
-                    </p>
-                  </div>
-                  <div className="grid gap-4 px-5 py-5 lg:grid-cols-2">
-                    {ECONOMICS_MODEL_SUMMARY.map((model) => (
-                      <div key={model.model} className="rounded-2xl border border-[#e9dfd3] bg-[rgba(255,251,245,0.82)] p-5">
-                        <p className="text-lg font-semibold text-[#2a241d]">{model.model}</p>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-4">
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Cached cost</p>
-                            <p className="mt-2 text-2xl font-semibold text-[#1e2d4a]" style={headingStyle}>
-                              {model.cached}
-                            </p>
-                          </div>
-                          <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-4">
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">No-cache cost</p>
-                            <p className="mt-2 text-2xl font-semibold text-[#1e2d4a]" style={headingStyle}>
-                              {model.noCache}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="mt-4 text-sm leading-relaxed text-[#5b5248]">{model.monthly}</p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  {ECONOMICS_SCENARIOS.map((scenario) => (
-                    <Card key={scenario.title} className="border-[#d7ccbb] bg-[rgba(255,251,245,0.9)] p-5">
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-[#8e816f]">Scenario</p>
-                      <h3 className="mt-3 text-lg font-semibold leading-tight text-[#171412]">{scenario.title}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-[#5d544b]">{scenario.flow}</p>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-3">
-                          <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Flash-Lite</p>
-                          <p className="mt-2 text-sm font-semibold text-[#1e2d4a]">{scenario.flash}</p>
-                        </div>
-                        <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-3">
-                          <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">No cache</p>
-                          <p className="mt-2 text-sm font-semibold text-[#1e2d4a]">{scenario.flashNoCache}</p>
-                        </div>
-                        <div className="rounded-xl border border-[#e4d9cb] bg-white/80 p-3">
-                          <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b]">Premium</p>
-                          <p className="mt-2 text-sm font-semibold text-[#1e2d4a]">{scenario.premium}</p>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+            <Card className="overflow-hidden border-[#d2c5b5] bg-white/90 p-0">
+              <div className="border-b border-[#e0d5c7] px-6 py-5">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#897b6a]">How $0.02 is reached</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#5f554b]">
+                  10-turn session · KB retrieval every turn · one tool call · one screenshot. Gemini 2.5 Flash-Lite, no caching assumed.
+                </p>
               </div>
-            </details>
+
+              <div className="px-6 py-5 space-y-5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b] mb-3">Model tokens</p>
+                  <div className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm text-[#4a4138]">80,000 input tokens <span className="text-xs text-[#8d7e6b]">@ $0.10 / 1M</span></span>
+                      <span className="text-sm font-semibold text-[#1e2d4a] tabular-nums">$0.0080</span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm text-[#4a4138]">4,000 output tokens <span className="text-xs text-[#8d7e6b]">@ $0.40 / 1M</span></span>
+                      <span className="text-sm font-semibold text-[#1e2d4a] tabular-nums">$0.0016</span>
+                    </div>
+                    <div className="flex items-baseline justify-between border-t border-[#ede5d8] pt-2">
+                      <span className="text-xs text-[#8d7e6b]">Model subtotal</span>
+                      <span className="text-sm font-semibold text-[#1e2d4a] tabular-nums">$0.0096</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#8d7e6b] mb-3">Infrastructure</p>
+                  <div className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm text-[#4a4138]">KB vector search <span className="text-xs text-[#8d7e6b]">10 round-trips</span></span>
+                      <span className="text-sm font-semibold text-[#1e2d4a] tabular-nums">$0.0006</span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm text-[#4a4138]">Database <span className="text-xs text-[#8d7e6b]">reads + session writes</span></span>
+                      <span className="text-sm font-semibold text-[#1e2d4a] tabular-nums">$0.0025</span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm text-[#4a4138]">Compute + event writes <span className="text-xs text-[#8d7e6b]">streaming + trace</span></span>
+                      <span className="text-sm font-semibold text-[#1e2d4a] tabular-nums">$0.0033</span>
+                    </div>
+                    <div className="flex items-baseline justify-between border-t border-[#ede5d8] pt-2">
+                      <span className="text-xs text-[#8d7e6b]">Infrastructure subtotal</span>
+                      <span className="text-sm font-semibold text-[#1e2d4a] tabular-nums">$0.0064</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-2xl bg-[rgba(30,45,74,0.06)] px-4 py-4 border border-[#d2c5b5]">
+                  <span className="text-sm font-semibold text-[#2a241d]">Total (10-turn ceiling)</span>
+                  <span className="text-2xl font-semibold text-[#1e2d4a] tabular-nums" style={headingStyle}>$0.016</span>
+                </div>
+
+                <p className="text-xs leading-relaxed text-[#8d7e6b]">
+                  Most sessions are 3–5 turns and cost under $0.005. At $0.20 per resolution, the 10× delivery margin holds even in the worst case.
+                </p>
+              </div>
+            </Card>
           </div>
         </section>
 

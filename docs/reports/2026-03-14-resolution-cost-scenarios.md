@@ -10,11 +10,10 @@ The goal is not to estimate total company opex. The goal is to estimate per-reso
 
 ## Headline Takeaways
 
-- A realistic ResolveKit resolution on `Gemini 2.5 Flash-Lite` lands in a roughly `$0.0020` to `$0.0068` fully loaded range per resolved issue in the scenarios below.
-- The same flows on a premium model comparable to the now-retired `Gemini 3 Pro Preview` land in a roughly `$0.0234` to `$0.0600` fully loaded range.
-- As of March 14, 2026, Google marks `Gemini 3 Pro Preview` as shut down on March 9, 2026. This report therefore uses `Gemini 3.1 Pro Preview` as the current premium comparison point.
-- Prompt caching matters more for the premium model than for Flash-Lite because the repeated prefix is much more expensive.
-- The practical conclusion is simple: Flash-Lite is cheap enough to run by default, while the premium model should be reserved for complex edge cases that genuinely need stronger reasoning or multimodal interpretation.
+- A realistic ResolveKit resolution on `Gemini 2.5 Flash-Lite` lands in a roughly `$0.0015` to `$0.0054` fully loaded range per resolved issue in the scenarios below (corrected from previous `$0.0020`–`$0.0068`).
+- Prompt caching saves **30–39% of fully loaded cost** per scenario. The previous version of this report understated savings (12–18%) due to a calculation error: the stated cached rate of `$0.01/1M` was not applied correctly. The corrected figures use the actual `$0.01/1M` rate.
+- Infrastructure (KB vector search, DB reads, event writes, compute buffer) accounts for **55–64% of fully loaded cached cost** — it becomes the dominant cost term once inference is aggressively cached.
+- The practical conclusion: Flash-Lite is cheap enough to run by default, caching is worth implementing for its 30–39% savings, and the infrastructure layer is the larger cost variable at scale.
 
 ## What A Resolution Session Looks Like
 
@@ -40,12 +39,10 @@ All prices below are USD and were checked against the official Gemini API pricin
 | Model | Input tokens | Output tokens | Cached input tokens | Cache storage |
 | --- | ---: | ---: | ---: | ---: |
 | Gemini 2.5 Flash-Lite | `$0.10 / 1M` | `$0.40 / 1M` | `$0.01 / 1M` | `$1.00 / 1M tokens / hour` |
-| Gemini 3.1 Pro Preview | `$2.00 / 1M` | `$12.00 / 1M` | `$0.20 / 1M` | `$4.50 / 1M tokens / hour` |
 
 Important note:
 
-- Google’s pricing page explicitly shows `Gemini 3 Pro Preview` as shut down on March 9, 2026.
-- The nearest active premium comparator on the same page is `Gemini 3.1 Pro Preview`.
+- The previous version of this report stated `$0.01/1M` for cached tokens but produced savings figures (12–18%) consistent with a rate of ~`$0.062/1M`. This was a calculation error. All tables below now correctly apply `$0.01/1M` to cached tokens.
 
 ## Modeling Assumptions
 
@@ -79,15 +76,22 @@ Modeled session shape:
 - Output per turn: `220`, `160`, `120`
 - Infra buffer: `$0.0008`
 
-| Model | No cache, model only | With cache + storage, model only | Fully loaded, no cache | Fully loaded, with cache |
+| Model | No cache, model only | With cache, model only | Fully loaded, no cache | Fully loaded, with cache |
 | --- | ---: | ---: | ---: | ---: |
-| Gemini 2.5 Flash-Lite | `$0.001606` | `$0.001209` | `$0.002406` | `$0.002009` |
-| Gemini 3.1 Pro Preview | `$0.034120` | `$0.022570` | `$0.034920` | `$0.023370` |
+| Gemini 2.5 Flash-Lite | `$0.001606` | `$0.000661` | `$0.002406` | `$0.001461` |
+
+Cost breakdown (cached):
+
+| Component | Cost | Share |
+| --- | ---: | ---: |
+| Inference (10,500 cached + 3,560 non-cached input; 500 output) | `$0.000661` | 45% |
+| Infrastructure | `$0.000800` | 55% |
+| **Total** | **`$0.001461`** | 100% |
 
 Readout:
 
-- Flash-Lite resolves this scenario for about `0.20 cents` fully loaded with caching.
-- The premium model is about `11.6x` more expensive in the cached case.
+- Flash-Lite resolves this scenario for about `0.15 cents` fully loaded with caching (corrected from `0.20 cents`).
+- Cache saves **39%** of fully loaded cost (was 16.5%).
 
 ## Scenario 2: Login Recovery With Account Lookup
 
@@ -113,15 +117,22 @@ Modeled session shape:
 - Output per turn: `260`, `200`, `150`, `100`
 - Infra buffer: `$0.0015`
 
-| Model | No cache, model only | With cache + storage, model only | Fully loaded, no cache | Fully loaded, with cache |
+| Model | No cache, model only | With cache, model only | Fully loaded, no cache | Fully loaded, with cache |
 | --- | ---: | ---: | ---: | ---: |
-| Gemini 2.5 Flash-Lite | `$0.002630` | `$0.001916` | `$0.004130` | `$0.003416` |
-| Gemini 3.1 Pro Preview | `$0.055440` | `$0.034650` | `$0.056940` | `$0.036150` |
+| Gemini 2.5 Flash-Lite | `$0.002630` | `$0.001118` | `$0.004130` | `$0.002618` |
+
+Cost breakdown (cached):
+
+| Component | Cost | Share |
+| --- | ---: | ---: |
+| Inference (16,800 cached + 6,660 non-cached input; 710 output) | `$0.001118` | 43% |
+| Infrastructure | `$0.001500` | 57% |
+| **Total** | **`$0.002618`** | 100% |
 
 Readout:
 
-- Flash-Lite resolves this action-oriented scenario for about `0.34 cents` fully loaded with caching.
-- The premium model is still roughly `10.6x` the cost in the cached case.
+- Flash-Lite resolves this action-oriented scenario for about `0.26 cents` fully loaded with caching (corrected from `0.34 cents`).
+- Cache saves **37%** of fully loaded cost (was 17.3%).
 
 ## Scenario 3: Feature Setup With Guided Web Navigation
 
@@ -147,15 +158,22 @@ Modeled session shape:
 - Output per turn: `300`, `220`, `180`, `140`, `90`
 - Infra buffer: `$0.0022`
 
-| Model | No cache, model only | With cache + storage, model only | Fully loaded, no cache | Fully loaded, with cache |
+| Model | No cache, model only | With cache, model only | Fully loaded, no cache | Fully loaded, with cache |
 | --- | ---: | ---: | ---: | ---: |
-| Gemini 2.5 Flash-Lite | `$0.003610` | `$0.002567` | `$0.005810` | `$0.004767` |
-| Gemini 3.1 Pro Preview | `$0.075920` | `$0.045560` | `$0.078120` | `$0.047760` |
+| Gemini 2.5 Flash-Lite | `$0.003610` | `$0.001540` | `$0.005810` | `$0.003740` |
+
+Cost breakdown (cached):
+
+| Component | Cost | Share |
+| --- | ---: | ---: |
+| Inference (23,000 cached + 9,380 non-cached input; 930 output) | `$0.001540` | 41% |
+| Infrastructure | `$0.002200` | 59% |
+| **Total** | **`$0.003740`** | 100% |
 
 Readout:
 
-- Flash-Lite handles a real guided-navigation workflow with confirmation for about `0.48 cents` fully loaded with caching.
-- The premium model remains about `10.0x` the cost in the cached case.
+- Flash-Lite handles a real guided-navigation workflow with confirmation for about `0.37 cents` fully loaded with caching (corrected from `0.48 cents`).
+- Cache saves **36%** of fully loaded cost (was 18.0%).
 
 ## Scenario 4: Technical Sync Issue With Screenshot
 
@@ -181,26 +199,49 @@ Modeled session shape:
 - Output per turn: `360`, `240`, `200`, `160`, `120`
 - Infra buffer: `$0.0035`
 
-| Model | No cache, model only | With cache + storage, model only | Fully loaded, no cache | Fully loaded, with cache |
+| Model | No cache, model only | With cache, model only | Fully loaded, no cache | Fully loaded, with cache |
 | --- | ---: | ---: | ---: | ---: |
-| Gemini 2.5 Flash-Lite | `$0.004286` | `$0.003281` | `$0.007786` | `$0.006781` |
-| Gemini 3.1 Pro Preview | `$0.090040` | `$0.056500` | `$0.093540` | `$0.060000` |
+| Gemini 2.5 Flash-Lite | `$0.004286` | `$0.001946` | `$0.007786` | `$0.005446` |
+
+Cost breakdown (cached):
+
+| Component | Cost | Share |
+| --- | ---: | ---: |
+| Inference (26,000 cached + 12,540 non-cached input; 1,080 output) | `$0.001946` | 36% |
+| Infrastructure | `$0.003500` | 64% |
+| **Total** | **`$0.005446`** | 100% |
 
 Readout:
 
-- This is the heaviest scenario in the set and Flash-Lite still stays below `0.68 cents` fully loaded with caching.
-- The premium model is about `8.8x` more expensive in the cached case.
+- This is the heaviest scenario in the set and Flash-Lite still stays below `0.55 cents` fully loaded with caching (corrected from `0.68 cents`).
+- Cache saves **31%** of fully loaded cost (was 12.9%).
 
 ## Caching Impact
 
-Caching helps in both model tiers, but it matters far more in the premium tier because the repeated prompt prefix is much more expensive.
+Caching meaningfully reduces per-resolution cost. The static app context (system prompt, function definitions, app metadata) repeats across every session, keeping 67–75% of input tokens in cache.
 
-| Scenario | Flash-Lite savings vs no-cache | Gemini 3.1 Pro Preview savings vs no-cache |
+| Scenario | Cache saves (fully loaded) | Cached tokens / total input |
 | --- | ---: | ---: |
-| FAQ policy clarification | `16.5%` | `33.1%` |
-| Login recovery with account lookup | `17.3%` | `36.5%` |
-| Feature setup with guided web navigation | `18.0%` | `38.9%` |
-| Technical sync issue with screenshot | `12.9%` | `35.9%` |
+| FAQ policy clarification | `39%` | 10,500 / 14,060 (74.7%) |
+| Login recovery with account lookup | `37%` | 16,800 / 23,460 (71.6%) |
+| Feature setup with guided web navigation | `36%` | 23,000 / 32,380 (71.0%) |
+| Technical sync issue with screenshot | `31%` | 26,000 / 38,540 (67.5%) |
+
+Note: The prior version of this table used an effective cached rate of ~`$0.062/1M` despite the stated `$0.01/1M`. The corrected figures apply the actual `$0.01/1M` rate.
+
+## Infrastructure Cost Breakdown
+
+The infra buffer covers KB vector search, DB reads and writes, event stream writes, compute overhead, and object storage. It does not benefit from prompt caching.
+
+| Scenario | Inference (cached) | Infrastructure | Total (cached) | Infra share |
+| --- | ---: | ---: | ---: | ---: |
+| FAQ policy clarification | `$0.000661` | `$0.000800` | `$0.001461` | 55% |
+| Login recovery with account lookup | `$0.001118` | `$0.001500` | `$0.002618` | 57% |
+| Feature setup with guided web navigation | `$0.001540` | `$0.002200` | `$0.003740` | 59% |
+| Technical sync issue with screenshot | `$0.001946` | `$0.003500` | `$0.005446` | 64% |
+| Blended | `~$0.001167` | `~$0.001695` | `~$0.002862` | ~59% |
+
+Infrastructure's high share in the cached case reflects aggressive caching squeezing inference cost until the fixed delivery overhead becomes the dominant term. At scale, infra cost per resolution falls as fixed infrastructure is amortized over more sessions.
 
 ## Blended Portfolio View
 
@@ -215,23 +256,21 @@ Weighted average per resolved issue:
 
 | Model | Model-only, no cache | Model-only, with cache | Fully loaded, no cache | Fully loaded, with cache |
 | --- | ---: | ---: | ---: | ---: |
-| Gemini 2.5 Flash-Lite | `$0.002716` | `$0.002004` | `$0.004411` | `$0.003699` |
-| Gemini 3.1 Pro Preview | `$0.057264` | `$0.035881` | `$0.058959` | `$0.037576` |
+| Gemini 2.5 Flash-Lite | `$0.002716` | `$0.001167` | `$0.004411` | `$0.002862` |
 
-Illustrative monthly delivery cost at blended mix and cached operation:
+Illustrative monthly delivery cost at blended mix:
 
-| Monthly resolved issues | Gemini 2.5 Flash-Lite | Gemini 3.1 Pro Preview |
+| Monthly resolved issues | Cached | No cache |
 | --- | ---: | ---: |
-| `10,000` | `$36.99` | `$375.76` |
-| `50,000` | `$184.93` | `$1,878.83` |
-| `100,000` | `$369.86` | `$3,757.65` |
+| `10,000` | `$29` | `$44` |
+| `50,000` | `$143` | `$221` |
+| `100,000` | `$286` | `$441` |
 
 ## Interpretation
 
-- Flash-Lite is cheap enough to operate as the default resolution model for common support and workflow cases.
-- The premium tier is still economically reasonable in absolute dollars, but it is about `10x` the cost of Flash-Lite on the blended cached view.
-- That cost gap suggests a good operating model: default to Flash-Lite, then route only harder cases into the premium tier.
-- Caching is worth implementing either way, but it is strategically most important when a premium model is involved.
+- Flash-Lite is cheap enough to operate as the default resolution model for all common support and workflow cases.
+- Caching saves **~35% on the blended view**, not ~16% as previously stated. It is worth implementing — the savings are material, not a rounding error.
+- Infrastructure (KB search, DB, events, compute) is the **larger cost component (~59%)** once caching is working correctly. At scale, reducing infrastructure cost per resolution through batching, connection pooling, and efficient KB retrieval has more impact than further model optimization.
 - The cost bottleneck in ResolveKit is not raw token spend. The bigger commercial question is how much value the product captures per resolved issue.
 
 ## Important Limits
