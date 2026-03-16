@@ -6,23 +6,26 @@ import { Card } from "@/components/ui/card";
 import { siteUrl } from "@/lib/site";
 import { dashboardLoginUrl, dashboardRegisterUrl, feedbackIssuesUrl } from "@/lib/urls";
 
+const pricingTitle = "Pricing";
+const pricingDescription =
+  "See ResolveKit pricing for launch-stage teams using in-product issue resolution to reduce repeat support load with approvals, traceability, and operator control.";
+
 export const metadata: Metadata = {
-  title: "Pricing",
-  description:
-    "See ResolveKit pricing for launch-stage teams using in-product issue resolution to reduce repeat support load with approvals, traceability, and operator control.",
+  title: pricingTitle,
+  description: pricingDescription,
   alternates: {
     canonical: "/pricing",
   },
   openGraph: {
+    type: "website",
     title: "ResolveKit Pricing",
-    description:
-      "See ResolveKit pricing for launch-stage teams using in-product issue resolution to reduce repeat support load with approvals, traceability, and operator control.",
+    description: pricingDescription,
     url: `${siteUrl}/pricing`,
   },
   twitter: {
+    card: "summary",
     title: "ResolveKit Pricing",
-    description:
-      "See ResolveKit pricing for launch-stage teams using in-product issue resolution to reduce repeat support load with approvals, traceability, and operator control.",
+    description: pricingDescription,
   },
 };
 
@@ -67,9 +70,31 @@ const valuePoints = [
   },
 ];
 
+const pricingSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "ResolveKit",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: `${siteUrl}/pricing`,
+  description: pricingDescription,
+  offers: {
+    "@type": "Offer",
+    url: `${siteUrl}/pricing`,
+    price: "0",
+    priceCurrency: "EUR",
+    availability: "https://schema.org/InStock",
+    category: PLAN.name,
+  },
+};
+
 export default function PricingPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 pb-20 pt-10 md:pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingSchema) }}
+      />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/"

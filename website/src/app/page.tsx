@@ -11,23 +11,26 @@ import { Card } from "@/components/ui/card";
 import { siteName, siteUrl } from "@/lib/site";
 import { dashboardLoginUrl, dashboardRegisterUrl, feedbackIssuesUrl, iosSdkRepoUrl, nextjsSdkNpmUrl } from "@/lib/urls";
 
+const homeTitle = "Resolve Product Issues Before They Hit Support";
+const homeDescription =
+  "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.";
+
 export const metadata: Metadata = {
-  title: "Resolve Product Issues Before They Hit Support",
-  description:
-    "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.",
+  title: homeTitle,
+  description: homeDescription,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Resolve Product Issues Before They Hit Support",
-    description:
-      "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.",
+    type: "website",
+    title: homeTitle,
+    description: homeDescription,
     url: siteUrl,
   },
   twitter: {
-    title: "Resolve Product Issues Before They Hit Support",
-    description:
-      "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.",
+    card: "summary",
+    title: homeTitle,
+    description: homeDescription,
   },
 };
 
@@ -70,25 +73,29 @@ const softwareApplicationSchema = {
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: siteUrl,
-  description:
-    "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.",
+  description: homeDescription,
   publisher: {
     "@type": "Organization",
     name: siteName,
     url: siteUrl,
   },
+  offers: {
+    "@type": "Offer",
+    url: `${siteUrl}/pricing`,
+    price: "0",
+    priceCurrency: "EUR",
+    availability: "https://schema.org/InStock",
+  },
 };
 
 export default function HomePage() {
+  const structuredData = [organizationSchema, softwareApplicationSchema];
+
   return (
     <main className="mx-auto max-w-6xl px-6 pb-20 pt-10">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Link
@@ -119,10 +126,10 @@ export default function HomePage() {
             Resolve user issues inside the product before they become support tickets.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#4b5f72]">
-            ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the
-            moment. Ground the assistant in your docs, product flows, screenshots, and approved tools, then let it
-            explain what is wrong, guide the user through the right next step, or take an allowed action without
-            sending the case straight into support triage.
+            ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment.
+            Ground the assistant in your docs, product flows, screenshots, and approved tools, then let it explain
+            what is wrong, guide the user through the right next step, or take an allowed action without sending the
+            case straight into support triage.
           </p>
           <div className="mt-6 grid max-w-2xl gap-3 border-l border-[#d3dce5] pl-4 text-sm leading-relaxed text-[#516475] sm:grid-cols-3 sm:gap-6 sm:pl-5">
             <p>Resolve known issues at the point of failure, like access confusion, stuck onboarding, and settings mistakes.</p>
