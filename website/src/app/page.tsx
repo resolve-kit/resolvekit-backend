@@ -115,6 +115,27 @@ const teamGets = [
   },
 ];
 
+const useCasePages = [
+  {
+    href: "/use-cases/in-app-customer-support",
+    title: "In-app customer support",
+    description:
+      "For teams that want support to resolve product issues where the user gets stuck instead of sending them into a queue.",
+  },
+  {
+    href: "/use-cases/ai-support-with-approvals",
+    title: "AI support with approvals",
+    description:
+      "For operators who need automation to stay useful without losing approval boundaries, traces, or human control.",
+  },
+  {
+    href: "/use-cases/reduce-support-tickets-in-app",
+    title: "Reduce support tickets in app",
+    description:
+      "For teams trying to shrink repeat support volume by resolving known blockers before they become tickets.",
+  },
+];
+
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -393,6 +414,32 @@ export default function HomePage() {
               <p className="text-base font-semibold text-[#10273f]">{item.title}</p>
               <p className="mt-2 text-sm leading-relaxed text-[#4b5f72]">{item.description}</p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-16">
+        <div className="max-w-3xl">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">Use cases</p>
+          <h2 className="mt-2 text-3xl font-semibold leading-tight text-[#10273f]">
+            Explore the specific support problems ResolveKit is built to handle
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-[#4b5f72]">
+            If you are evaluating this category, the real question is usually not whether AI support sounds interesting.
+            It is whether the workflow fits your exact support problem. These pages break that down directly.
+          </p>
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {useCasePages.map((item, idx) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`rounded-2xl border border-[#d6dee6] px-5 py-5 transition hover:border-[#a6bdd4] ${idx === 1 ? "bg-[#f7f9fb]" : "bg-[#fbfcfd]"}`}
+            >
+              <p className="text-base font-semibold text-[#10273f]">{item.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#4b5f72]">{item.description}</p>
+              <p className="mt-4 text-sm font-medium text-[#214d76]">Read use case →</p>
+            </Link>
           ))}
         </div>
       </section>
