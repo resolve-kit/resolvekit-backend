@@ -146,7 +146,7 @@ export default function HomePage() {
       </header>
 
       <section className="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1.02fr)_420px] lg:items-center">
-        <div className="max-w-3xl">
+        <div className="max-w-3xl animate-fade-up">
           <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#6b7785]">Mobile-first in-app support</p>
           <h1 className="mt-4 max-w-3xl text-5xl font-semibold leading-[0.98] tracking-[-0.04em] text-[#10273f] sm:text-6xl">
             Help users find features, fix confusion, and get unstuck without leaving the app.
@@ -175,14 +175,16 @@ export default function HomePage() {
             </a>
           </div>
         </div>
-        <HeroChatPreview />
+        <div className="animate-fade-up-delay animate-float-soft">
+          <HeroChatPreview />
+        </div>
       </section>
 
       <section className="mt-14 grid gap-4 md:grid-cols-3">
         {outcomes.map((item, idx) => (
           <div
             key={item.title}
-            className={`rounded-2xl border border-[#d6dee6] px-5 py-5 ${idx === 1 ? "bg-[#f7f9fb]" : "bg-[#fbfcfd]"}`}
+            className={`rounded-2xl border border-[#d6dee6] px-5 py-5 transition duration-300 hover:-translate-y-1 hover:border-[#a6bdd4] hover:shadow-[0_14px_40px_rgba(29,65,105,0.08)] ${idx === 1 ? "bg-[#f7f9fb]" : "bg-[#fbfcfd]"}`}
           >
             <p className="text-base font-semibold text-[#10273f]">{item.title}</p>
             <p className="mt-2 text-sm leading-relaxed text-[#4b5f72]">{item.description}</p>
@@ -225,7 +227,7 @@ export default function HomePage() {
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {proof.map((item) => (
-            <Card key={item.title} className="border-[#d6dee6] p-6 shadow-none">
+            <Card key={item.title} className="border-[#d6dee6] p-6 shadow-none transition duration-300 hover:-translate-y-1 hover:border-[#a6bdd4] hover:shadow-[0_14px_40px_rgba(29,65,105,0.08)]">
               <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">{item.label}</p>
               <h3 className="mt-2 text-xl font-semibold text-[#10273f]">{item.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-[#4b5f72]">{item.text}</p>
@@ -246,7 +248,7 @@ export default function HomePage() {
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-2xl border border-[#d6dee6] px-5 py-5 transition hover:border-[#a6bdd4] ${idx === 1 ? "bg-[#f7f9fb]" : "bg-[#fbfcfd]"}`}
+              className={`rounded-2xl border border-[#d6dee6] px-5 py-5 transition duration-300 hover:-translate-y-1 hover:border-[#a6bdd4] hover:shadow-[0_14px_40px_rgba(29,65,105,0.08)] ${idx === 1 ? "bg-[#f7f9fb]" : "bg-[#fbfcfd]"}`}
             >
               <p className="text-base font-semibold text-[#10273f]">{item.title}</p>
               <p className="mt-2 text-sm leading-relaxed text-[#4b5f72]">{item.description}</p>
