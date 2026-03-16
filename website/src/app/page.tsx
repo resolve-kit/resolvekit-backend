@@ -9,6 +9,30 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { dashboardLoginUrl, dashboardRegisterUrl, feedbackIssuesUrl, iosSdkRepoUrl, nextjsSdkNpmUrl } from "@/lib/urls";
 
+const supportScenarios = [
+  {
+    title: "Account access and verification",
+    description:
+      "Explain sign-in failures, identify missing verification steps, resend approved recovery flows, or route the case with full context when identity checks are required.",
+  },
+  {
+    title: "Billing, plan, and entitlement confusion",
+    description:
+      "Answer plan questions in the moment, clarify why a feature is unavailable, and trigger approved sync or refresh actions when access should already be active.",
+  },
+  {
+    title: "Onboarding and workflow blockers",
+    description:
+      "Spot where a user is stuck, reference the exact screen or step, and guide them forward with product-aware instructions instead of a generic help article.",
+  },
+];
+
+const controlPoints = [
+  "Choose which actions can run automatically, which require approval, and which should always stop for a human.",
+  "Review session traces with prompts, tool calls, and decision points tied to the app version and policy in effect.",
+  "Keep support, product, and engineering aligned on what the agent can explain, change, and escalate.",
+];
+
 export default function HomePage() {
   return (
     <main className="mx-auto max-w-6xl px-6 pb-20 pt-10">
@@ -41,14 +65,15 @@ export default function HomePage() {
             Resolve user issues inside the product before they become support tickets.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#4b5f72]">
-            ResolveKit embeds a product-aware support agent in your app so users can fix blockers in the moment.
-            Ground the assistant in your docs, flows, screenshots, and approved tools, then let it explain the issue,
-            take the right action, and keep your team out of repetitive ticket triage.
+            ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the
+            moment. Ground the assistant in your docs, product flows, screenshots, and approved tools, then let it
+            explain what is wrong, guide the user through the right next step, or take an allowed action without
+            sending the case straight into support triage.
           </p>
           <div className="mt-6 grid max-w-2xl gap-3 border-l border-[#d3dce5] pl-4 text-sm leading-relaxed text-[#516475] sm:grid-cols-3 sm:gap-6 sm:pl-5">
-            <p>Reduce preventable support volume by resolving known issues at the point of failure.</p>
-            <p>Give product, CX, and engineering one control plane for prompts, guardrails, and trace data.</p>
-            <p>Ship automation with approvals, audit trails, and version-aware policies already built in.</p>
+            <p>Resolve known issues at the point of failure, like access confusion, stuck onboarding, and settings mistakes.</p>
+            <p>Give product, CX, and engineering one place to manage prompts, tools, policies, and escalation boundaries.</p>
+            <p>Ship automation with approvals, session traces, and version-aware controls already built in.</p>
           </div>
           <p className="mt-4 text-sm text-[#6b7785]">Free for now. We want feedback from teams solving real support load.</p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -74,9 +99,9 @@ export default function HomePage() {
           <div className="mt-8 grid gap-3 rounded-3xl border border-[#d6dee6] bg-[#f7f9fb] p-4 text-sm text-[#4b5f72] sm:grid-cols-[auto_1fr] sm:items-start sm:gap-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#6b7785]">Best for</p>
             <p className="leading-relaxed">
-              Product, support, and engineering teams shipping apps with repeatable support load, account issues,
-              onboarding blockers, settings confusion, or workflow failures that can be explained and often fixed
-              without opening a ticket.
+              Product, support, and engineering teams shipping apps with repeatable issues such as login and
+              verification trouble, billing or entitlement confusion, onboarding drop-off, settings mistakes, and
+              workflow blockers that can often be explained or resolved without opening a ticket.
             </p>
           </div>
         </div>
@@ -93,12 +118,22 @@ export default function HomePage() {
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-[#4b5f72]">
             The value is not just an embedded chat surface. It is a product-aware agent that understands the failing
-            moment, proposes the right fix, applies guardrails before action, and leaves a trace your team can trust.
+            moment, proposes the right fix, applies guardrails before action, and leaves an operator-visible trace your
+            team can trust.
           </p>
           <p className="mt-4 text-sm leading-relaxed text-[#4b5f72]">
-            That is why ResolveKit fits teams trying to cut repetitive support work without losing visibility or
-            control.
+            Buyers evaluating ResolveKit usually want to know two things: whether it can solve real support scenarios
+            in-product, and whether their team stays in control when automation touches customer accounts. That is the
+            bar this workflow is built around.
           </p>
+          <div className="mt-6 grid gap-3">
+            {supportScenarios.map((scenario) => (
+              <div key={scenario.title} className="rounded-2xl border border-[#d6dee6] bg-[#f7f9fb] px-4 py-3">
+                <p className="text-sm font-semibold text-[#10273f]">{scenario.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-[#4b5f72]">{scenario.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
         <ProofGrid />
       </section>
@@ -111,8 +146,18 @@ export default function HomePage() {
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-[#4b5f72]">
             ResolveKit is designed for operationally real support flows. The assistant can explain what it sees,
-            request consent where risk matters, execute approved actions, and keep a full record of what happened.
+            request approval where risk matters, execute approved actions, and keep a full record of what happened.
           </p>
+          <div className="mt-6 space-y-3">
+            {controlPoints.map((point) => (
+              <p
+                key={point}
+                className="border-l border-[#d3dce5] pl-4 text-sm leading-relaxed text-[#4b5f72]"
+              >
+                {point}
+              </p>
+            ))}
+          </div>
         </div>
         <ToolApprovalStrip />
       </section>
@@ -141,8 +186,9 @@ export default function HomePage() {
                 Control prompts, functions, limits, and session traces from one dashboard
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-[#4b5f72]">
-                Keep the assistant commercially useful and operationally safe across every app surface while still
-                adapting to platform, version, live session context, and the vision mode you allow.
+                Keep the assistant commercially useful and operationally safe across every app surface. Define what it
+                can explain, which tools it may call, when approval is required, and what trace data operators can
+                review afterward across platform, app version, and live session context.
               </p>
               <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-[#5d6f80]">
                 <a href={iosSdkRepoUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-[#10273f]">
