@@ -58,6 +58,63 @@ const controlPoints = [
   "Keep support, product, and engineering aligned on what the agent can explain, change, and escalate.",
 ];
 
+const operatorVisibilityPoints = [
+  {
+    title: "What the user was doing when they got stuck",
+    description:
+      "Session context can include app version, platform, screen or route, recent steps, and the policy version governing the reply.",
+  },
+  {
+    title: "What the agent explained, proposed, and ran",
+    description:
+      "Operators can review the prompt path, allowed function calls, approval checkpoints, and final result instead of trusting a black-box answer.",
+  },
+  {
+    title: "Which cases resolved in-product vs. escalated",
+    description:
+      "Resolved sessions stay attached to the action trace. Escalated sessions carry the captured context forward so humans do not restart discovery from zero.",
+  },
+];
+
+const workflowComparison = [
+  {
+    label: "Before",
+    title: "Generic widget or help center deflection",
+    points: [
+      "The user describes a symptom without product context, so support starts by reconstructing the situation.",
+      "Answers lean on static docs and generic troubleshooting instead of the exact state of the account or workflow.",
+      "If a fix requires action, the case usually becomes a ticket and waits for manual triage.",
+    ],
+  },
+  {
+    label: "After",
+    title: "ResolveKit inside the failing moment",
+    points: [
+      "The assistant sees the live product context around the blocker and can explain the likely issue in plain language.",
+      "Approved actions can run in-product, while sensitive steps stop for consent or handoff according to policy.",
+      "Support and product teams inherit a trace of what was seen, suggested, approved, executed, and still unresolved.",
+    ],
+  },
+];
+
+const teamGets = [
+  {
+    title: "An in-product resolution surface",
+    description:
+      "Users can understand the issue and move forward without leaving the workflow that is already failing.",
+  },
+  {
+    title: "An operator-visible command trail",
+    description:
+      "Every meaningful step can be reviewed later, including context, policy gates, tool calls, and outcomes.",
+  },
+  {
+    title: "A safer automation boundary",
+    description:
+      "Your team decides what can auto-run, what requires approval, and what always routes to a human.",
+  },
+];
+
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -171,6 +228,71 @@ export default function HomePage() {
 
       <MissionRail />
 
+      <section className="mt-16 grid gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-start">
+        <div className="max-w-xl">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">What operators can verify</p>
+          <h2 className="mt-2 text-3xl font-semibold leading-tight text-[#10273f]">
+            Proof that the agent handled a product issue, not just a chat conversation
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-[#4b5f72]">
+            ResolveKit is more credible than a generic support widget because the work stays inspectable. The team can
+            see what the user encountered, what the assistant believed was happening, what action path was opened, and
+            whether the issue actually resolved inside the app.
+          </p>
+          <div className="mt-6 grid gap-3">
+            {operatorVisibilityPoints.map((item) => (
+              <div key={item.title} className="border-l border-[#d3dce5] pl-4">
+                <p className="text-sm font-semibold text-[#10273f]">{item.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-[#4b5f72]">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Card className="animate-fade-up border-[#d6dee6] bg-[#fbfcfd] p-6 shadow-none md:p-7">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">Operator view</p>
+          <div className="mt-4 space-y-4">
+            <div className="rounded-2xl border border-[#d6dee6] bg-white px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-[#10273f]">Session: onboarding paywall mismatch</p>
+                <span className="rounded-full bg-[#ebf9f4] px-2 py-1 text-[11px] font-semibold text-[#1b7a61]">
+                  Resolved in product
+                </span>
+              </div>
+              <div className="mt-3 grid gap-3 text-sm text-[#4b5f72] sm:grid-cols-2">
+                <p>
+                  <span className="font-semibold text-[#10273f]">Seen by agent:</span> iOS 18.2, paywall route,
+                  active subscription, stale entitlement cache, version 1.14.3
+                </p>
+                <p>
+                  <span className="font-semibold text-[#10273f]">Trace:</span> explained entitlement mismatch,
+                  proposed refresh, approval not required, sync action executed, success recorded
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-[#d6dee6] bg-[#f7f9fb] px-4 py-4">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b7785]">Context captured</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#4b5f72]">
+                  Route, app version, platform, policy version, and recent user state
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[#d6dee6] bg-[#f7f9fb] px-4 py-4">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b7785]">Action path</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#4b5f72]">
+                  Explain, propose tool, request consent if needed, execute, log outcome
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[#d6dee6] bg-[#f7f9fb] px-4 py-4">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b7785]">Escalation payload</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#4b5f72]">
+                  If unresolved, support receives the trace instead of restarting intake
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </section>
+
       <section className="mt-16 grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
         <div className="max-w-xl">
           <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">Why teams buy</p>
@@ -199,6 +321,38 @@ export default function HomePage() {
         <ProofGrid />
       </section>
 
+      <section className="mt-16">
+        <div className="max-w-3xl">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">Support workflow shift</p>
+          <h2 className="mt-2 text-3xl font-semibold leading-tight text-[#10273f]">
+            From generic deflection to product-aware resolution
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-[#4b5f72]">
+            Buyers do not need another chat box attached to documentation. They need a support layer that can identify
+            the failing moment, resolve the repeatable path inside the product, and leave behind evidence their team
+            can operate against.
+          </p>
+        </div>
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          {workflowComparison.map((column, idx) => (
+            <Card
+              key={column.label}
+              className={`border-[#d6dee6] p-6 shadow-none ${idx === 0 ? "bg-[#fbfcfd]" : "bg-[#f4f8fc]"}`}
+            >
+              <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">{column.label}</p>
+              <h3 className="mt-2 text-2xl font-semibold text-[#10273f]">{column.title}</h3>
+              <div className="mt-4 space-y-3">
+                {column.points.map((point) => (
+                  <p key={point} className="border-l border-[#d3dce5] pl-4 text-sm leading-relaxed text-[#4b5f72]">
+                    {point}
+                  </p>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
       <section className="mt-16 grid gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-start">
         <div className="max-w-xl">
           <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">How it works in practice</p>
@@ -221,6 +375,26 @@ export default function HomePage() {
           </div>
         </div>
         <ToolApprovalStrip />
+      </section>
+
+      <section className="mt-16">
+        <div className="max-w-3xl">
+          <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">What your team gets</p>
+          <h2 className="mt-2 text-3xl font-semibold leading-tight text-[#10273f]">
+            A buyer-facing package that is operationally concrete
+          </h2>
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {teamGets.map((item, idx) => (
+            <div
+              key={item.title}
+              className={`rounded-2xl border border-[#d6dee6] bg-[#fbfcfd] px-5 py-5 ${idx === 1 ? "bg-[#f7f9fb]" : ""}`}
+            >
+              <p className="text-base font-semibold text-[#10273f]">{item.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#4b5f72]">{item.description}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="mt-16">
