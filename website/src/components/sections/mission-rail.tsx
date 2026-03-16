@@ -1,35 +1,35 @@
-import { Card } from "@/components/ui/card";
-
 const VALUE_POINTS = [
   {
-    title: "Product-aware by default",
+    title: "Deflect known issues earlier",
     description:
-      "Agents are grounded in app behavior, docs, troubleshooting paths, and visual references so they understand UI layout from guide images and screenshots.",
+      "ResolveKit meets users inside the workflow that is already failing, so repeatable blockers can be handled before they turn into ticket queues.",
   },
   {
-    title: "SDK-embedded assistance",
+    title: "Make support knowledge executable",
     description:
-      "Developers ship chat inside mobile/web surfaces with one SDK and one backend control plane.",
+      "Ground the agent in docs, flows, and screenshots, then connect approved product actions so guidance can turn into actual resolution.",
   },
   {
-    title: "Tool execution with consent",
+    title: "Keep teams aligned on risk",
     description:
-      "Agent proposes on-device actions, asks for approval, and records the full execution trace.",
+      "Product, CX, and engineering share one policy layer for approvals, version limits, and trace history instead of improvising across tools.",
   },
 ];
 
 export function MissionRail() {
   return (
-    <section className="mt-12 grid gap-4 md:grid-cols-3">
+    <section className="mt-14 border-y border-[#d6dee6] py-6">
+      <div className="grid gap-5 md:grid-cols-3">
       {VALUE_POINTS.map((item, idx) => (
-        <Card
+        <div
           key={item.title}
-          className={`p-5 animate-fade-up ${idx === 1 ? "[animation-delay:90ms]" : idx === 2 ? "[animation-delay:180ms]" : ""}`}
+          className={`animate-fade-up border-l border-[#d6dee6] pl-4 ${idx === 1 ? "[animation-delay:90ms]" : idx === 2 ? "[animation-delay:180ms]" : ""}`}
         >
-          <h2 className="text-lg font-semibold leading-tight">{item.title}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
-        </Card>
+          <h2 className="text-lg font-semibold leading-tight text-[#10273f]">{item.title}</h2>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-[#4b5f72]">{item.description}</p>
+        </div>
       ))}
+      </div>
     </section>
   );
 }

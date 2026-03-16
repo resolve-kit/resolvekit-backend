@@ -20,6 +20,14 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "ResolveKit | Enter Access Code",
   description: "Protected access screen for the ResolveKit presentation.",
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 };
 
 export default async function PresentationAccessPage({
