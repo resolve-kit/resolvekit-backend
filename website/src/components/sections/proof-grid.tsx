@@ -2,24 +2,24 @@ import { Card } from "@/components/ui/card";
 
 const PROOF_CARDS = [
   {
-    label: "Operational clarity",
-    title: "Every turn is traceable",
-    text: "See decisions, retrieved context, approvals, function payloads, and final outcomes per session.",
+    label: "Buyer value",
+    title: "Lower ticket volume without hiding the work",
+    text: "Teams can see which issues were resolved in-product, which actions were taken, and where escalation is still required.",
   },
   {
-    label: "Developer speed",
-    title: "One dashboard, all app configs",
-    text: "Manage prompts, functions, limits, languages, and chat behavior without shipping app updates for each tweak.",
+    label: "Operations",
+    title: "Tune behavior without another release cycle",
+    text: "Update prompts, functions, limits, and environment-specific rules from one dashboard instead of waiting on app updates.",
   },
   {
-    label: "Safer automation",
-    title: "Guardrails before actions",
-    text: "Function eligibility can be constrained by platform, app version, and custom session fields.",
+    label: "Guardrails",
+    title: "Policies can block the wrong action before it runs",
+    text: "Function eligibility can be scoped by platform, app version, session fields, and explicit approval requirements.",
   },
   {
-    label: "Visual understanding",
-    title: "Learns UI layout from images",
-    text: "Ingestion can process relevant guide images and screenshots so the agent can reason about where things are and how flows move.",
+    label: "Product awareness",
+    title: "The agent understands what the user is actually seeing",
+    text: "Ingest guide images and screenshots alongside docs so the assistant can reason about UI layout, steps, and breakpoints with less guesswork.",
   },
 ];
 
@@ -29,11 +29,11 @@ export function ProofGrid() {
       {PROOF_CARDS.map((item, idx) => (
         <Card
           key={item.title}
-          className={`p-5 animate-fade-up ${idx % 2 ? "[animation-delay:120ms]" : ""}`}
+          className={`animate-fade-up border-[#d6dee6] bg-[#fbfcfd] p-5 shadow-none ${idx % 2 ? "[animation-delay:120ms]" : ""}`}
         >
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{item.label}</p>
-          <h3 className="mt-2 text-xl font-semibold">{item.title}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.text}</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b7785]">{item.label}</p>
+          <h3 className="mt-2 text-xl font-semibold text-[#10273f]">{item.title}</h3>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-[#4b5f72]">{item.text}</p>
         </Card>
       ))}
     </section>

@@ -17,10 +17,10 @@ export default function HomePage() {
           href="/"
           className="inline-flex items-end leading-none"
           aria-label="RESOLVEkit"
-          style={{ fontFamily: "Inter, 'Mona Sans', 'Avenir Next', 'Segoe UI', sans-serif" }}
+          style={{ fontFamily: "'Avenir Next', 'Segoe UI', 'Helvetica Neue', sans-serif" }}
         >
-          <span className="text-[20px] font-normal uppercase tracking-[0.2em] text-[#0d2f57]">RESOLVE</span>
-          <span className="ml-[0.12em] text-[10px] font-normal tracking-[0.2em] text-black">kit</span>
+          <span className="text-[20px] font-medium uppercase tracking-[0.18em] text-[#12385f]">RESOLVE</span>
+          <span className="ml-[0.16em] text-[10px] font-medium tracking-[0.24em] text-[#3d4d5d]">kit</span>
         </Link>
         <div className="flex flex-wrap gap-3">
           <Link href="/pricing">
@@ -32,17 +32,25 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,430px)]">
+      <section className="mt-12 grid items-start gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,430px)]">
         <div className="max-w-3xl animate-fade-up">
-          <h1 className="text-5xl font-semibold leading-[1.02] tracking-tight">
-            Embedded LLM Support Agent That Can Actually Act
-          </h1>
-          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-            Developers integrate the ResolveKit SDK into mobile or web apps. Users get embedded chat. Your LLM agent
-            understands the app, including screen layout and flow from docs, guide images, and submitted screenshots,
-            explains fixes clearly, and can invoke approved on-device functions to resolve issues.
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#6b7785]">
+            In-product issue resolution for software teams
           </p>
-          <p className="mt-3 text-sm text-muted-foreground">Free (for now). Pay us in feedback.</p>
+          <h1 className="mt-4 text-5xl font-semibold leading-[0.98] tracking-[-0.04em] text-[#10273f] sm:text-6xl">
+            Resolve user issues inside the product before they become support tickets.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#4b5f72]">
+            ResolveKit embeds a product-aware support agent in your app so users can fix blockers in the moment.
+            Ground the assistant in your docs, flows, screenshots, and approved tools, then let it explain the issue,
+            take the right action, and keep your team out of repetitive ticket triage.
+          </p>
+          <div className="mt-6 grid max-w-2xl gap-3 border-l border-[#d3dce5] pl-4 text-sm leading-relaxed text-[#516475] sm:grid-cols-3 sm:gap-6 sm:pl-5">
+            <p>Reduce preventable support volume by resolving known issues at the point of failure.</p>
+            <p>Give product, CX, and engineering one control plane for prompts, guardrails, and trace data.</p>
+            <p>Ship automation with approvals, audit trails, and version-aware policies already built in.</p>
+          </div>
+          <p className="mt-4 text-sm text-[#6b7785]">Free for now. We want feedback from teams solving real support load.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href={dashboardRegisterUrl}>
               <Button>Start Free</Button>
@@ -70,14 +78,16 @@ export default function HomePage() {
       <ProofGrid />
 
       <section className="mt-12">
-        <Card className="p-6 md:p-8 animate-fade-up">
+        <Card className="animate-fade-up border-[#d6dee6] bg-[#f7f9fb] p-6 shadow-none md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-2xl">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Operator Command</p>
-              <h2 className="mt-2 text-2xl font-semibold">Control prompts, functions, limits, and session traces from one dashboard</h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Keep assistant behavior consistent across every app surface while still adapting to platform, version,
-                real-time session context, and knowledge-base vision mode (OCR-safe or full multimodal).
+              <p className="text-xs uppercase tracking-[0.2em] text-[#6b7785]">Operator command</p>
+              <h2 className="mt-2 text-2xl font-semibold text-[#10273f]">
+                Control prompts, functions, limits, and session traces from one dashboard
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-[#4b5f72]">
+                Keep the assistant commercially useful and operationally safe across every app surface while still
+                adapting to platform, version, live session context, and the vision mode you allow.
               </p>
             </div>
             <div className="flex gap-3">

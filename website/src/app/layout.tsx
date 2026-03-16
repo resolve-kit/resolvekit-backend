@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ResolveKit | LLM Agent Support Command Center",
+  title: "ResolveKit | Resolve Product Issues Before They Hit Support",
   description:
-    "Embed SDK chat support in your mobile or web app and power it with an LLM agent that understands your product and can execute approved device functions.",
+    "ResolveKit embeds a product-aware support agent in your app so users can fix issues before they become support tickets, with approvals, audit trails, and centralized control.",
 };
 
 export default function RootLayout({
