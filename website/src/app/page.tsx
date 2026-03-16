@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { HeroChatPreview } from "@/components/hero-chat-preview";
@@ -7,7 +8,28 @@ import { SdkFlow } from "@/components/sections/sdk-flow";
 import { ToolApprovalStrip } from "@/components/sections/tool-approval-strip";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { siteName, siteUrl } from "@/lib/site";
 import { dashboardLoginUrl, dashboardRegisterUrl, feedbackIssuesUrl, iosSdkRepoUrl, nextjsSdkNpmUrl } from "@/lib/urls";
+
+export const metadata: Metadata = {
+  title: "Resolve Product Issues Before They Hit Support",
+  description:
+    "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Resolve Product Issues Before They Hit Support",
+    description:
+      "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.",
+    url: siteUrl,
+  },
+  twitter: {
+    title: "Resolve Product Issues Before They Hit Support",
+    description:
+      "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.",
+  },
+};
 
 const supportScenarios = [
   {
@@ -33,9 +55,41 @@ const controlPoints = [
   "Keep support, product, and engineering aligned on what the agent can explain, change, and escalate.",
 ];
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: siteName,
+  url: siteUrl,
+  sameAs: [iosSdkRepoUrl, nextjsSdkNpmUrl, feedbackIssuesUrl],
+};
+
+const softwareApplicationSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: siteName,
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: siteUrl,
+  description:
+    "ResolveKit embeds a product-aware support agent in your app so users can fix common blockers in the moment, with approvals, audit trails, and centralized operator control.",
+  publisher: {
+    "@type": "Organization",
+    name: siteName,
+    url: siteUrl,
+  },
+};
+
 export default function HomePage() {
   return (
     <main className="mx-auto max-w-6xl px-6 pb-20 pt-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
+      />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/"

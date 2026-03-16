@@ -1,8 +1,30 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { siteUrl } from "@/lib/site";
 import { dashboardLoginUrl, dashboardRegisterUrl, feedbackIssuesUrl } from "@/lib/urls";
+
+export const metadata: Metadata = {
+  title: "Pricing",
+  description:
+    "See ResolveKit pricing for launch-stage teams using in-product issue resolution to reduce repeat support load with approvals, traceability, and operator control.",
+  alternates: {
+    canonical: "/pricing",
+  },
+  openGraph: {
+    title: "ResolveKit Pricing",
+    description:
+      "See ResolveKit pricing for launch-stage teams using in-product issue resolution to reduce repeat support load with approvals, traceability, and operator control.",
+    url: `${siteUrl}/pricing`,
+  },
+  twitter: {
+    title: "ResolveKit Pricing",
+    description:
+      "See ResolveKit pricing for launch-stage teams using in-product issue resolution to reduce repeat support load with approvals, traceability, and operator control.",
+  },
+};
 
 const PLAN = {
   name: "Launch Partner Access",
