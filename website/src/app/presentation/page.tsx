@@ -15,6 +15,14 @@ export const metadata: Metadata = {
   title: "ResolveKit | Presentation",
   description:
     "ResolveKit business case: embedded AI support that resolves problems inside the product, not outside it.",
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 };
 
 const SYNERGIES = [
