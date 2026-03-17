@@ -3,13 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { dashboardRegisterUrl } from "@/lib/urls";
+import { dashboardLoginUrl } from "@/lib/urls";
 
 export const SECTION_LINKS = [
-  { href: "#product", label: "Solution" },
-  { href: "#validation", label: "Proof" },
+  { href: "#product", label: "Shift" },
   { href: "#gtm", label: "Growth" },
   { href: "#market", label: "Market" },
   { href: "#competition", label: "Position" },
@@ -83,8 +81,11 @@ export function PresentationNav() {
                 </a>
               );
             })}
-            <a href={dashboardRegisterUrl} className="shrink-0">
-              <Button className="bg-[#121212] text-white hover:bg-[#24211d] hover:text-white">Start Free</Button>
+            <a
+              href={dashboardLoginUrl}
+              className="shrink-0 rounded-full border border-transparent px-2 py-1.5 text-[11px] font-semibold tracking-[0.08em] text-[#5f564d] transition hover:text-[#111] sm:text-xs sm:tracking-[0.14em]"
+            >
+              Dashboard
             </a>
           </div>
         </div>
