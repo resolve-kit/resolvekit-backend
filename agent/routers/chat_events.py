@@ -216,14 +216,14 @@ async def stream_events(
     request: Request,
     cursor: str | None = None,
     app: App = Depends(get_app_from_sdk_auth),
-    db: AsyncSession = Depends(get_db),
 ):
     validate_chat_capability_token(
         token=resolve_chat_capability_token(request.headers),
         session_id=session_id,
         app=app,
     )
-    session, _, _ = await _load_runtime_context(db, session_id, app)
+    async with async_session_factory() as db:
+        session, _, _ = await _load_runtime_context(db, session_id, app)
 
     async def generate():
         last_event_id = cursor
