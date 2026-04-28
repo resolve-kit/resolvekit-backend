@@ -66,3 +66,7 @@ Regenerate and verify:
 ## LLM Discovery
 
 This repository includes an explicit LLM entrypoint: [`llms.txt`](llms.txt).
+
+## License
+
+ResolveKit Backend is licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See [LICENSE](LICENSE).
