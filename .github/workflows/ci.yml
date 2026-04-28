@@ -13,6 +13,16 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  agent-docs:
+    name: Agent Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Validate agent-facing docs map
+        run: bash scripts/check_agent_docs.sh
+
   python-contracts:
     name: Python Contracts
     runs-on: ubuntu-latest

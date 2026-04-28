@@ -1,145 +1,41 @@
 # resolvekit-backend
 
-> Multi-agent orchestration framework for agentic coding
+This file is the **table of contents** for coding agents. Keep it short, stable, and current.
 
-## Project Overview
+## Working Contract
 
-A Claude Flow powered project
+- Humans define intent and constraints.
+- Agents implement code, tests, docs, and CI changes.
+- Repository-local docs are the system of record.
+- If docs and code diverge, fix docs in the same change.
 
-**Tech Stack**: TypeScript, Node.js
-**Architecture**: Domain-Driven Design with bounded contexts
+## First Read
 
-## Quick Start
+1. `README.md` for product and self-host setup.
+2. `docs/INDEX.md` for architecture, API, and operations maps.
+3. `docs/agent-first/README.md` for agent operating principles.
 
-### Installation
+## Commands
+
 ```bash
-npm install
+uv sync --extra dev
+uv run python -m pytest -q
+npm --prefix dashboard ci
+npm --prefix dashboard test
 ```
 
-### Build
-```bash
-npm run build
-```
+## Source of Truth Layout
 
-### Test
-```bash
-npm test
-```
+- `agent/` backend runtime and API handlers.
+- `dashboard/` Next.js admin and API surfaces.
+- `knowledge_bases/` KB service runtime.
+- `docs/INDEX.md` documentation index.
+- `docs/exec-plans/` active/completed execution plans and tech debt.
+- `docs/generated/openapi/` generated API snapshots.
 
-### Development
-```bash
-npm run dev
-```
+## Guardrails
 
-## Agent Coordination
-
-### Swarm Configuration
-
-This project uses hierarchical swarm coordination for complex tasks:
-
-| Setting | Value | Purpose |
-|---------|-------|---------|
-| Topology | `hierarchical` | Queen-led coordination (anti-drift) |
-| Max Agents | 8 | Optimal team size |
-| Strategy | `specialized` | Clear role boundaries |
-| Consensus | `raft` | Leader-based consistency |
-
-### When to Use Swarms
-
-**Invoke swarm for:**
-- Multi-file changes (3+ files)
-- New feature implementation
-- Cross-module refactoring
-- API changes with tests
-- Security-related changes
-- Performance optimization
-
-**Skip swarm for:**
-- Single file edits
-- Simple bug fixes (1-2 lines)
-- Documentation updates
-- Configuration changes
-
-### Available Skills
-
-Use `$skill-name` syntax to invoke:
-
-| Skill | Use Case |
-|-------|----------|
-| `$swarm-orchestration` | Multi-agent task coordination |
-| `$memory-management` | Pattern storage and retrieval |
-| `$sparc-methodology` | Structured development workflow |
-| `$security-audit` | Security scanning and CVE detection |
-
-### Agent Types
-
-| Type | Role | Use Case |
-|------|------|----------|
-| `researcher` | Requirements analysis | Understanding scope |
-| `architect` | System design | Planning structure |
-| `coder` | Implementation | Writing code |
-| `tester` | Test creation | Quality assurance |
-| `reviewer` | Code review | Security and quality |
-
-## Code Standards
-
-### File Organization
-- **NEVER** save to root folder
-- `/src` - Source code files
-- `/tests` - Test files
-- `/docs` - Documentation
-- `/config` - Configuration files
-
-### Quality Rules
-- Files under 500 lines
-- No hardcoded secrets
-- Input validation at boundaries
-- Typed interfaces for public APIs
-- TDD London School (mock-first) preferred
-
-### Commit Messages
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-Co-Authored-By: claude-flow <ruv@ruv.net>
-```
-
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
-
-## Security
-
-### Critical Rules
-- NEVER commit secrets, credentials, or .env files
-- NEVER hardcode API keys
-- Always validate user input
-- Use parameterized queries for SQL
-- Sanitize output to prevent XSS
-
-### Path Security
-- Validate all file paths
-- Prevent directory traversal (../)
-- Use absolute paths internally
-
-## Memory System
-
-### Storing Patterns
-```bash
-npx @claude-flow/cli memory store \
-  --key "pattern-name" \
-  --value "pattern description" \
-  --namespace patterns
-```
-
-### Searching Memory
-```bash
-npx @claude-flow/cli memory search \
-  --query "search terms" \
-  --namespace patterns
-```
-
-## Links
-
-- Documentation: https://github.com/ruvnet/claude-flow
-- Issues: https://github.com/ruvnet/claude-flow/issues
+- Never commit secrets or private `.env` values.
+- Keep API contract and behavior docs synchronized.
+- Prefer incremental PRs with passing checks over large refactors.
+- Run `bash scripts/check_agent_docs.sh` before opening PRs that touch docs/architecture.
