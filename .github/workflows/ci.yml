@@ -52,6 +52,16 @@ jobs:
           docker compose -f docker-compose.prod.yml config -q
           docker compose -f docker-compose.local-deploy.yml config -q
 
+  agent-docs:
+    name: Agent Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Validate AGENTS documentation exists
+        run: test -f AGENTS.md
+
   dashboard:
     name: Dashboard
     runs-on: ubuntu-latest
