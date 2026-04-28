@@ -20,7 +20,7 @@ interface Fn {
   timeout_seconds: number;
 }
 
-const IOS_SDK_REPO_URL = "https://github.com/Nights-Are-Late/resolvekit-ios-sdk";
+const IOS_SDK_REPO_URL = "https://github.com/resolve-kit/resolvekit-ios-sdk";
 
 export default function Functions() {
   const { appId } = useParams();

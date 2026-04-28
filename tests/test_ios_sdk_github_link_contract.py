@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-IOS_SDK_GITHUB_URL = "https://github.com/Nights-Are-Late/resolvekit-ios-sdk"
+IOS_SDK_GITHUB_URL = "https://github.com/resolve-kit/resolvekit-ios-sdk"
 OLD_IOS_SDK_URL = "https://github.com/nedasvi/playbook-ios-sdk/blob/main/README.md"
 OLD_BACKEND_INTEGRATION_URL = "https://github.com/nedasvi/playbook_backend/blob/main/SDK_INTEGRATION.md"
 
@@ -18,5 +18,6 @@ def test_dashboard_functions_empty_state_has_repo_button() -> None:
     functions_page = Path("dashboard/src/dashboard_pages/Functions.tsx").read_text(encoding="utf-8")
 
     assert "No functions registered yet." in functions_page
-    assert "Open iOS SDK GitHub repo" in functions_page
+    assert "iOS SDK on GitHub" in functions_page
+    assert "window.open(IOS_SDK_REPO_URL" in functions_page
     assert IOS_SDK_GITHUB_URL in functions_page

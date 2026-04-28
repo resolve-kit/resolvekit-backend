@@ -65,7 +65,7 @@ function SDKChecklist() {
       </ul>
       <div className="mt-2 flex flex-wrap gap-2">
         <a
-          href="https://github.com/Nights-Are-Late/resolvekit-ios-sdk"
+          href="https://github.com/resolve-kit/resolvekit-ios-sdk"
           target="_blank"
           rel="noreferrer"
           className="text-[11px] text-accent hover:text-accent-hover"
