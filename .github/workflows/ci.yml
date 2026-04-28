@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python-contracts:
+    name: Python Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        run: pipx install uv
+
+      - name: Install Python dependencies
+        run: uv sync --extra dev
+
+      - name: Run OSS and deployment contract tests
+        run: >
+          uv run python -m pytest
+          tests/test_oss_license_contract.py
+          tests/test_oss_artifact_hygiene_contract.py
+          tests/test_oss_community_files_contract.py
+          tests/test_subdomain_env_contract.py
+          tests/test_prod_web_sdk_source_contract.py
+          tests/test_dashboard_web_sdk_copilot_contract.py
+          tests/test_dashboard_apps_card_default_nav_contract.py
+          -q
+
+      - name: Validate Docker Compose files
+        run: |
+          docker compose -f docker-compose.yml config -q
+          docker compose -f docker-compose.prod.yml config -q
+          docker compose -f docker-compose.local-deploy.yml config -q
+
+  dashboard:
+    name: Dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Run dashboard tests
+        working-directory: dashboard
+        run: npm test
+
+      - name: Build dashboard
+        working-directory: dashboard
+        run: npm run build
+

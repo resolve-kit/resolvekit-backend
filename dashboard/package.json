@@ -10,7 +10,7 @@
     "build": "rm -rf .next .next-api .next-dashboard && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run --exclude '**/.local/**'"
   },
   "dependencies": {
     "@prisma/client": "^6.16.3",
