@@ -43,6 +43,9 @@ jobs:
           tests/test_dashboard_apps_card_default_nav_contract.py
           -q
 
+      - name: Prepare compose env file for config validation
+        run: cp .env.example .env
+
       - name: Validate Docker Compose files
         run: |
           docker compose -f docker-compose.yml config -q
