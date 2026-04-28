@@ -50,6 +50,7 @@ vectors.db
 deep_research.txt
 plan.txt
 spec.md
+docs/plans/
 
 # Claude Flow runtime data
 .claude-flow/data/

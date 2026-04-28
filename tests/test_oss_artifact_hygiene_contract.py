@@ -22,3 +22,9 @@ def test_local_agent_state_and_scratch_files_are_not_tracked() -> None:
     tracked = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
 
     assert BLOCKED_TRACKED_PATHS.isdisjoint(tracked)
+
+
+def test_internal_planning_notes_are_not_tracked() -> None:
+    tracked = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
+
+    assert not any(path.startswith("docs/plans/") for path in tracked)
