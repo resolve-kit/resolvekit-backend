@@ -42,6 +42,15 @@ deploy/local-nginx/logs/
 # Codex local configuration
 .codex/
 
+# Local agent/runtime state and scratch notes
+.claude/
+.claude-flow/
+.swarm/
+vectors.db
+deep_research.txt
+plan.txt
+spec.md
+
 # Claude Flow runtime data
 .claude-flow/data/
 .claude-flow/logs/
