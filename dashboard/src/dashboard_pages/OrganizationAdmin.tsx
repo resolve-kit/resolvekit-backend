@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { ResolveKitAction } from "@resolvekit/nextjs/react";
-
 import { ApiError, api } from "../api/client";
 import { PageHeader } from "../components/layout/PageHeader";
 import { Badge, Button, DataPanel, Input, MetricTile, SectionCard, Select, useToast } from "../components/ui";
@@ -370,7 +368,6 @@ export default function OrganizationAdmin() {
         <div className="flex gap-1 overflow-x-auto border-b border-border pb-1">
           <button
             type="button"
-            data-resolvekit-id="org-view-llm-setup"
             onClick={() => setActiveView("llm-setup")}
             className={`relative whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors ${
               llmViewActive ? "text-strong" : "text-subtle hover:text-body"
@@ -381,7 +378,6 @@ export default function OrganizationAdmin() {
           </button>
           <button
             type="button"
-            data-resolvekit-id="org-view-team-management"
             onClick={() => setActiveView("team-management")}
             className={`relative whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors ${
               teamViewActive ? "text-strong" : "text-subtle hover:text-body"
@@ -392,7 +388,6 @@ export default function OrganizationAdmin() {
           </button>
           <button
             type="button"
-            data-resolvekit-id="org-view-spend"
             onClick={() => setActiveView("spend")}
             className={`relative whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors ${
               spendViewActive ? "text-strong" : "text-subtle hover:text-body"
@@ -425,7 +420,6 @@ export default function OrganizationAdmin() {
 
         {canManageOrganization && (
           <form
-            data-resolvekit-id="org-llm-profile-form"
             onSubmit={createLlmProfile}
             className="grid grid-cols-1 gap-3 md:grid-cols-4"
           >
@@ -452,17 +446,13 @@ export default function OrganizationAdmin() {
               required
             />
             <div className="flex items-end">
-              <ResolveKitAction
-                as={Button}
-                actionId="create-org-llm-profile-btn"
-                actionRole="action"
-                description="Create an organization-level LLM profile with the entered provider credentials"
+              <Button
                 type="submit"
                 className="w-full"
                 loading={creatingLlmProfile}
               >
                 Add Profile
-              </ResolveKitAction>
+              </Button>
             </div>
 
             <p className="text-xs text-subtle md:col-span-4">
@@ -493,11 +483,10 @@ export default function OrganizationAdmin() {
             ) : llmProfiles.length === 0 ? (
               <p className="text-xs text-subtle">No LLM profiles configured yet.</p>
             ) : (
-              <div data-resolvekit-id="org-llm-profiles-list" className="space-y-2">
+              <div className="space-y-2">
                 {llmProfiles.map((profile) => (
                   <div
                     key={profile.id}
-                    data-resolvekit-id={`org-llm-profile-${profile.id}`}
                     className="flex items-center justify-between gap-3 rounded-lg border border-border bg-canvas/40 px-3 py-2"
                   >
                     <div className="min-w-0">
@@ -539,11 +528,7 @@ export default function OrganizationAdmin() {
         >
         {canManageOrganization ? (
           <DataPanel title="Invite User" subtitle="Invitations work only for emails that already registered an account.">
-            <form
-              data-resolvekit-id="invite-member-form"
-              onSubmit={handleInvite}
-              className="flex flex-col gap-3 sm:flex-row"
-            >
+            <form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row">
               <Input
                 type="email"
                 value={inviteEmail}
@@ -552,16 +537,12 @@ export default function OrganizationAdmin() {
                 className="flex-1"
                 required
               />
-              <ResolveKitAction
-                as={Button}
-                actionId="invite-member-btn"
-                actionRole="action"
-                description="Send an organization invitation to the entered teammate email address"
+              <Button
                 type="submit"
                 loading={inviteLoading}
               >
                 Invite
-              </ResolveKitAction>
+              </Button>
             </form>
           </DataPanel>
         ) : (
@@ -577,11 +558,10 @@ export default function OrganizationAdmin() {
             ) : members.length === 0 ? (
               <p className="text-xs text-subtle">No members found.</p>
             ) : (
-              <div data-resolvekit-id="organization-members-list" className="space-y-2">
+              <div className="space-y-2">
                 {members.map((member) => (
                   <div
                     key={member.id}
-                    data-resolvekit-id={`organization-member-${member.id}`}
                     className="flex items-center justify-between gap-3 rounded-lg border border-border bg-canvas/40 px-3 py-2"
                   >
                     <div className="min-w-0">
@@ -631,11 +611,10 @@ export default function OrganizationAdmin() {
               ) : sentInvitations.length === 0 ? (
                 <p className="text-xs text-subtle">No pending invitations sent.</p>
               ) : (
-                <div data-resolvekit-id="sent-invitations-list" className="space-y-2">
+                <div className="space-y-2">
                   {sentInvitations.map((invitation) => (
                     <div
                       key={invitation.id}
-                      data-resolvekit-id={`sent-invitation-${invitation.id}`}
                       className="flex items-center justify-between gap-3 rounded-lg border border-border bg-canvas/40 px-3 py-2"
                     >
                       <div className="min-w-0">

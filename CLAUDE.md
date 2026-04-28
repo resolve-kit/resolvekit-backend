@@ -12,8 +12,6 @@ This repository is split into runtime services (Python) and control-plane servic
   - `api`: dashboard `/v1/*` route handlers (control plane).
 - `knowledge_bases` (FastAPI, Python)
   - Internal KB ingestion/search service (`/internal/*`).
-- `website` (Next.js)
-  - Marketing site.
 
 Detailed ownership map: `docs/backend/platform-ownership-split.md`.
 

@@ -67,6 +67,42 @@ describe("provider model normalization", () => {
     fetchSpy.mockRestore();
   });
 
+  it("preserves a path-prefixed runtime base url for pricing lookups", async () => {
+    const previousServerAgentBaseUrl = process.env.RESOLVEKIT_SERVER_AGENT_BASE_URL;
+    process.env.RESOLVEKIT_SERVER_AGENT_BASE_URL = "https://support.example.com/agent";
+
+    vi.resetModules();
+    const { lookupModelPricing: lookupModelPricingWithPrefix } = await import("./provider");
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        provider: "gemini",
+        model: "gemini-2.5-flash-lite",
+        pricing: {
+          input_per_million_usd: 0.1,
+          output_per_million_usd: 0.4,
+          image_per_thousand_usd: null,
+          source: "litellm",
+        },
+      }),
+    } as Response);
+
+    await expect(lookupModelPricingWithPrefix("gemini", "gemini/gemini-2.5-flash-lite")).resolves.toEqual({
+      input_per_million_usd: 0.1,
+      output_per_million_usd: 0.4,
+      image_per_thousand_usd: null,
+      source: "litellm",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [requestUrl] = fetchSpy.mock.calls[0];
+    expect(String(requestUrl)).toContain("https://support.example.com/agent/v1/pricing/model");
+
+    fetchSpy.mockRestore();
+    process.env.RESOLVEKIT_SERVER_AGENT_BASE_URL = previousServerAgentBaseUrl;
+  });
+
   it("uses the OpenRouter catalog for openrouter pricing", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,

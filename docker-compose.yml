@@ -111,32 +111,13 @@ services:
       - api
     command: >
       sh -c "rm -rf .next-dashboard &&
-      if [ ! -f /resolvekit-nextjs-sdk/package.json ] || [ ! -d /resolvekit-nextjs-sdk/src ]; then
-      echo 'ERROR: Local resolvekit-nextjs-sdk package.json/src not found at /resolvekit-nextjs-sdk.' &&
-      echo 'Set RESOLVEKIT_NEXTJS_SDK_PATH to your SDK checkout before docker compose up.' &&
-      exit 1;
-      fi &&
-      rm -rf /tmp/resolvekit-nextjs-sdk &&
-      mkdir -p /tmp/resolvekit-nextjs-sdk &&
-      cp /resolvekit-nextjs-sdk/package.json /tmp/resolvekit-nextjs-sdk/package.json &&
-      if [ -f /resolvekit-nextjs-sdk/package-lock.json ]; then cp /resolvekit-nextjs-sdk/package-lock.json /tmp/resolvekit-nextjs-sdk/package-lock.json; fi &&
-      cp -R /resolvekit-nextjs-sdk/src /tmp/resolvekit-nextjs-sdk/src &&
-      cp /resolvekit-nextjs-sdk/tsconfig.json /tmp/resolvekit-nextjs-sdk/tsconfig.json &&
-      npm --prefix /tmp/resolvekit-nextjs-sdk install --legacy-peer-deps --no-audit --no-fund --package-lock=false &&
-      npm --prefix /tmp/resolvekit-nextjs-sdk run build &&
-      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false || true &&
-      rm -rf /app/node_modules/@resolvekit/nextjs/dist &&
-      cp -r /tmp/resolvekit-nextjs-sdk/dist /app/node_modules/@resolvekit/nextjs/dist &&
+      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false &&
       npx prisma generate &&
-      node -e \"require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');\" &&
       node -e \"const net=require('net'); const close=(a,b)=>()=>{a.destroy(); b.destroy();}; net.createServer((client)=>{ const upstream=net.connect(8000,'backend'); client.pipe(upstream); upstream.pipe(client); client.on('error', close(client, upstream)); upstream.on('error', close(upstream, client)); }).listen(8000,'127.0.0.1');\" &
       npm run dev -- --hostname 0.0.0.0 --port 3000"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
-      NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-      RESOLVEKIT_KEY: ${RESOLVEKIT_KEY:-}
       RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://localhost:8000}
-      NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
       IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
       IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
@@ -151,7 +132,6 @@ services:
       WATCHPACK_POLLING: "true"
     volumes:
       - ./dashboard:/app
-      - ${RESOLVEKIT_NEXTJS_SDK_PATH:?Set RESOLVEKIT_NEXTJS_SDK_PATH}:/resolvekit-nextjs-sdk:ro
       - dashboard_node_modules:/app/node_modules
     ports:
       - "127.0.0.1:3000:3000"
@@ -167,32 +147,13 @@ services:
       - backend
     command: >
       sh -c "rm -rf .next-api &&
-      if [ ! -f /resolvekit-nextjs-sdk/package.json ] || [ ! -d /resolvekit-nextjs-sdk/src ]; then
-      echo 'ERROR: Local resolvekit-nextjs-sdk package.json/src not found at /resolvekit-nextjs-sdk.' &&
-      echo 'Set RESOLVEKIT_NEXTJS_SDK_PATH to your SDK checkout before docker compose up.' &&
-      exit 1;
-      fi &&
-      rm -rf /tmp/resolvekit-nextjs-sdk &&
-      mkdir -p /tmp/resolvekit-nextjs-sdk &&
-      cp /resolvekit-nextjs-sdk/package.json /tmp/resolvekit-nextjs-sdk/package.json &&
-      if [ -f /resolvekit-nextjs-sdk/package-lock.json ]; then cp /resolvekit-nextjs-sdk/package-lock.json /tmp/resolvekit-nextjs-sdk/package-lock.json; fi &&
-      cp -R /resolvekit-nextjs-sdk/src /tmp/resolvekit-nextjs-sdk/src &&
-      cp /resolvekit-nextjs-sdk/tsconfig.json /tmp/resolvekit-nextjs-sdk/tsconfig.json &&
-      npm --prefix /tmp/resolvekit-nextjs-sdk install --legacy-peer-deps --no-audit --no-fund --package-lock=false &&
-      npm --prefix /tmp/resolvekit-nextjs-sdk run build &&
-      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false || true &&
-      rm -rf /app/node_modules/@resolvekit/nextjs/dist &&
-      cp -r /tmp/resolvekit-nextjs-sdk/dist /app/node_modules/@resolvekit/nextjs/dist &&
+      npm install --legacy-peer-deps --no-audit --no-fund --package-lock=false &&
       npx prisma generate &&
-      node -e \"require.resolve('@resolvekit/nextjs'); require.resolve('@resolvekit/nextjs/client'); require.resolve('@resolvekit/nextjs/react'); require.resolve('@resolvekit/nextjs/server');\" &&
       node -e \"const net=require('net'); const close=(a,b)=>()=>{a.destroy(); b.destroy();}; net.createServer((client)=>{ const upstream=net.connect(8000,'backend'); client.pipe(upstream); upstream.pipe(client); client.on('error', close(client, upstream)); upstream.on('error', close(upstream, client)); }).listen(8000,'127.0.0.1');\" &
       npm run dev -- --hostname 0.0.0.0 --port 3002"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3002}
-      NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-      RESOLVEKIT_KEY: ${RESOLVEKIT_KEY:-}
       RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://localhost:8000}
-      NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
       IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
       IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
@@ -202,36 +163,15 @@ services:
       IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
-      IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002}
+      IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3002}
       NEXT_DIST_DIR: .next-api
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
     volumes:
       - ./dashboard:/app
-      - ${RESOLVEKIT_NEXTJS_SDK_PATH:?Set RESOLVEKIT_NEXTJS_SDK_PATH}:/resolvekit-nextjs-sdk:ro
       - api_node_modules:/app/node_modules
     ports:
       - "127.0.0.1:3002:3002"
-    networks:
-      - resolvekit
-
-  website:
-    image: node:22-alpine
-    container_name: resolvekit_website
-    restart: unless-stopped
-    working_dir: /app
-    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --hostname 0.0.0.0 --port 3001"
-    environment:
-      NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-http://localhost:3000}
-      PRESENTATION_SLUG: ${PRESENTATION_SLUG:-}
-      PRESENTATION_PASSWORD: ${PRESENTATION_PASSWORD:-}
-      CHOKIDAR_USEPOLLING: "true"
-      WATCHPACK_POLLING: "true"
-    volumes:
-      - ./website:/app
-      - website_node_modules:/app/node_modules
-    ports:
-      - "127.0.0.1:3001:3001"
     networks:
       - resolvekit
 
@@ -243,4 +183,3 @@ networks:
 volumes:
   dashboard_node_modules:
   api_node_modules:
-  website_node_modules:

@@ -6,14 +6,13 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
-    "build": "next build",
+    "build": "rm -rf .next .next-api .next-dashboard && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^6.16.3",
-    "@resolvekit/nextjs": "^1.0.4",
     "bcryptjs": "^3.0.2",
     "jose": "^6.1.0",
     "next": "^16.1.6",

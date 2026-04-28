@@ -9,18 +9,10 @@ This package now serves two roles:
 
 - `NEXT_PUBLIC_API_BASE_URL`
   - Browser-facing API base URL used by dashboard client code.
-- `NEXT_PUBLIC_RESOLVEKIT_ENABLED`
-  - Enables dashboard copilot widget integration (`true`/`false`).
-- `RESOLVEKIT_KEY`
-  - Server-side ResolveKit API key used by the `/api/resolvekit/token` proxy route. Required when copilot is enabled.
 - `RESOLVEKIT_SERVER_AGENT_BASE_URL`
-  - Optional server-only override for the `/api/resolvekit/token` proxy route.
+  - Optional server-only agent URL for dashboard runtime lookups such as model pricing enrichment.
   - It must use HTTPS unless it targets `localhost`.
   - Use this in reverse-proxy or internal-network deployments where the dashboard server must reach the agent through a server-only URL.
-- `NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL`
-  - Base URL for ResolveKit runtime endpoints consumed by the web SDK (normally `http://localhost:8000`).
-- `/api/resolvekit/token`
-  - Dashboard-owned token proxy route used by the browser SDK to mint client tokens without exposing `RESOLVEKIT_KEY`.
 - `DATABASE_URL`
   - Prisma connection string for control-plane DB operations.
 - `IAA_JWT_SECRET`, `IAA_JWT_ALGORITHM`, `IAA_JWT_EXPIRE_MINUTES`
@@ -44,3 +36,7 @@ This package now serves two roles:
 
 - Existing dashboard views are currently mounted as a client-side app within Next.
 - `/v1/*` route handlers preserve the existing dashboard API contract while owning control-plane behavior directly in Next.
+- The OSS dashboard does not ship the proprietary embedded copilot or browser SDK package.
+- The repository supports both:
+  - a single-host quickstart with the runtime mounted behind `/agent`
+  - a split-host production topology with dedicated dashboard, API, and runtime hosts

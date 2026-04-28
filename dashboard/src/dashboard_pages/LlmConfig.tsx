@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { Link, useParams } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
@@ -186,14 +185,13 @@ export default function LlmConfig() {
         </div>
       )}
 
-      <form data-resolvekit-id="llm-config-form" onSubmit={handleSubmit} className="glass-panel rounded-xl p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="glass-panel rounded-xl p-6 space-y-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-subtle">
             Provider keys are managed in Organization Admin. This page selects the model used by this app.
           </p>
           <Link
             to="/organization"
-            data-resolvekit-id="manage-org-profiles-btn"
             className="text-xs px-2.5 py-1 rounded-full bg-surface border border-border text-subtle hover:text-body hover:border-border-2 transition-colors"
           >
             Manage Profiles
@@ -328,11 +326,7 @@ export default function LlmConfig() {
         )}
 
         <div className="flex items-center justify-end pt-2 border-t border-border">
-          <ResolveKitAction
-            as={Button}
-            actionId="save-llm-config-btn"
-            actionRole="action"
-            description="Save LLM model and provider configuration"
+          <Button
             type="submit"
             variant="primary"
             size="md"
@@ -340,7 +334,7 @@ export default function LlmConfig() {
             disabled={!isDirty || !draftProfileId || !draftModel.trim() || Boolean(visionModeValidationError)}
           >
             Save
-          </ResolveKitAction>
+          </Button>
         </div>
       </form>
     </div>

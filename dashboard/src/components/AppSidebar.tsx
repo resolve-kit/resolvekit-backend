@@ -149,13 +149,10 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
     const missing = options?.missingOverride ?? isRouteMissing(item.slug);
     const dirty = options?.dirtyOverride ?? isRouteDirty(item.slug);
     const status: "missing" | "dirty" | null = missing ? "missing" : dirty ? "dirty" : null;
-    const resolveKitId = options?.resolveKitId ?? `sidebar-${item.slug}`;
-
     return (
       <button
         key={`${item.slug}-${depth}-${item.label}`}
         type="button"
-        data-resolvekit-id={resolveKitId}
         onClick={options?.onClickOverride ?? (() => navigate(pathFor(item.slug)))}
         className={navButtonClass(active, depth)}
       >

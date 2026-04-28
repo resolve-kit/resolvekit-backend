@@ -5,16 +5,11 @@ x-dashboard-build: &dashboard_build
   dockerfile: Dockerfile
   args:
     NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.example.com}
-    NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-    NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.example.com}
 
 x-dashboard-runtime-env: &dashboard_runtime_env
   NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.example.com}
-  NEXT_PUBLIC_RESOLVEKIT_ENABLED: ${NEXT_PUBLIC_RESOLVEKIT_ENABLED:-false}
-  NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL: ${NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL:-https://agent.example.com}
-  RESOLVEKIT_KEY: ${RESOLVEKIT_KEY:-}
-  RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-}
-  IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-https://console.resolvekit.app,https://resolvekit.app}
+  RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://backend:8000}
+  IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-https://console.example.com}
   DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
   IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
   IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
@@ -147,24 +142,6 @@ services:
     networks:
       - resolvekit
 
-  website:
-    build:
-      context: ./website
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit.app}
-    image: resolvekit-website:prod
-    container_name: resolvekit_prod_website
-    restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_DASHBOARD_URL: ${NEXT_PUBLIC_DASHBOARD_URL:-https://console.resolvekit.app}
-      PRESENTATION_SLUG: ${PRESENTATION_SLUG:-}
-      PRESENTATION_PASSWORD: ${PRESENTATION_PASSWORD:-}
-    ports:
-      - "${WEBSITE_BIND_ADDR:-127.0.0.1}:${WEBSITE_BIND_PORT:-3001}:3000"
-    networks:
-      - resolvekit
-
   caddy:
     image: caddy:2-alpine
     container_name: resolvekit_prod_caddy
@@ -173,7 +150,6 @@ services:
       - backend
       - dashboard
       - api
-      - website
     ports:
       - "${GATEWAY_HTTP_BIND_ADDR:-0.0.0.0}:${GATEWAY_HTTP_BIND_PORT:-80}:80"
       - "${GATEWAY_HTTPS_BIND_ADDR:-0.0.0.0}:${GATEWAY_HTTPS_BIND_PORT:-443}:443"

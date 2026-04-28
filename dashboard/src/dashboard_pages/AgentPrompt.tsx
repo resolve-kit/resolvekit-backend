@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { useParams } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
@@ -142,11 +141,7 @@ export default function AgentPrompt() {
           </div>
 
           <div className="mt-4 flex justify-end">
-            <ResolveKitAction
-              as={Button}
-              actionId="save-agent-prompt-btn"
-              actionRole="action"
-              description="Save agent system prompt and scope mode settings"
+            <Button
               type="submit"
               variant="primary"
               size="md"
@@ -154,7 +149,7 @@ export default function AgentPrompt() {
               disabled={!isDirty}
             >
               Save Settings
-            </ResolveKitAction>
+            </Button>
           </div>
         </SectionCard>
       </form>

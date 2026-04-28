@@ -69,13 +69,10 @@ export default function Layout() {
                   const label =
                     path === "/apps" ? "Apps" : path === "/knowledge-bases" ? "Knowledge Bases" : "Organization";
                   const active = location.pathname.startsWith(path);
-                  const resolveKitId =
-                    path === "/apps" ? "nav-apps" : path === "/knowledge-bases" ? "nav-knowledge-bases" : "nav-organization";
                   return (
                     <Link
                       key={path}
                       to={path}
-                      data-resolvekit-id={resolveKitId}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                         active
                           ? "border-accent-dim bg-accent-subtle text-accent"
@@ -106,13 +103,10 @@ export default function Layout() {
                   ["/organization", "Organization"],
                 ].map(([path, label]) => {
                   const active = location.pathname.startsWith(path);
-                  const resolveKitId =
-                    path === "/apps" ? "nav-apps" : path === "/knowledge-bases" ? "nav-knowledge-bases" : "nav-organization";
                   return (
                     <Link
                       key={path}
                       to={path}
-                      data-resolvekit-id={resolveKitId}
                       className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                         active
                           ? "border-accent-dim bg-accent-subtle text-accent"

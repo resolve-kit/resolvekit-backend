@@ -9,9 +9,8 @@ def test_apps_card_navigates_to_default_app_page_on_card_click() -> None:
     assert "navigate(`/apps/${appId}/${APP_DEFAULT_SLUG}`);" in text
 
 
-def test_apps_card_exposes_explicit_delete_control_metadata() -> None:
+def test_apps_card_keeps_explicit_delete_control() -> None:
     text = Path("dashboard/src/dashboard_pages/Apps.tsx").read_text(encoding="utf-8")
 
-    assert "data-resolvekit-id={`delete-app-${app.id}`}" in text
     assert 'aria-label={`Delete ${app.name} app`}' in text
     assert "sm:group-focus-within:opacity-100" in text

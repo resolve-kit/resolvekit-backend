@@ -3,10 +3,7 @@ set -eu
 
 : "${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL is required}"
 : "${LETSENCRYPT_CERT_NAME:?LETSENCRYPT_CERT_NAME is required}"
-: "${RESOLVEKIT_MARKETING_HOST:?RESOLVEKIT_MARKETING_HOST is required}"
-: "${RESOLVEKIT_CONSOLE_HOST:?RESOLVEKIT_CONSOLE_HOST is required}"
-: "${RESOLVEKIT_API_HOST:?RESOLVEKIT_API_HOST is required}"
-: "${RESOLVEKIT_AGENT_HOST:?RESOLVEKIT_AGENT_HOST is required}"
+: "${RESOLVEKIT_PUBLIC_HOST:?RESOLVEKIT_PUBLIC_HOST is required}"
 
 cert_file="/etc/letsencrypt/live/${LETSENCRYPT_CERT_NAME}/fullchain.pem"
 issuer="$(openssl x509 -in "${cert_file}" -noout -issuer 2>/dev/null || true)"
@@ -31,10 +28,7 @@ if [ "${needs_issue}" = "1" ]; then
       --cert-name "${LETSENCRYPT_CERT_NAME}" \
       --force-renewal \
       --staging \
-      -d "${RESOLVEKIT_MARKETING_HOST}" \
-      -d "${RESOLVEKIT_CONSOLE_HOST}" \
-      -d "${RESOLVEKIT_API_HOST}" \
-      -d "${RESOLVEKIT_AGENT_HOST}" || true
+      -d "${RESOLVEKIT_PUBLIC_HOST}" || true
   else
     certbot certonly \
       --webroot -w /var/www/certbot \
@@ -44,10 +38,7 @@ if [ "${needs_issue}" = "1" ]; then
       --email "${LETSENCRYPT_EMAIL}" \
       --cert-name "${LETSENCRYPT_CERT_NAME}" \
       --force-renewal \
-      -d "${RESOLVEKIT_MARKETING_HOST}" \
-      -d "${RESOLVEKIT_CONSOLE_HOST}" \
-      -d "${RESOLVEKIT_API_HOST}" \
-      -d "${RESOLVEKIT_AGENT_HOST}" || true
+      -d "${RESOLVEKIT_PUBLIC_HOST}" || true
   fi
 fi
 

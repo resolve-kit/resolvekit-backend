@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
@@ -110,18 +109,14 @@ export default function ApiKeys() {
               onKeyDown={(e) => e.key === "Enter" && createKey()}
             />
           </div>
-          <ResolveKitAction
-            as={Button}
-            actionId="generate-api-key-btn"
-            actionRole="action"
-            description="Generate a new API key for this app"
+          <Button
             variant="primary"
             size="md"
             onClick={createKey}
             loading={isGenerating}
           >
             Generate Key
-          </ResolveKitAction>
+          </Button>
         </div>
       </div>
 
@@ -142,20 +137,10 @@ export default function ApiKeys() {
             <code className="flex-1 bg-canvas border border-success-dim rounded-lg px-3 py-2 text-sm font-mono text-body break-all">
               {newKey}
             </code>
-            <Button
-              variant="outline"
-              size="sm"
-              data-resolvekit-id="copy-api-key-btn"
-              onClick={copyKey}
-            >
+            <Button variant="outline" size="sm" onClick={copyKey}>
               Copy
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              data-resolvekit-id="dismiss-api-key-btn"
-              onClick={() => setNewKey(null)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setNewKey(null)}>
               Dismiss
             </Button>
           </div>
@@ -163,7 +148,7 @@ export default function ApiKeys() {
       )}
 
       {/* Keys list */}
-      <div data-resolvekit-id="api-keys-list" className="space-y-2">
+      <div className="space-y-2">
         {keys.map((k) => (
           <div
             key={k.id}

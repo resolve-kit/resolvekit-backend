@@ -9,6 +9,26 @@
 
 ## Local deploy notes
 
+### Single-host quickstart
+
+The local deploy templates are optimized for one public host:
+
+- dashboard UI at `/`
+- dashboard control-plane API at `/v1/*`
+- agent runtime at `/agent/v1/*`
+
+This keeps self-host setup simple and avoids mandatory multi-origin DNS/TLS/CORS work.
+
+### Recommended production topology
+
+For larger or multi-region deployments, prefer separate public hosts:
+
+- `console.<domain>` for the dashboard shell
+- `api.<domain>` for dashboard control-plane routes
+- `agent.<domain>` for runtime session traffic
+
+This is the better fit when you want region-aware routing, different failover policies, or separate edge treatment for streaming runtime traffic.
+
 The SDK-facing host must preserve long-lived HTTP responses for:
 
 - `GET /v1/sessions/{id}/events`

@@ -25,7 +25,3 @@
 {$RESOLVEKIT_API_HOST} {
 	reverse_proxy api:3000
 }
-
-{$RESOLVEKIT_MARKETING_HOST} {
-	reverse_proxy website:3000
-}

@@ -8,24 +8,25 @@
 	}
 }
 
-{$RESOLVEKIT_AGENT_HOST} {
-	reverse_proxy backend:8000 {
-		flush_interval -1
-		transport http {
-			read_timeout 0
-			write_timeout 0
+{$RESOLVEKIT_PUBLIC_HOST} {
+	@agent path /agent /agent/*
+	handle @agent {
+		uri strip_prefix /agent
+		reverse_proxy backend:8000 {
+			flush_interval -1
+			transport http {
+				read_timeout 0
+				write_timeout 0
+			}
 		}
 	}
-}
 
-{$RESOLVEKIT_CONSOLE_HOST} {
-	reverse_proxy dashboard:3000
-}
+	@api path /v1 /v1/*
+	handle @api {
+		reverse_proxy api:3000
+	}
 
-{$RESOLVEKIT_API_HOST} {
-	reverse_proxy api:3000
-}
-
-{$RESOLVEKIT_MARKETING_HOST} {
-	reverse_proxy website:3000
+	handle {
+		reverse_proxy dashboard:3000
+	}
 }

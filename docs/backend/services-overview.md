@@ -4,7 +4,6 @@
 
 ResolveKit is split into four service roles:
 
-- `www` (`website/`, Next.js)
 - `dash` (`dashboard/`, Next.js)
 - `api` (`dashboard/`, Next.js Route Handlers under `/v1/*`)
 - `agent` (`main.py` -> `agent/main.py`, FastAPI)

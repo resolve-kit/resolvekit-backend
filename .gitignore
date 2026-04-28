@@ -19,7 +19,7 @@ dashboard/.next/
 dashboard/.next-dashboard/
 dashboard/.next-api/
 dashboard/.resolvekit-web-sdk/
-website/.next/
+*.tsbuildinfo
 
 # IDE
 .idea/

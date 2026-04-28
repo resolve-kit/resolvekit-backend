@@ -55,17 +55,16 @@ Settings are loaded via pydantic settings models:
 ## Frontend integration
 
 - `NEXT_PUBLIC_API_BASE_URL`
-  - Dashboard API origin used from `dash` UI (for example: `https://api.<domain>`).
+  - Dashboard API base URL used from `dash` UI.
+  - In split-host production this is typically `https://api.<domain>`.
+  - In the single-host quickstart this can be the dashboard origin itself.
 - `DATABASE_URL`
   - Dashboard Next route handler DB connection string (Prisma).
-- `RESOLVEKIT_NEXTJS_SDK_PATH`
-  - Filesystem path to a local `resolvekit-nextjs-sdk` checkout used by docker compose and dashboard image builds to inject/build `@resolvekit/nextjs`.
-- `RESOLVEKIT_KEY`
-  - Server-side ResolveKit API key used by the dashboard token proxy route. Do not expose it through `NEXT_PUBLIC_*`.
 - `RESOLVEKIT_SERVER_AGENT_BASE_URL`
-  - Optional server-only agent URL used by the dashboard token proxy route.
+  - Optional server-only agent URL used by dashboard server-side runtime lookups.
   - Must use HTTPS unless it targets `localhost`.
-  - Useful in reverse-proxy or internal-network deployments where the dashboard server should use a server-only URL that differs from the browser-facing agent URL.
+  - Useful in reverse-proxy or internal-network deployments where the dashboard server should use a server-only URL that differs from the browser-facing control-plane URL.
+  - In dockerized deployments this can point directly at `http://backend:8000`.
 - `IAA_JWT_SECRET`
 - `IAA_JWT_ALGORITHM`
 - `IAA_JWT_EXPIRE_MINUTES`
@@ -116,6 +115,8 @@ Settings are loaded via pydantic settings models:
 ## Defaults and examples
 
 - See `.env.example` and `docker-compose.yml` for local defaults and service wiring.
+- `.env.local-deploy.example` demonstrates the single-host quickstart (`/agent` path prefix).
+- `.env.prod.example` demonstrates the recommended split-host production topology.
 
 ## Operational Notes
 

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { api, ApiError } from "../api/client";
 import {
   Badge,
@@ -22,7 +21,6 @@ interface Fn {
 }
 
 const IOS_SDK_REPO_URL = "https://github.com/Nights-Are-Late/resolvekit-ios-sdk";
-const NEXTJS_SDK_NPM_URL = "https://www.npmjs.com/package/@resolvekit/nextjs";
 
 export default function Functions() {
   const { appId } = useParams();
@@ -133,11 +131,10 @@ export default function Functions() {
         </div>
       </div>
 
-      <div data-resolvekit-id="functions-list" className="space-y-3">
+      <div className="space-y-3">
         {functions.map((fn) => (
           <div
             key={fn.id}
-            data-resolvekit-id={`function-card-${fn.id}`}
             className={`glass-panel rounded-xl p-4 transition-opacity ${
               !fn.is_active ? "opacity-50" : ""
             }`}
@@ -159,17 +156,13 @@ export default function Functions() {
                   </span>
                 </div>
               </div>
-              <ResolveKitAction
-                as={Button}
-                actionId={`toggle-function-${fn.id}`}
-                actionRole="action"
-                description={`${fn.is_active ? "Deactivate" : "Activate"} the ${fn.name} function`}
+              <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => toggleActive(fn)}
               >
                 {fn.is_active ? "Deactivate" : "Activate"}
-              </ResolveKitAction>
+              </Button>
             </div>
 
             {/* SDK description */}
@@ -191,29 +184,21 @@ export default function Functions() {
                   placeholder="Override the description the LLM sees..."
                 />
                 <div className="flex gap-2 mt-3">
-                    <ResolveKitAction
-                      as={Button}
-                      actionId={`save-function-override-${fn.id}`}
-                      actionRole="action"
-                      description={`Save the description override for ${fn.name}`}
+                    <Button
                       variant="primary"
                       size="sm"
                       onClick={() => saveOverride(fn)}
                     >
                       Save
-                    </ResolveKitAction>
+                    </Button>
                   {fn.description_override && (
-                    <ResolveKitAction
-                      as={Button}
-                      actionId={`clear-function-override-${fn.id}`}
-                      actionRole="action"
-                      description={`Clear the description override for ${fn.name}`}
+                    <Button
                       variant="danger"
                       size="sm"
                       onClick={() => clearOverride(fn)}
                     >
                       Clear
-                    </ResolveKitAction>
+                    </Button>
                   )}
                   <Button
                     variant="ghost"
@@ -234,22 +219,12 @@ export default function Functions() {
                       </p>
                       <p className="text-sm text-body">{fn.description_override}</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      data-resolvekit-id={`edit-function-override-${fn.id}`}
-                      onClick={() => startEditOverride(fn)}
-                      className="mt-1"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => startEditOverride(fn)} className="mt-1">
                       Edit
                     </Button>
                   </div>
                 ) : (
-                  <button
-                    data-resolvekit-id={`edit-function-override-${fn.id}`}
-                    onClick={() => startEditOverride(fn)}
-                    className="text-xs text-accent hover:text-accent-hover transition-colors"
-                  >
+                  <button onClick={() => startEditOverride(fn)} className="text-xs text-accent hover:text-accent-hover transition-colors">
                     + Add description override
                   </button>
                 )}
@@ -260,11 +235,7 @@ export default function Functions() {
             <div className="flex items-center gap-4 text-xs text-muted">
               <span>Timeout: {fn.timeout_seconds}s</span>
               {Object.keys(fn.parameters_schema).length > 0 && (
-                <button
-                  data-resolvekit-id={`toggle-function-schema-${fn.id}`}
-                  onClick={() => toggleSchema(fn.id)}
-                  className="flex items-center gap-1 text-subtle hover:text-body transition-colors"
-                >
+                <button onClick={() => toggleSchema(fn.id)} className="flex items-center gap-1 text-subtle hover:text-body transition-colors">
                   <svg
                     className={`w-3.5 h-3.5 transition-transform ${
                       openSchemas.has(fn.id) ? "rotate-180" : ""
@@ -299,23 +270,12 @@ export default function Functions() {
               Open your app with the SDK + API key configured to register functions here.
             </p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
-              <ResolveKitAction
-                as={Button}
-                actionId="open-ios-sdk-repo-btn"
-                actionRole="action"
-                description="Open the ResolveKit iOS SDK GitHub repository in a new tab"
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.open(IOS_SDK_REPO_URL, "_blank", "noopener,noreferrer")}
               >
                 iOS SDK on GitHub
-              </ResolveKitAction>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(NEXTJS_SDK_NPM_URL, "_blank", "noopener,noreferrer")}
-              >
-                Next.js SDK on npm
               </Button>
             </div>
           </div>

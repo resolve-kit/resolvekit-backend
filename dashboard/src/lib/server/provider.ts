@@ -135,7 +135,6 @@ type OpenRouterCatalogModel = {
 let openRouterCatalogCache: { expiresAt: number; items: OpenRouterCatalogModel[] } | null = null;
 const OPENROUTER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const serverAgentBaseUrl = (process.env.RESOLVEKIT_SERVER_AGENT_BASE_URL ?? "").trim();
-const publicAgentBaseUrl = (process.env.NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL ?? "").trim();
 
 type RuntimePricingLookupResponse = {
   provider?: string;
@@ -304,7 +303,15 @@ function normalizePricingLookupModel(providerId: string, modelId: string): strin
 }
 
 function resolveAgentBaseUrl(): string {
-  return serverAgentBaseUrl || publicAgentBaseUrl || "http://localhost:8000";
+  return serverAgentBaseUrl || "http://localhost:8000";
+}
+
+function buildAgentUrl(pathname: string): URL {
+  const base = new URL(resolveAgentBaseUrl());
+  const normalizedBasePath = base.pathname.replace(/\/+$/, "");
+  const normalizedPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  base.pathname = `${normalizedBasePath}${normalizedPath}` || "/";
+  return base;
 }
 
 async function fetchRuntimeModelPricing(providerId: string, modelId: string): Promise<ModelPricing | null> {
@@ -312,7 +319,7 @@ async function fetchRuntimeModelPricing(providerId: string, modelId: string): Pr
   const normalizedModel = normalizePricingLookupModel(normalizedProvider, modelId);
   if (!normalizedProvider || !normalizedModel) return null;
 
-  const url = new URL("/v1/pricing/model", resolveAgentBaseUrl());
+  const url = buildAgentUrl("/v1/pricing/model");
   url.searchParams.set("provider", normalizedProvider);
   url.searchParams.set("model", normalizedModel);
 

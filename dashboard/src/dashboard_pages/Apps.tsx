@@ -1,5 +1,4 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { ResolveKitAction } from "@resolvekit/nextjs/react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import {
@@ -285,11 +284,7 @@ export default function Apps() {
         title="Your Apps"
         subtitle="Manage embedded chat deployments and operator configuration readiness across your app portfolio."
         rightSlot={
-          <ResolveKitAction
-            as={Button}
-            actionId="create-app-btn"
-            actionRole="action"
-            description="Open form to create a new app workspace"
+          <Button
             variant="primary"
             size="md"
             className="w-full sm:w-auto"
@@ -301,7 +296,7 @@ export default function Apps() {
             }
           >
             New App
-          </ResolveKitAction>
+          </Button>
         }
       />
 
@@ -330,18 +325,14 @@ export default function Apps() {
             />
           </div>
           <div className="flex gap-2">
-            <ResolveKitAction
-              as={Button}
-              actionId="create-app-submit"
-              actionRole="action"
-              description="Submit the create app form with the entered name and bundle ID"
+            <Button
               variant="primary"
               size="sm"
               onClick={createApp}
               loading={isCreating}
             >
               Create
-            </ResolveKitAction>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -354,11 +345,10 @@ export default function Apps() {
       )}
 
       {/* App grid */}
-      <div data-resolvekit-id="apps-list" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {apps.map((app, i) => (
           <div
             key={app.id}
-            data-resolvekit-id={`app-card-${app.id}`}
             role="link"
             tabIndex={0}
             onClick={(event) => {
@@ -376,7 +366,6 @@ export default function Apps() {
           >
             <div className="absolute top-3 right-3 flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
               <button
-                data-resolvekit-id={`edit-app-${app.id}`}
                 aria-label={`Edit ${app.name} app`}
                 onClick={() => beginEdit(app)}
                 className="rounded p-1 text-subtle hover:text-body"
@@ -391,7 +380,6 @@ export default function Apps() {
                 </svg>
               </button>
               <button
-                data-resolvekit-id={`delete-app-${app.id}`}
                 aria-label={`Delete ${app.name} app`}
                 onClick={() => setConfirmDeleteId(app.id)}
                 className="rounded p-1 text-subtle hover:text-danger"
@@ -505,13 +493,10 @@ export default function Apps() {
 
       <ConfirmDialog
         open={confirmDeleteId !== null && appToDelete !== null}
-        dialogId="delete-app-dialog"
         title="Delete App"
         description={`Are you sure you want to delete "${appToDelete?.name ?? "this app"}"? This will permanently remove all associated configuration, functions, sessions, and API keys.`}
         confirmLabel="Delete App"
         confirmVariant="danger"
-        confirmButtonId="delete-app-confirm-btn"
-        cancelButtonId="delete-app-cancel-btn"
         confirmTextRequired={appToDelete?.name ?? ""}
         confirmTextLabel="Type app name to confirm"
         confirmTextPlaceholder="Enter app name exactly"
