@@ -2,6 +2,11 @@
 
 This index is optimized for both engineers and LLM-based coding agents.
 
+## Agent Entry Points
+
+- [Agent Map](../AGENTS.md)
+- [Agent-First Harness Notes](agent-first/README.md)
+
 ## Architecture and Service Boundaries
 
 - [Service Overview](backend/services-overview.md)
@@ -22,6 +27,12 @@ This index is optimized for both engineers and LLM-based coding agents.
 
 - [Environment Reference](backend/config-env-reference.md)
 - [Local Dev + Docker Runbook](backend/runbooks/local-dev-and-docker.md)
+
+## Planning and Change History
+
+- [Execution Plans](exec-plans/README.md)
+- [Tech Debt Tracker](exec-plans/tech-debt-tracker.md)
+- [Reports](reports/)
 
 ## Protocol References
 
