@@ -8,7 +8,11 @@ Security fixes are handled on the default branch. Until the project has tagged r
 
 Do not open a public issue for suspected vulnerabilities.
 
-Use GitHub's private vulnerability reporting for this repository, or contact the maintainers through the private channel listed on the repository once one is configured.
+Use GitHub's private vulnerability reporting for this repository:
+
+- https://github.com/resolve-kit/resolvekit-backend/security/advisories/new
+
+If the advisory form is unavailable, use the repository's security contact email shown in the repository metadata once configured.
 
 Please include:
 
@@ -19,4 +23,3 @@ Please include:
 - any known mitigations
 
 We will acknowledge valid reports as soon as practical, prioritize fixes based on severity and exploitability, and publish coordinated disclosure notes when a fix is available.
-

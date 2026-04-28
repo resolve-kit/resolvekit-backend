@@ -13,8 +13,14 @@ def test_root_license_is_agpl_3_only() -> None:
 def test_python_project_declares_agpl_3_only() -> None:
     project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]
 
+    assert project["name"] == "resolvekit-backend"
     assert project["license"] == "AGPL-3.0-only"
     assert project["license-files"] == ["LICENSE"]
+
+    urls = project["urls"]
+    assert urls["Homepage"] == "https://github.com/resolve-kit/resolvekit-backend"
+    assert urls["Repository"] == "https://github.com/resolve-kit/resolvekit-backend"
+    assert urls["Issues"] == "https://github.com/resolve-kit/resolvekit-backend/issues"
 
 
 def test_dashboard_package_declares_agpl_3_only() -> None:
