@@ -1,0 +1,62 @@
+{
+	email {$LETSENCRYPT_EMAIL}
+	servers {
+		# Keep original client IP/proto when running behind another private edge.
+		trusted_proxies static private_ranges
+	}
+}
+
+(resolvekit_routes) {
+	encode zstd gzip
+
+	@agent path /agent /agent/*
+	handle @agent {
+		uri strip_prefix /agent
+		reverse_proxy {$CADDY_BACKEND_UPSTREAM:resolvekit_backend:8000} {
+			flush_interval -1
+			transport http {
+				read_timeout 0
+				write_timeout 0
+			}
+		}
+	}
+
+	@kb path /kb /kb/*
+	handle @kb {
+		uri strip_prefix /kb
+		reverse_proxy {$CADDY_KB_UPSTREAM:resolvekit_kb_service:8100}
+	}
+
+	@api_v1 path /v1 /v1/*
+	handle @api_v1 {
+		reverse_proxy {$CADDY_API_UPSTREAM:resolvekit_api:3002}
+	}
+
+	@api_alias path /api /api/*
+	handle @api_alias {
+		uri strip_prefix /api
+		reverse_proxy {$CADDY_API_UPSTREAM:resolvekit_api:3002}
+	}
+
+	handle {
+		reverse_proxy {$CADDY_DASHBOARD_UPSTREAM:resolvekit_dashboard:3000}
+	}
+}
+
+{$CADDY_PRIMARY_HOST:support.example.com}, {$CADDY_WWW_HOST:www.support.example.com}, {$CADDY_DASH_HOST:dash.support.example.com} {
+	import resolvekit_routes
+}
+
+{$CADDY_API_HOST:api.support.example.com} {
+	reverse_proxy {$CADDY_BACKEND_UPSTREAM:resolvekit_backend:8000} {
+		flush_interval -1
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}
+
+:8080 {
+	import resolvekit_routes
+}

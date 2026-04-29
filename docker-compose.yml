@@ -109,6 +109,7 @@ services:
     working_dir: /app
     depends_on:
       - api
+    env_file: .env
     command: >
       sh -lc "set -e;
       rm -rf .next-dashboard;
@@ -146,6 +147,7 @@ services:
     working_dir: /app
     depends_on:
       - backend
+    env_file: .env
     command: >
       sh -lc "set -e;
       rm -rf .next-api;
@@ -174,6 +176,29 @@ services:
       - api_node_modules:/app/node_modules
     ports:
       - "127.0.0.1:3002:3002"
+    networks:
+      - resolvekit
+
+  caddy:
+    image: caddy:2.8.4
+    container_name: resolvekit_caddy
+    restart: unless-stopped
+    profiles: ["gateway"]
+    depends_on:
+      - backend
+      - kb-service
+      - dashboard
+      - api
+    env_file: .env
+    ports:
+      - "${CADDY_HTTP_BIND:-0.0.0.0:80}:80"
+      - "${CADDY_HTTPS_BIND:-0.0.0.0:443}:443"
+      - "${CADDY_HTTPS_BIND:-0.0.0.0:443}:443/udp"
+      - "${CADDY_LOCAL_BIND:-127.0.0.1:8080}:8080"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./infra/caddy/data:/data
+      - ./infra/caddy/config:/config
     networks:
       - resolvekit
 

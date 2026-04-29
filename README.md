@@ -21,6 +21,12 @@ ResolveKit Backend provides the server-side runtime for embedded app assistants.
    - `cp .env.local-deploy.example .env.local-deploy`
    - configure your public hostname + Let's Encrypt values in `.env.local-deploy`
    - `docker compose -f docker-compose.local-deploy.yml --env-file .env --env-file .env.local-deploy up -d --build`
+5. Optional standalone Dockerized Caddy gateway:
+   - configure `CADDY_*` domain/bind values in `.env`
+   - `docker compose -f infra/caddy/docker-compose.yml up -d`
+6. Optional Caddy from main compose (recommended if you want one command family):
+   - configure `CADDY_*` values in `.env`
+   - `docker compose --profile gateway up -d`
 
 ## Deployment Modes
 

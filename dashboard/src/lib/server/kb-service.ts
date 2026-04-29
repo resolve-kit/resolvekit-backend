@@ -125,7 +125,17 @@ async function doFetch(path: string, init: RequestInit): Promise<Response> {
 }
 
 async function callInternal(path: string, payload: Record<string, unknown>, ctx: ActorContext): Promise<Record<string, unknown>> {
-  const token = await buildServiceToken(ctx);
+  let token: string;
+  try {
+    token = await buildServiceToken(ctx);
+  } catch (error) {
+    console.error("KB token generation failed", error);
+    throw new KBServiceError({
+      status: 500,
+      detail: "Knowledge base integration is misconfigured",
+      code: "kb_auth_misconfigured",
+    });
+  }
   const response = await doFetch(path, {
     method: "POST",
     headers: {
@@ -155,7 +165,17 @@ export async function callInternalMultipart(
   file: { filename: string; content: Uint8Array; contentType: string },
   ctx: ActorContext,
 ): Promise<Record<string, unknown>> {
-  const token = await buildServiceToken(ctx);
+  let token: string;
+  try {
+    token = await buildServiceToken(ctx);
+  } catch (error) {
+    console.error("KB token generation failed", error);
+    throw new KBServiceError({
+      status: 500,
+      detail: "Knowledge base integration is misconfigured",
+      code: "kb_auth_misconfigured",
+    });
+  }
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) {
     form.set(key, value);
