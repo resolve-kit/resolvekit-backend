@@ -9,6 +9,20 @@
 
 ## Local deploy notes
 
+### Optional Dockerized Caddy gateway
+
+If you want Caddy separate from the main compose stack, use `infra/caddy`:
+
+- configure `CADDY_PRIMARY_HOST`, `CADDY_WWW_HOST`, `CADDY_DASH_HOST`, `CADDY_API_HOST`, and `LETSENCRYPT_EMAIL` in `.env`
+- start gateway: `docker compose -f infra/caddy/docker-compose.yml up -d`
+- this gateway reads `.env` directly and proxies to the existing local Docker services on `resolvekit_default`
+
+If you prefer keeping everything in the main compose file, use:
+
+- `docker compose --profile gateway up -d`
+
+This starts the same Caddy config via the `caddy` service in `docker-compose.yml`.
+
 ### Single-host quickstart
 
 The local deploy templates are optimized for one public host:
