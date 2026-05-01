@@ -18,7 +18,7 @@ ResolveKit Backend runs the AI agent that resolves user issues inside mobile app
 - **Handles tool calls** — dispatches function calls to iOS/Android SDKs and collects results
 - **Manages knowledge bases** — crawls, indexes, and searches your app's documentation
 - **Provides an admin dashboard** — configure apps, monitor sessions, manage functions
-- **Exposes APIs** — REST and WebSocket endpoints for SDK integration
+- **Exposes APIs** — REST and SSE endpoints for SDK integration
 
 ## Architecture
 
@@ -72,7 +72,7 @@ IAA_ENCRYPTION_KEY=your-fernet-key       # For encrypting provider secrets
 
 # Optional
 RESOLVEKIT_AGENT_BASE_URL=https://agent.yourdomain.com  # Public URL
-IAA_KNOWLEDGE_BASES_BASE_URL=http://kb:8001             # Internal KB service URL
+IAA_KNOWLEDGE_BASES_BASE_URL=http://kb:8100             # Internal KB service URL
 ```
 
 ### 3. Start Services
@@ -82,8 +82,8 @@ docker compose up -d
 ```
 
 This starts:
-- **Agent service** (port 8000) — FastAPI with WebSocket support
-- **Knowledge bases service** (port 8001) — Document ingestion and search
+- **Agent service** (port 8000) — FastAPI with SSE support
+- **Knowledge bases service** (port 8100) — Document ingestion and search
 - **Dashboard** (port 3000) — Next.js admin UI
 - **PostgreSQL** (port 5432) — Database
 - **Redis** (port 6379) — Cache and session state
@@ -144,10 +144,21 @@ uv run alembic upgrade head
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/sdk/sessions` | Create a new chat session |
-| `WS` | `/sdk/sessions/{id}/events` | WebSocket event stream |
-| `POST` | `/sdk/sessions/{id}/tool-results` | Submit tool call results |
-| `GET` | `/sdk/sessions/{id}/history` | Get session message history |
+| GET | /health | Health check |
+| PUT | /v1/functions/bulk | Bulk register functions |
+| GET | /v1/functions | List functions |
+| GET | /v1/functions/eligible | Get eligible functions for session |
+| POST | /v1/sessions | Create session |
+| PATCH | /v1/sessions/{session_id}/context | Update session context |
+| GET | /v1/sessions/{session_id}/localization | Get session localization |
+| GET | /v1/sessions/{session_id}/messages | Get session messages |
+| GET | /v1/sessions/{session_id}/events | SSE event stream |
+| POST | /v1/sessions/{session_id}/messages | Post chat message |
+| POST | /v1/sessions/{session_id}/tool-results | Submit tool results |
+| GET | /v1/sdk/compat | SDK compatibility check |
+| GET | /v1/sdk/chat-theme | Get chat theme |
+| POST | /v1/sdk/client-token | Issue client token |
+| GET | /v1/pricing/model | Get pricing model |
 
 ### Dashboard API
 
@@ -177,6 +188,11 @@ Full OpenAPI specs are available at:
 | `REDIS_URL` | Yes | Redis connection string |
 | `IAA_JWT_SECRET` | Yes | Secret for signing JWT tokens |
 | `IAA_ENCRYPTION_KEY` | Yes | Fernet key for encrypting secrets |
+| `IAA_SDK_CLIENT_TOKEN_SECRET` | No | Client token signing secret |
+| `IAA_SDK_CLIENT_TOKEN_TTL_SECONDS` | No | Client token TTL |
+| `IAA_SDK_CLIENT_TOKEN_RATE_LIMIT_PER_MINUTE` | No | Token rate limit |
+| `IAA_SESSION_TTL_MINUTES` | No | Session TTL |
+| `IAA_INSTANCE_ID` | No | Instance identifier |
 
 ### Knowledge Bases Service
 

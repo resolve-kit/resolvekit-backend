@@ -44,6 +44,8 @@
             "type": "string"
           },
           "text": {
+            "maxLength": 32768,
+            "minLength": 1,
             "title": "Text",
             "type": "string"
           }
@@ -436,6 +438,80 @@
           "created_at"
         ],
         "title": "MessageOut",
+        "type": "object"
+      },
+      "ModelPricingLookupOut": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelPricingOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model"
+        ],
+        "title": "ModelPricingLookupOut",
+        "type": "object"
+      },
+      "ModelPricingOut": {
+        "properties": {
+          "image_per_thousand_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Per Thousand Usd"
+          },
+          "input_per_million_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Per Million Usd"
+          },
+          "output_per_million_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Per Million Usd"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "ModelPricingOut",
         "type": "object"
       },
       "SDKClientTokenResponse": {
@@ -900,12 +976,15 @@
       "ToolResultBody": {
         "properties": {
           "call_id": {
+            "maxLength": 255,
+            "minLength": 1,
             "title": "Call Id",
             "type": "string"
           },
           "error": {
             "anyOf": [
               {
+                "maxLength": 4096,
                 "type": "string"
               },
               {
@@ -930,6 +1009,8 @@
             "title": "Result"
           },
           "status": {
+            "maxLength": 32,
+            "minLength": 1,
             "title": "Status",
             "type": "string"
           },
@@ -1126,6 +1207,61 @@
         "summary": "List Eligible Functions Sdk",
         "tags": [
           "functions-sdk"
+        ]
+      }
+    },
+    "/v1/pricing/model": {
+      "get": {
+        "operationId": "get_model_pricing_v1_pricing_model_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Model",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelPricingLookupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Model Pricing",
+        "tags": [
+          "pricing"
         ]
       }
     },

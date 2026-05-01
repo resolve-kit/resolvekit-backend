@@ -27,8 +27,7 @@ This document tracks which SDK versions are compatible with which backend versio
 The ResolveKit protocol version is tied to the major backend version:
 
 - **Protocol v1** (Backend `1.x`): Current stable protocol
-  - HTTP/3-first session event stream
-  - WebSocket for real-time events
+  - SSE (Server-Sent Events) for real-time events
   - JSON Schema for tool definitions
   - JWT-based auth
 

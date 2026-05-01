@@ -2,6 +2,10 @@
 
 ## `agent` routers
 
+## Main (`agent/main.py`)
+
+- `GET /health`
+
 ## Functions (`agent/routers/functions.py`)
 
 - `PUT /v1/functions/bulk`
@@ -25,3 +29,8 @@
 
 - `GET /v1/sdk/compat`
 - `GET /v1/sdk/chat-theme`
+- `POST /v1/sdk/client-token`
+
+## Pricing (`agent/routers/pricing.py`)
+
+- `GET /v1/pricing/model`
