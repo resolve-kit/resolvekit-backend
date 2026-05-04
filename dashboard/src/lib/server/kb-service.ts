@@ -7,6 +7,12 @@ const KB_TIMEOUT_MS = Math.floor(Number(process.env.RK_KNOWLEDGE_BASES_TIMEOUT_S
 
 const KB_INSECURE_KEY_VALUES = new Set(["", "change-me-kb-service-signing-key"]);
 
+export type KBIntegrationStatus = {
+  enabled: boolean;
+  code: "ok" | "kb_auth_misconfigured" | "kb_service_unavailable";
+  detail: string;
+};
+
 function resolveKbSigningKey(): string {
   const value = (process.env.RK_KNOWLEDGE_BASES_SIGNING_KEY ?? "").trim();
   if (KB_INSECURE_KEY_VALUES.has(value)) {
@@ -51,6 +57,56 @@ export class KBServiceError extends Error {
     super(payload.detail);
     this.status = payload.status;
     this.code = payload.code;
+  }
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const value = error as { name?: unknown };
+  return value.name === "AbortError";
+}
+
+export async function getKbIntegrationStatus(): Promise<KBIntegrationStatus> {
+  try {
+    getKbSigningKey();
+  } catch {
+    return {
+      enabled: false,
+      code: "kb_auth_misconfigured",
+      detail: "Knowledge base integration is not configured.",
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), KB_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${KB_BASE_URL}/health`, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return {
+        enabled: false,
+        code: "kb_service_unavailable",
+        detail: "Knowledge base service is unavailable.",
+      };
+    }
+    return {
+      enabled: true,
+      code: "ok",
+      detail: "Knowledge base integration is available.",
+    };
+  } catch (error) {
+    return {
+      enabled: false,
+      code: "kb_service_unavailable",
+      detail: isAbortLikeError(error)
+        ? "Knowledge base service timed out."
+        : "Knowledge base service is unavailable.",
+    };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

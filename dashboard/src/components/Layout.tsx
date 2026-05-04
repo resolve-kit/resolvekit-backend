@@ -4,6 +4,7 @@ import { Link, Outlet, useLocation, useMatch, useNavigate } from "react-router-d
 import { api, logout } from "../api/client";
 import { DirtyStateProvider } from "../context/DirtyStateContext";
 import { OnboardingProvider } from "../context/OnboardingContext";
+import { useKnowledgeBaseStatus } from "../hooks/useKnowledgeBaseStatus";
 import AppSidebar from "./AppSidebar";
 import OnboardingGuideRail from "./OnboardingGuideRail";
 import ResolveKitWordmark from "./ResolveKitWordmark";
@@ -14,6 +15,7 @@ export default function Layout() {
   const isAppRoute = useMatch("/apps/:appId/*");
   const [authReady, setAuthReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { status: kbStatus } = useKnowledgeBaseStatus();
 
   const handleSignOut = useCallback(async () => {
     await logout();
@@ -69,6 +71,18 @@ export default function Layout() {
                   const label =
                     path === "/apps" ? "Apps" : path === "/knowledge-bases" ? "Knowledge Bases" : "Organization";
                   const active = location.pathname.startsWith(path);
+                  const kbDisabled = path === "/knowledge-bases" && !kbStatus.enabled;
+                  if (kbDisabled) {
+                    return (
+                      <span
+                        key={path}
+                        title={kbStatus.detail}
+                        className="rounded-lg border border-transparent px-3 py-1.5 text-xs font-semibold text-dim opacity-70"
+                      >
+                        {label}
+                      </span>
+                    );
+                  }
                   return (
                     <Link
                       key={path}
@@ -103,6 +117,18 @@ export default function Layout() {
                   ["/organization", "Organization"],
                 ].map(([path, label]) => {
                   const active = location.pathname.startsWith(path);
+                  const kbDisabled = path === "/knowledge-bases" && !kbStatus.enabled;
+                  if (kbDisabled) {
+                    return (
+                      <span
+                        key={path}
+                        title={kbStatus.detail}
+                        className="whitespace-nowrap rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-dim opacity-70"
+                      >
+                        {label}
+                      </span>
+                    );
+                  }
                   return (
                     <Link
                       key={path}

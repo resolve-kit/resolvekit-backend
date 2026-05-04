@@ -8,6 +8,8 @@ from jose import jwt
 
 from agent.config import settings
 
+_KB_INSECURE_SIGNING_KEYS = {"", "change-me-kb-service-signing-key"}
+
 
 @dataclass
 class KBServiceError(Exception):
@@ -17,6 +19,85 @@ class KBServiceError(Exception):
 
     def __str__(self) -> str:
         return self.detail
+
+
+@dataclass
+class KBIntegrationStatus:
+    enabled: bool
+    code: str
+    detail: str
+
+
+def get_kb_integration_status_from_config() -> KBIntegrationStatus:
+    signing_key = str(settings.knowledge_bases_signing_key or "").strip()
+    if signing_key in _KB_INSECURE_SIGNING_KEYS:
+        return KBIntegrationStatus(
+            enabled=False,
+            code="kb_auth_misconfigured",
+            detail="Knowledge base integration is not configured.",
+        )
+
+    base_url = str(settings.knowledge_bases_base_url or "").strip()
+    if not base_url:
+        return KBIntegrationStatus(
+            enabled=False,
+            code="kb_auth_misconfigured",
+            detail="Knowledge base integration base URL is missing.",
+        )
+
+    audience = str(settings.knowledge_bases_audience or "").strip()
+    if not audience:
+        return KBIntegrationStatus(
+            enabled=False,
+            code="kb_auth_misconfigured",
+            detail="Knowledge base integration audience is missing.",
+        )
+
+    return KBIntegrationStatus(
+        enabled=True,
+        code="ok",
+        detail="Knowledge base integration is configured.",
+    )
+
+
+async def probe_kb_service_health() -> KBIntegrationStatus:
+    configured = get_kb_integration_status_from_config()
+    if not configured.enabled:
+        return configured
+
+    timeout_seconds = max(
+        1.0,
+        min(
+            float(settings.knowledge_bases_connect_timeout_seconds or 5.0),
+            float(settings.knowledge_bases_timeout_seconds or 20.0),
+            3.0,
+        ),
+    )
+    timeout = httpx.Timeout(timeout=timeout_seconds)
+    url = f"{settings.knowledge_bases_base_url.rstrip('/')}/health"
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.get(url)
+    except httpx.HTTPError:
+        return KBIntegrationStatus(
+            enabled=False,
+            code="kb_service_unavailable",
+            detail="Knowledge base service is unavailable.",
+        )
+
+    if not response.is_success:
+        return KBIntegrationStatus(
+            enabled=False,
+            code="kb_service_unavailable",
+            detail="Knowledge base service is unavailable.",
+        )
+
+    return KBIntegrationStatus(
+        enabled=True,
+        code="ok",
+        detail="Knowledge base integration is available.",
+    )
 
 
 def _build_service_token(org_id: uuid.UUID, actor_id: str, actor_role: str) -> str:

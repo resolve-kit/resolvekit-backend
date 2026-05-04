@@ -1,6 +1,7 @@
 import uuid
 from unittest.mock import AsyncMock
 
+import httpx
 import pytest
 
 from agent.services import knowledge_bases_client
@@ -87,3 +88,37 @@ async def test_get_knowledge_base_briefs_calls_internal_route(
     payload = kwargs["payload"]
     assert payload["organization_id"] == str(org_id)
     assert payload["kb_ids"] == [str(kb_id)]
+
+
+def test_get_kb_integration_status_from_config_detects_misconfiguration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(knowledge_bases_client.settings, "knowledge_bases_signing_key", "change-me-kb-service-signing-key")
+    status = knowledge_bases_client.get_kb_integration_status_from_config()
+    assert status.enabled is False
+    assert status.code == "kb_auth_misconfigured"
+
+
+@pytest.mark.asyncio
+async def test_probe_kb_service_health_returns_unavailable_on_http_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(knowledge_bases_client.settings, "knowledge_bases_signing_key", "secure-signing-key")
+    monkeypatch.setattr(knowledge_bases_client.settings, "knowledge_bases_base_url", "http://kb-service:8100")
+    monkeypatch.setattr(knowledge_bases_client.settings, "knowledge_bases_audience", "kb-service")
+
+    class _BrokenClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, _url: str):
+            raise httpx.ConnectError("boom")
+
+    monkeypatch.setattr(knowledge_bases_client.httpx, "AsyncClient", lambda **_kwargs: _BrokenClient())
+
+    status = await knowledge_bases_client.probe_kb_service_health()
+    assert status.enabled is False
+    assert status.code == "kb_service_unavailable"

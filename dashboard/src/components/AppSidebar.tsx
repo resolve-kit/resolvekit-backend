@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../api/client";
 import { useDirtyState } from "../context/DirtyStateContext";
+import { useKnowledgeBaseStatus } from "../hooks/useKnowledgeBaseStatus";
 
 interface NavItem {
   label: string;
@@ -61,6 +62,7 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
   const { dirtyPages } = useDirtyState();
   const location = useLocation();
   const navigate = useNavigate();
+  const { status: kbStatus } = useKnowledgeBaseStatus();
   const [appName, setAppName] = useState("");
   const [missingConfig, setMissingConfig] = useState<Record<string, boolean>>({});
 
@@ -142,19 +144,23 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
       missingOverride?: boolean;
       onClickOverride?: () => void;
       resolveKitId?: string;
+      disabledOverride?: boolean;
     },
   ) {
     const depth = options?.depth ?? 0;
     const active = options?.activeOverride ?? isRouteActive(item.slug);
     const missing = options?.missingOverride ?? isRouteMissing(item.slug);
     const dirty = options?.dirtyOverride ?? isRouteDirty(item.slug);
+    const disabled = options?.disabledOverride ?? false;
     const status: "missing" | "dirty" | null = missing ? "missing" : dirty ? "dirty" : null;
     return (
       <button
         key={`${item.slug}-${depth}-${item.label}`}
         type="button"
         onClick={options?.onClickOverride ?? (() => navigate(pathFor(item.slug)))}
-        className={navButtonClass(active, depth)}
+        className={`${navButtonClass(active, depth)} ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
+        disabled={disabled}
+        title={disabled ? kbStatus.detail : undefined}
       >
         <span>{item.label}</span>
         {renderStatusDot(status)}
@@ -189,7 +195,12 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
 
             {isAgentSectionActive && (
               <div className="ml-2 space-y-1 border-l border-border/70 pl-2">
-                {AGENT_CHILD_ITEMS.map((item) => renderNavButton(item, { depth: 1 }))}
+                {AGENT_CHILD_ITEMS.map((item) =>
+                  renderNavButton(item, {
+                    depth: 1,
+                    disabledOverride: item.slug === "knowledge-bases" && !kbStatus.enabled,
+                  })
+                )}
               </div>
             )}
 
@@ -246,7 +257,12 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
 
           {isAgentSectionActive && (
             <div className="ml-2 space-y-1 border-l border-border/70 pl-2">
-              {AGENT_CHILD_ITEMS.map((item) => renderNavButton(item, { depth: 1 }))}
+              {AGENT_CHILD_ITEMS.map((item) =>
+                renderNavButton(item, {
+                  depth: 1,
+                  disabledOverride: item.slug === "knowledge-bases" && !kbStatus.enabled,
+                })
+              )}
             </div>
           )}
 

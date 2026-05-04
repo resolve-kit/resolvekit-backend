@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../api/client";
+import { useKnowledgeBaseStatus } from "../hooks/useKnowledgeBaseStatus";
 import {
   Badge,
   Button,
@@ -299,6 +300,7 @@ export default function KnowledgeBases() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   const { toast } = useToast();
+  const { status: kbStatus, loading: kbStatusLoading } = useKnowledgeBaseStatus();
 
   const selectedKb = useMemo(
     () => kbs.find((kb) => kb.id === selectedId) ?? null,
@@ -496,8 +498,9 @@ export default function KnowledgeBases() {
   }, [toast]);
 
   useEffect(() => {
+    if (kbStatusLoading || !kbStatus.enabled) return;
     void Promise.all([loadEmbeddingProfiles(), loadKnowledgeBases(), loadOrganizationLlmProfiles()]);
-  }, [loadEmbeddingProfiles, loadKnowledgeBases, loadOrganizationLlmProfiles]);
+  }, [kbStatus.enabled, kbStatusLoading, loadEmbeddingProfiles, loadKnowledgeBases, loadOrganizationLlmProfiles]);
 
   useEffect(() => {
     if (!newProfileLlmProfileId) {
@@ -951,6 +954,26 @@ export default function KnowledgeBases() {
     if (created) {
       setIsCreateKbModalOpen(false);
     }
+  }
+
+  if (!kbStatusLoading && !kbStatus.enabled) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Knowledge"
+          title="Knowledge Bases"
+          subtitle="Crawl docs, add support content, and assign reusable knowledge across apps."
+        />
+        <OnboardingTipCard tipId="knowledge_bases_tip" fallbackRoute="/knowledge-bases" />
+        <div className="glass-panel rounded-2xl border border-warning-dim bg-warning-subtle p-4 animate-fade-in-up">
+          <h2 className="text-sm font-semibold text-warning">Knowledge Bases disabled</h2>
+          <p className="mt-1 text-xs text-warning">{kbStatus.detail}</p>
+          <p className="mt-2 text-xs text-warning">
+            Start/configure the Knowledge Base service and reload this page to enable this section.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

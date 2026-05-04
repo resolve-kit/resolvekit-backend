@@ -26,8 +26,10 @@ from agent.services.chat_access_service import (
 from agent.services.compatibility_service import function_is_eligible
 from agent.services.function_service import get_function_requires_approval, get_function_timeout, validate_function_exists
 from agent.services.knowledge_bases_client import (
+    KBIntegrationStatus,
     KBServiceError,
     get_knowledge_base_briefs,
+    probe_kb_service_health,
     search_multiple_knowledge_bases,
 )
 from agent.services.llm_service import build_tools, call_llm, generate_tool_descriptions
@@ -1049,11 +1051,32 @@ async def run_agent_loop(
             session.id,
             session.app_id,
         )
+    if app_org_id is None or not assigned_kb_ids:
+        kb_service_status = KBIntegrationStatus(
+            enabled=False,
+            code="kb_not_assigned",
+            detail="No knowledge bases are assigned to this app.",
+        )
+    else:
+        kb_service_status = await probe_kb_service_health()
+    kb_service_enabled = bool(
+        kb_service_status.enabled
+        and app_org_id is not None
+        and assigned_kb_ids
+    )
+    if assigned_kb_ids and not kb_service_enabled:
+        logger.warning(
+            "kb_integration_disabled session_id=%s app_id=%s reason=%s detail=%s",
+            session.id,
+            session.app_id,
+            kb_service_status.code,
+            kb_service_status.detail,
+        )
+
     should_prefetch = bool(
         (router_result.needs_kb or force_kb_prefetch)
         and (router_result.kb_query or user_text).strip()
-        and app_org_id is not None
-        and assigned_kb_ids
+        and kb_service_enabled
     )
     kb_vision_mode = str(getattr(config, "kb_vision_mode", "ocr_safe") or "ocr_safe")
     playbook_prompt, kb_context, kb_index_context = await asyncio.gather(
@@ -1074,11 +1097,13 @@ async def run_agent_loop(
             session_id=session.id,
             app_org_id=app_org_id,
             assigned_kb_ids=assigned_kb_ids,
-        ),
+        )
+        if kb_service_enabled
+        else _noop_str(),
     )
 
     tools = list(sdk_tools)
-    if assigned_kb_ids:
+    if kb_service_enabled:
         tools.append(_build_kb_search_tool())
     tools_payload = tools or None
     tool_round = 0
@@ -1217,6 +1242,19 @@ async def run_agent_loop(
             # 5a. Execute internal KB tools server-side.
             for info in tc_infos:
                 if not info["is_kb_internal"]:
+                    continue
+                if not kb_service_enabled:
+                    kb_payload = {"error": kb_service_status.detail}
+                    seq = await get_next_sequence(db, session.id)
+                    result_msg = Message(
+                        session_id=session.id,
+                        sequence_number=seq,
+                        role="tool_result",
+                        tool_call_id=info["id"],
+                        content=json.dumps(kb_payload),
+                    )
+                    db.add(result_msg)
+                    await db.commit()
                     continue
                 kb_arguments = dict(info["arguments"]) if isinstance(info["arguments"], dict) else {}
                 # Preserve explicit kb_search queries from the LLM as-is.

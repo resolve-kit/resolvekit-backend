@@ -99,6 +99,11 @@ async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pyte
     monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(org_id, [kb_id])))
     monkeypatch.setattr(
         orchestrator,
+        "probe_kb_service_health",
+        AsyncMock(return_value=orchestrator.KBIntegrationStatus(enabled=True, code="ok", detail="available")),
+    )
+    monkeypatch.setattr(
+        orchestrator,
         "_run_router",
         AsyncMock(
             return_value=orchestrator.RouterResult(
@@ -139,4 +144,78 @@ async def test_run_agent_loop_persists_internal_kb_tool_result(monkeypatch: pyte
     payload = json.loads(tool_results[0].content or "{}")
     assert payload.get("items")
     assert payload.get("query") == "reset password"
+    assert sender.turn_complete_text == "Use Settings > Account > Reset Password."
+
+
+@pytest.mark.asyncio
+async def test_run_agent_loop_omits_kb_tool_when_kb_service_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    db = _DummyDB()
+    sender = _DummySender()
+    session = SimpleNamespace(
+        id=uuid.uuid4(),
+        app_id=uuid.uuid4(),
+        locale="en",
+        client_context={"platform": "ios", "os_name": "iOS", "os_version": "18.2"},
+        llm_context={},
+    )
+    config = SimpleNamespace(
+        system_prompt="You are support.",
+        max_tool_rounds=2,
+        max_context_messages=20,
+        kb_vision_mode="ocr_safe",
+    )
+
+    org_id = uuid.uuid4()
+    kb_id = uuid.uuid4()
+    sequence_counter = {"value": 0}
+
+    async def fake_next_sequence(_db, _session_id):  # noqa: ANN001
+        sequence_counter["value"] += 1
+        return sequence_counter["value"]
+
+    llm_mock = AsyncMock(return_value=_response_with_final_text())
+
+    monkeypatch.setattr(orchestrator, "get_next_sequence", fake_next_sequence)
+    monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
+    monkeypatch.setattr(orchestrator, "load_context_messages", AsyncMock(return_value=[]))
+    monkeypatch.setattr(orchestrator, "build_playbook_prompt", AsyncMock(return_value=""))
+    monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(org_id, [kb_id])))
+    monkeypatch.setattr(
+        orchestrator,
+        "probe_kb_service_health",
+        AsyncMock(
+            return_value=orchestrator.KBIntegrationStatus(
+                enabled=False,
+                code="kb_service_unavailable",
+                detail="Knowledge base service is unavailable.",
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_run_router",
+        AsyncMock(
+            return_value=orchestrator.RouterResult(
+                in_scope=True,
+                rejection_reason=None,
+                needs_kb=True,
+                kb_query="reset password",
+                intent="Password reset",
+            )
+        ),
+    )
+    monkeypatch.setattr(orchestrator, "call_llm", llm_mock)
+    monkeypatch.setattr(orchestrator, "search_multiple_knowledge_bases", AsyncMock())
+
+    await orchestrator.run_agent_loop(
+        db=db,
+        session=session,
+        config=config,
+        functions=[],
+        user_text="How do I reset password?",
+        sender=sender,
+    )
+
+    llm_mock.assert_awaited_once()
+    assert llm_mock.await_args.args[2] is None
     assert sender.turn_complete_text == "Use Settings > Account > Reset Password."

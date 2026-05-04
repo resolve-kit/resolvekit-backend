@@ -541,6 +541,11 @@ async def test_run_agent_loop_open_mode_continues_and_assembles_enriched_prompt(
     monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
     monkeypatch.setattr(orchestrator, "load_context_messages", AsyncMock(return_value=[]))
     monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [uuid.uuid4()])))
+    monkeypatch.setattr(
+        orchestrator,
+        "probe_kb_service_health",
+        AsyncMock(return_value=orchestrator.KBIntegrationStatus(enabled=True, code="ok", detail="available")),
+    )
     router_mock = AsyncMock(
         return_value=orchestrator.RouterResult(
             in_scope=False,
@@ -636,6 +641,11 @@ async def test_run_agent_loop_forces_kb_prefetch_for_support_contact_question_wh
     monkeypatch.setattr(orchestrator, "update_activity", AsyncMock())
     monkeypatch.setattr(orchestrator, "load_context_messages", AsyncMock(return_value=[]))
     monkeypatch.setattr(orchestrator, "_load_kb_assignment_context", AsyncMock(return_value=(uuid.uuid4(), [uuid.uuid4()])))
+    monkeypatch.setattr(
+        orchestrator,
+        "probe_kb_service_health",
+        AsyncMock(return_value=orchestrator.KBIntegrationStatus(enabled=True, code="ok", detail="available")),
+    )
     monkeypatch.setattr(
         orchestrator,
         "_run_router",

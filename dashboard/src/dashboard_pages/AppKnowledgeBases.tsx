@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 
 import { api, ApiError } from "../api/client";
 import { Button, useToast } from "../components/ui";
+import { useKnowledgeBaseStatus } from "../hooks/useKnowledgeBaseStatus";
 import OnboardingTipCard from "../components/OnboardingTipCard";
 
 interface KnowledgeBaseItem {
@@ -23,11 +24,13 @@ export default function AppKnowledgeBases() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { status: kbStatus, loading: kbStatusLoading } = useKnowledgeBaseStatus();
 
   const selectedSet = useMemo(() => new Set(selectedKnowledgeBaseIds), [selectedKnowledgeBaseIds]);
 
   useEffect(() => {
     if (!appId) return;
+    if (kbStatusLoading || !kbStatus.enabled) return;
     let isCancelled = false;
 
     async function load() {
@@ -55,9 +58,27 @@ export default function AppKnowledgeBases() {
     return () => {
       isCancelled = true;
     };
-  }, [appId, toast]);
+  }, [appId, kbStatus.enabled, kbStatusLoading, toast]);
 
   if (!appId) return null;
+
+  if (!kbStatusLoading && !kbStatus.enabled) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-fade-in-up">
+          <h1 className="font-display text-2xl font-semibold text-strong tracking-tight">App Knowledge Bases</h1>
+          <p className="text-sm text-subtle mt-1">
+            {appName ? `${appName}: assign knowledge bases for runtime lookup.` : "Knowledge base assignment"}
+          </p>
+        </div>
+        <OnboardingTipCard tipId="knowledge_bases_tip" fallbackRoute={`/apps/${appId}/knowledge-bases`} />
+        <div className="glass-panel rounded-xl border border-warning-dim bg-warning-subtle p-5 animate-fade-in-up">
+          <h2 className="text-sm font-semibold text-warning">Knowledge Bases disabled</h2>
+          <p className="mt-1 text-xs text-warning">{kbStatus.detail}</p>
+        </div>
+      </div>
+    );
+  }
 
   async function saveAssignments() {
     setIsSaving(true);
