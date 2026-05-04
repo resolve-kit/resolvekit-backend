@@ -1,0 +1,101 @@
+name: resolvekit-prebuilt
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: resolvekit_prebuilt_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_BIND_ADDR:-127.0.0.1}:${REDIS_BIND_PORT:-16379}:6379"
+    networks:
+      - resolvekit
+
+  db:
+    image: postgres:17-alpine
+    container_name: resolvekit_prebuilt_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-agent}
+    volumes:
+      - prebuilt_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_BIND_ADDR:-127.0.0.1}:${POSTGRES_BIND_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - resolvekit
+
+  kb-db:
+    image: postgres:17-alpine
+    container_name: resolvekit_prebuilt_kb_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${KBS_POSTGRES_DB:-knowledge_bases}
+    volumes:
+      - prebuilt_kb_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${KBS_POSTGRES_BIND_ADDR:-127.0.0.1}:${KBS_POSTGRES_BIND_PORT:-15433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agent}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - resolvekit
+
+  kb-service:
+    image: ${KB_IMAGE:-ghcr.io/resolve-kit/resolvekit-kb-service:latest}
+    container_name: resolvekit_prebuilt_kb_service
+    restart: unless-stopped
+    depends_on:
+      kb-db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      KBS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@kb-db:5432/${KBS_POSTGRES_DB:-knowledge_bases}
+      KBS_SERVICE_JWT_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      KBS_SERVICE_JWT_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      KBS_ENCRYPTION_KEY: ${KBS_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+    ports:
+      - "${KBS_BIND_ADDR:-127.0.0.1}:${KBS_BIND_PORT:-8100}:8100"
+    networks:
+      - resolvekit
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/resolve-kit/resolvekit-backend:latest}
+    container_name: resolvekit_prebuilt_backend
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+      kb-service:
+        condition: service_started
+    env_file: .env
+    environment:
+      RK_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+      RK_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      RK_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      RK_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      RK_REDIS_URL: ${RK_REDIS_URL:-redis://redis:6379/0}
+    ports:
+      - "${BACKEND_BIND_ADDR:-127.0.0.1}:${BACKEND_BIND_PORT:-8000}:8000"
+    networks:
+      - resolvekit
+
+networks:
+  resolvekit:
+    name: resolvekit_prebuilt_default
+    driver: bridge
+
+volumes:
+  prebuilt_postgres_data:
+  prebuilt_kb_postgres_data:

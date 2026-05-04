@@ -7,6 +7,13 @@
 3. Start stack: `docker compose up --build -d`
 4. Check health: `curl -s http://localhost:8000/health`
 
+### Prebuilt backend path (no local build)
+
+1. Configure `.env`.
+2. Pull images: `docker compose -f docker-compose.prebuilt.yml pull`
+3. Start stack: `docker compose -f docker-compose.prebuilt.yml up -d`
+4. Check health: `curl -s http://localhost:8000/health`
+
 ## Local deploy notes
 
 ### Optional Dockerized Caddy gateway

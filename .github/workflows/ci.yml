@@ -51,6 +51,7 @@ jobs:
           docker compose -f docker-compose.yml config -q
           docker compose -f docker-compose.prod.yml config -q
           docker compose -f docker-compose.local-deploy.yml config -q
+          docker compose -f docker-compose.prebuilt.yml config -q
 
   agent-docs:
     name: Agent Docs

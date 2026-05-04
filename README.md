@@ -75,7 +75,7 @@ RESOLVEKIT_AGENT_BASE_URL=https://agent.yourdomain.com  # Public URL
 IAA_KNOWLEDGE_BASES_BASE_URL=http://kb:8100             # Internal KB service URL
 ```
 
-### 3. Start Services
+### 3. Start Services (Local Build)
 
 ```bash
 docker compose up -d
@@ -88,14 +88,33 @@ This starts:
 - **PostgreSQL** (port 5432) — Database
 - **Redis** (port 6379) — Cache and session state
 
-### 4. Verify
+### 4. Start Services (Prebuilt Images, No Local Build)
 
 ```bash
-# Health check
+docker compose -f docker-compose.prebuilt.yml pull
+docker compose -f docker-compose.prebuilt.yml up -d
+```
+
+By default this pulls from GHCR:
+- `ghcr.io/resolve-kit/resolvekit-backend:latest`
+- `ghcr.io/resolve-kit/resolvekit-kb-service:latest`
+
+Override image tags if needed:
+
+```bash
+BACKEND_IMAGE=ghcr.io/resolve-kit/resolvekit-backend:<tag> \
+KB_IMAGE=ghcr.io/resolve-kit/resolvekit-kb-service:<tag> \
+docker compose -f docker-compose.prebuilt.yml up -d
+```
+
+### 5. Verify
+
+```bash
+# Backend health check
 curl http://localhost:8000/health
 
-# Dashboard
-open http://localhost:3000
+# KB service health check
+curl http://localhost:8100/health
 ```
 
 ## Self-Hosting Guide
@@ -117,6 +136,12 @@ This includes:
 
 ```bash
 docker compose -f docker-compose.yml up -d
+```
+
+Prebuilt backend runtime stack (backend + KB + databases + Redis):
+
+```bash
+docker compose -f docker-compose.prebuilt.yml up -d
 ```
 
 Or run services individually:
