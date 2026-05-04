@@ -23,6 +23,14 @@ _MAX_PROMPT_CHARS = 16_000
 _MAX_SUMMARY_CHARS = 600
 _MAX_TOPICS = 15
 
+_LITELLM_PROVIDER_ALIASES = {
+    "google": "gemini",
+}
+
+_LITELLM_MODEL_ALIASES = {
+    "gemini-flash-lite-latest": "gemini-2.0-flash-lite",
+}
+
 
 def _model_is_invalid_summary_model(model: str | None) -> bool:
     if not model:
@@ -139,10 +147,11 @@ def _fallback_summary_from_docs(docs: list[KnowledgeDocument]) -> str:
 
 
 def _resolve_model_name(provider: str | None, model: str) -> str:
-    provider_norm = (provider or "").strip().lower()
+    provider_norm = _LITELLM_PROVIDER_ALIASES.get((provider or "").strip().lower(), (provider or "").strip().lower())
+    model_norm = _LITELLM_MODEL_ALIASES.get(model, model)
     if provider_norm and provider_norm != "nexos" and "/" not in model:
-        return f"{provider_norm}/{model}"
-    return model
+        return f"{provider_norm}/{model_norm}"
+    return model_norm
 
 
 def _build_docs_blob(docs: list[KnowledgeDocument]) -> tuple[str, str]:

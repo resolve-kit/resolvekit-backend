@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from knowledge_bases.models import KnowledgeBase, KnowledgeDocument, KnowledgeSource
 from knowledge_bases.router import _serialize_kb, delete_source
 from knowledge_bases.schemas import KBCreateRequest, SourceMutateRequest
-from knowledge_bases.services.summary_index import _build_docs_blob, refresh_kb_summary_index
+from knowledge_bases.services.summary_index import _build_docs_blob, _resolve_model_name, refresh_kb_summary_index
 
 
 def test_kb_create_request_requires_summary_model_configuration() -> None:
@@ -163,6 +163,14 @@ def test_build_docs_blob_uses_fixed_length_fingerprint_hash() -> None:
     assert blob
     assert len(fingerprint) == 64
     assert all(char in "0123456789abcdef" for char in fingerprint)
+
+
+def test_resolve_model_name_normalizes_google_provider_for_litellm() -> None:
+    assert _resolve_model_name("google", "gemini-2.5-flash-lite") == "gemini/gemini-2.5-flash-lite"
+
+
+def test_resolve_model_name_normalizes_legacy_google_model_alias() -> None:
+    assert _resolve_model_name("google", "gemini-flash-lite-latest") == "gemini/gemini-2.0-flash-lite"
 
 
 @pytest.mark.asyncio
