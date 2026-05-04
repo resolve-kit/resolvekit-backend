@@ -1,145 +1,83 @@
 # resolvekit-backend
 
-> Multi-agent orchestration framework for agentic coding
+Open-source AI agent orchestration for in-app support.
+
+## Working Contract
+
+- Humans define intent and quality bars.
+- Agents implement code, tests, docs, and CI changes.
+- Repository markdown is the source of truth for architecture and process.
+- Behavior changes must include docs updates in the same PR.
 
 ## Project Overview
 
-A Claude Flow powered project
+ResolveKit Backend runs the AI agent that resolves user issues inside mobile apps. It provides agent orchestration, knowledge base management, and an admin dashboard for self-hosted deployments.
 
-**Tech Stack**: TypeScript, Node.js
-**Architecture**: Domain-Driven Design with bounded contexts
+**Tech Stack**: Python 3.13, FastAPI, PostgreSQL, Redis, Next.js (dashboard)
 
-## Quick Start
+**Architecture**:
+- Agent service (`agent/`) — FastAPI service for chat orchestration and tool dispatch
+- KB service (`knowledge_bases/`) — document ingestion, embedding, and search
+- Dashboard (`dashboard/`) — Next.js admin UI
+- Caddy reverse proxy (`infra/`) — TLS termination and routing
 
-### Installation
+## First Read
+
+1. [README.md](README.md) for package integration and runtime model.
+2. [docs/INDEX.md](docs/INDEX.md) for repository knowledge map.
+3. [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## Commands
+
 ```bash
-npm install
+# Start all services (local build)
+docker compose up -d
+
+# Start all services (prebuilt images, no local build)
+docker compose -f docker-compose.prebuilt.yml pull
+docker compose -f docker-compose.prebuilt.yml up -d
+
+# Run agent service directly
+uv run python -m agent.main
+
+# Run KB service directly
+uv run python -m knowledge_bases.main
+
+# Run dashboard
+cd dashboard && npm run dev
+
+# Run tests
+uv run pytest
+
+# Run tests in Docker
+docker compose run backend pytest
+
+# Database migrations
+uv run alembic upgrade head
 ```
 
-### Build
-```bash
-npm run build
-```
+## Source Layout
 
-### Test
-```bash
-npm test
-```
+- [agent/](agent/) — FastAPI agent service (chat orchestration, tool dispatch, SSE streams)
+- [knowledge_bases/](knowledge_bases/) — KB service (document ingestion, embedding, search)
+- [dashboard/](dashboard/) — Next.js admin dashboard
+- [alembic/](alembic/) — Database migrations
+- [infra/](infra/) — Caddy reverse proxy configuration
+- [deploy/](deploy/) — Docker Compose configs (local, prod, prebuilt)
+- [docs/](docs/) — Backend documentation
+- [tests/](tests/) — Test suite
+- [scripts/](scripts/) — Utility scripts
 
-### Development
-```bash
-npm run dev
-```
+## Guardrails
 
-## Agent Coordination
-
-### Swarm Configuration
-
-This project uses hierarchical swarm coordination for complex tasks:
-
-| Setting | Value | Purpose |
-|---------|-------|---------|
-| Topology | `hierarchical` | Queen-led coordination (anti-drift) |
-| Max Agents | 8 | Optimal team size |
-| Strategy | `specialized` | Clear role boundaries |
-| Consensus | `raft` | Leader-based consistency |
-
-### When to Use Swarms
-
-**Invoke swarm for:**
-- Multi-file changes (3+ files)
-- New feature implementation
-- Cross-module refactoring
-- API changes with tests
-- Security-related changes
-- Performance optimization
-
-**Skip swarm for:**
-- Single file edits
-- Simple bug fixes (1-2 lines)
-- Documentation updates
-- Configuration changes
-
-### Available Skills
-
-Use `$skill-name` syntax to invoke:
-
-| Skill | Use Case |
-|-------|----------|
-| `$swarm-orchestration` | Multi-agent task coordination |
-| `$memory-management` | Pattern storage and retrieval |
-| `$sparc-methodology` | Structured development workflow |
-| `$security-audit` | Security scanning and CVE detection |
-
-### Agent Types
-
-| Type | Role | Use Case |
-|------|------|----------|
-| `researcher` | Requirements analysis | Understanding scope |
-| `architect` | System design | Planning structure |
-| `coder` | Implementation | Writing code |
-| `tester` | Test creation | Quality assurance |
-| `reviewer` | Code review | Security and quality |
-
-## Code Standards
-
-### File Organization
-- **NEVER** save to root folder
-- `/src` - Source code files
-- `/tests` - Test files
-- `/docs` - Documentation
-- `/config` - Configuration files
-
-### Quality Rules
-- Files under 500 lines
-- No hardcoded secrets
-- Input validation at boundaries
-- Typed interfaces for public APIs
-- TDD London School (mock-first) preferred
-
-### Commit Messages
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-Co-Authored-By: claude-flow <ruv@ruv.net>
-```
-
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
-
-## Security
-
-### Critical Rules
-- NEVER commit secrets, credentials, or .env files
-- NEVER hardcode API keys
-- Always validate user input
-- Use parameterized queries for SQL
-- Sanitize output to prevent XSS
-
-### Path Security
-- Validate all file paths
-- Prevent directory traversal (../)
-- Use absolute paths internally
-
-## Memory System
-
-### Storing Patterns
-```bash
-npx @claude-flow/cli memory store \
-  --key "pattern-name" \
-  --value "pattern description" \
-  --namespace patterns
-```
-
-### Searching Memory
-```bash
-npx @claude-flow/cli memory search \
-  --query "search terms" \
-  --namespace patterns
-```
+- No secrets or private credentials in repo.
+- Preserve public API compatibility unless explicitly planned.
+- Keep defaults self-host-friendly and documented.
+- Always use parameterized queries for SQL.
+- Validate all user input at service boundaries.
 
 ## Links
 
-- Documentation: https://github.com/ruvnet/claude-flow
-- Issues: https://github.com/ruvnet/claude-flow/issues
+- Homepage: https://github.com/resolve-kit/resolvekit-backend
+- Issues: https://github.com/resolve-kit/resolvekit-backend/issues
+- Documentation: https://github.com/resolve-kit/resolvekit-backend/tree/main/docs
