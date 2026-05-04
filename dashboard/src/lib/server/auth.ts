@@ -5,13 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "./prisma";
 
 function resolveJwtSecret(): string {
-  const value = (process.env.IAA_JWT_SECRET ?? "").trim();
+  const value = (process.env.RK_JWT_SECRET ?? "").trim();
   const insecureValues = new Set(["", "change-me-in-production"]);
   if (insecureValues.has(value)) {
     if (process.env.NODE_ENV === "test") {
       return "test-only-dashboard-jwt-secret";
     }
-    throw new Error("IAA_JWT_SECRET must be set to a secure non-default value");
+    throw new Error("RK_JWT_SECRET must be set to a secure non-default value");
   }
   return value;
 }
@@ -28,19 +28,19 @@ function getJwtSecret(): string {
 const ALLOWED_JWT_ALGORITHMS = new Set(["HS256", "HS384", "HS512"]);
 
 function resolveJwtAlgorithm(): string {
-  const raw = (process.env.IAA_JWT_ALGORITHM ?? "").trim();
+  const raw = (process.env.RK_JWT_ALGORITHM ?? "").trim();
   // Fall back to HS256 when the env var is absent or empty (e.g. during build).
   if (!raw) return "HS256";
   if (!ALLOWED_JWT_ALGORITHMS.has(raw)) {
     throw new Error(
-      `IAA_JWT_ALGORITHM must be one of: ${[...ALLOWED_JWT_ALGORITHMS].join(", ")}. Got: "${raw}"`,
+      `RK_JWT_ALGORITHM must be one of: ${[...ALLOWED_JWT_ALGORITHMS].join(", ")}. Got: "${raw}"`,
     );
   }
   return raw;
 }
 
 const JWT_ALGORITHM = resolveJwtAlgorithm();
-const JWT_EXPIRE_MINUTES = Number(process.env.IAA_JWT_EXPIRE_MINUTES ?? "1440");
+const JWT_EXPIRE_MINUTES = Number(process.env.RK_JWT_EXPIRE_MINUTES ?? "1440");
 
 export type AuthDeveloper = {
   id: string;

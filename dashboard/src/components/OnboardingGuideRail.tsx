@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { Button } from "./ui";
 import { useOnboarding } from "../context/OnboardingContext";
+import { iosSdkRepoUrl } from "../lib/public-urls";
 
 interface OnboardingGuideRailProps {
   variant: "mobile" | "desktop";
@@ -63,16 +64,18 @@ function SDKChecklist() {
         <li>3. Register `@ResolveKit` functions in runtime configuration.</li>
         <li>4. Validate active functions in dashboard.</li>
       </ul>
-      <div className="mt-2 flex flex-wrap gap-2">
-        <a
-          href="https://github.com/resolve-kit/resolvekit-ios-sdk"
-          target="_blank"
-          rel="noreferrer"
-          className="text-[11px] text-accent hover:text-accent-hover"
-        >
-          ResolveKit iOS SDK on GitHub
-        </a>
-      </div>
+      {iosSdkRepoUrl ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <a
+            href={iosSdkRepoUrl!}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[11px] text-accent hover:text-accent-hover"
+          >
+            ResolveKit iOS SDK on GitHub
+          </a>
+        </div>
+      ) : null}
     </div>
   );
 }

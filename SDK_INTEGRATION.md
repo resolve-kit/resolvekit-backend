@@ -7,7 +7,7 @@ This document describes the current SDK-facing runtime contract.
 All SDK requests use:
 
 ```http
-Authorization: Bearer iaa_<your_key>
+Authorization: Bearer rk_<your_key>
 ```
 
 Session-scoped runtime calls also use:

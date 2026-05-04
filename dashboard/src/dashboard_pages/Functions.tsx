@@ -9,6 +9,7 @@ import {
   useToast,
 } from "../components/ui";
 import { useOnboarding } from "../context/OnboardingContext";
+import { iosSdkRepoUrl } from "../lib/public-urls";
 
 interface Fn {
   id: string;
@@ -19,8 +20,6 @@ interface Fn {
   is_active: boolean;
   timeout_seconds: number;
 }
-
-const IOS_SDK_REPO_URL = "https://github.com/resolve-kit/resolvekit-ios-sdk";
 
 export default function Functions() {
   const { appId } = useParams();
@@ -269,15 +268,17 @@ export default function Functions() {
             <p className="text-xs mt-2 text-muted">
               Open your app with the SDK + API key configured to register functions here.
             </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(IOS_SDK_REPO_URL, "_blank", "noopener,noreferrer")}
-              >
-                iOS SDK on GitHub
-              </Button>
-            </div>
+            {iosSdkRepoUrl ? (
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(iosSdkRepoUrl!, "_blank", "noopener,noreferrer")}
+                >
+                  iOS SDK on GitHub
+                </Button>
+              </div>
+            ) : null}
           </div>
         )}
       </div>

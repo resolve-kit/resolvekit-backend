@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    model_config = {"env_prefix": "IAA_"}
+    model_config = {"env_prefix": "RK_"}
 
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/agent"
 

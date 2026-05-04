@@ -21,7 +21,7 @@ class _FakeResult:
 @pytest.mark.asyncio
 async def test_get_app_from_sdk_auth_accepts_api_key() -> None:
     app_id = uuid.uuid4()
-    raw_api_key = "iaa_test_key"
+    raw_api_key = "rk_test_key"
     api_key = SimpleNamespace(app_id=app_id)
     app = SimpleNamespace(id=app_id, integration_version=1)
 

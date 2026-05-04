@@ -17,7 +17,7 @@ function decodeFernetKey(): { signingKey: Buffer; encryptionKey: Buffer } {
   const key = resolveDashboardEncryptionKey();
   const raw = Buffer.from(toBase64(key), "base64");
   if (raw.length !== 32) {
-    throw new Error("IAA_ENCRYPTION_KEY must be a valid Fernet key");
+    throw new Error("RK_ENCRYPTION_KEY must be a valid Fernet key");
   }
   return {
     signingKey: raw.subarray(0, 16),

@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const INSECURE_VALUES = new Set(["", "change-me-in-production"]);
-const FERNET_KEY_ERROR = "IAA_ENCRYPTION_KEY must be a valid Fernet key";
+const FERNET_KEY_ERROR = "RK_ENCRYPTION_KEY must be a valid Fernet key";
 const LOCAL_FERNET_NAMESPACE = "resolvekit-dashboard-local-fernet";
 
 function toBase64(value: string): string {
@@ -26,7 +26,7 @@ function deriveLocalFernetKey(jwtSecret: string): string {
 }
 
 export function resolveDashboardEncryptionKey(): string {
-  const configuredKey = (process.env.IAA_ENCRYPTION_KEY ?? "").trim();
+  const configuredKey = (process.env.RK_ENCRYPTION_KEY ?? "").trim();
   if (hasValidFernetKey(configuredKey)) {
     return configuredKey;
   }
@@ -35,9 +35,9 @@ export function resolveDashboardEncryptionKey(): string {
     throw new Error(FERNET_KEY_ERROR);
   }
 
-  const jwtSecret = (process.env.IAA_JWT_SECRET ?? "").trim();
+  const jwtSecret = (process.env.RK_JWT_SECRET ?? "").trim();
   if (INSECURE_VALUES.has(jwtSecret)) {
-    throw new Error("IAA_JWT_SECRET must be set to a secure non-default value");
+    throw new Error("RK_JWT_SECRET must be set to a secure non-default value");
   }
 
   return deriveLocalFernetKey(jwtSecret);
@@ -48,9 +48,9 @@ export function assertDashboardSecurityConfig(): void {
   // Skip during `next build` — runtime secrets are not available at build time
   if (process.env.NEXT_PHASE === "phase-production-build") return;
 
-  const jwtSecret = (process.env.IAA_JWT_SECRET ?? "").trim();
+  const jwtSecret = (process.env.RK_JWT_SECRET ?? "").trim();
   if (INSECURE_VALUES.has(jwtSecret)) {
-    throw new Error("IAA_JWT_SECRET must be set to a secure non-default value");
+    throw new Error("RK_JWT_SECRET must be set to a secure non-default value");
   }
 
   resolveDashboardEncryptionKey();

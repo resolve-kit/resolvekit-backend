@@ -15,7 +15,7 @@ class ApiKey(Base, UUIDMixin, TimestampMixin):
 
     app_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("apps.id", ondelete="CASCADE"))
     key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    key_prefix: Mapped[str] = mapped_column(String(12))  # "iaa_xxxx"
+    key_prefix: Mapped[str] = mapped_column(String(12))  # "rk_xxxx"
     label: Mapped[str] = mapped_column(String(255), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 

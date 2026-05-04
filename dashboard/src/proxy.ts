@@ -19,7 +19,7 @@ function resolveAllowedOrigin(request: NextRequest): string | null {
   const origin = request.headers.get("origin");
   if (!origin) return null;
 
-  const allowedOrigins = parseAllowedOrigins(process.env.IAA_CORS_ALLOWED_ORIGINS);
+  const allowedOrigins = parseAllowedOrigins(process.env.RK_CORS_ALLOWED_ORIGINS);
   if (allowedOrigins.has(origin)) {
     return origin;
   }

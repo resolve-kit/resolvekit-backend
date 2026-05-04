@@ -30,13 +30,13 @@ def test_prod_examples_default_to_split_host_self_hosting() -> None:
     assert "NEXT_PUBLIC_API_BASE_URL=https://api.example.com" in env_text
     assert "NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL=" not in env_text
     assert "RESOLVEKIT_KEY=" not in env_text
-    assert 'IAA_CORS_ORIGINS=["https://console.example.com","https://api.example.com"]' in env_text
-    assert "IAA_CORS_ALLOWED_ORIGINS=https://console.example.com" in env_text
+    assert 'RK_CORS_ORIGINS=["https://console.example.com","https://api.example.com"]' in env_text
+    assert "RK_CORS_ALLOWED_ORIGINS=https://console.example.com" in env_text
     assert "resolvekit.app" not in env_text
 
     assert "NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.example.com}" in compose_text
     assert "RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://backend:8000}" in compose_text
-    assert "IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-https://console.example.com}" in compose_text
+    assert "RK_CORS_ALLOWED_ORIGINS: ${RK_CORS_ALLOWED_ORIGINS:-https://console.example.com}" in compose_text
 
 
 def test_local_deploy_compose_drops_marketing_origin_defaults() -> None:
@@ -48,14 +48,14 @@ def test_local_deploy_compose_drops_marketing_origin_defaults() -> None:
     assert "NEXT_PUBLIC_API_BASE_URL=https://support-dev.example.com" in env_text
     assert "NEXT_PUBLIC_RESOLVEKIT_AGENT_BASE_URL=" not in env_text
     assert "RESOLVEKIT_KEY=" not in env_text
-    assert 'IAA_CORS_ORIGINS=["https://support-dev.example.com"]' in env_text
-    assert "IAA_CORS_ALLOWED_ORIGINS=https://support-dev.example.com" in env_text
+    assert 'RK_CORS_ORIGINS=["https://support-dev.example.com"]' in env_text
+    assert "RK_CORS_ALLOWED_ORIGINS=https://support-dev.example.com" in env_text
     assert "resolvekit-dev.example.com" not in env_text
 
     assert "NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://support-dev.example.com}" in compose_text
     assert "RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://backend:8000}" in compose_text
-    assert 'IAA_CORS_ORIGINS: \'${IAA_CORS_ORIGINS:-["https://support-dev.example.com"]}\'' in compose_text
-    assert "IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-https://support-dev.example.com}" in compose_text
+    assert 'RK_CORS_ORIGINS: \'${RK_CORS_ORIGINS:-["https://support-dev.example.com"]}\'' in compose_text
+    assert "RK_CORS_ALLOWED_ORIGINS: ${RK_CORS_ALLOWED_ORIGINS:-https://support-dev.example.com}" in compose_text
 
 
 def test_ingress_templates_default_to_single_public_host_routing() -> None:

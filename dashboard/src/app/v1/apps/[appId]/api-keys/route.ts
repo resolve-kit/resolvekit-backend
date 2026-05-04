@@ -60,7 +60,7 @@ export async function POST(
   const body = await readJson<CreateApiKeyPayload>(request);
   const label = typeof body?.label === "string" ? body.label : "";
 
-  const rawKey = `iaa_${crypto.randomBytes(32).toString("base64url")}`;
+  const rawKey = `rk_${crypto.randomBytes(32).toString("base64url")}`;
   const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
   const keyPrefix = rawKey.slice(0, 8);
 

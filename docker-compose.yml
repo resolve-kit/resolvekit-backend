@@ -86,11 +86,11 @@ services:
         condition: service_started
     env_file: .env
     environment:
-      IAA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
-      IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
-      IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
-      IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
-      IAA_REDIS_URL: ${IAA_REDIS_URL:-redis://redis:6379/0}
+      RK_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
+      RK_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      RK_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      RK_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      RK_REDIS_URL: ${RK_REDIS_URL:-redis://redis:6379/0}
     command: ["uv", "run", "uvicorn", "agent.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     volumes:
       - ./agent:/app/agent
@@ -119,16 +119,17 @@ services:
       npm run dev -- --hostname 0.0.0.0 --port 3000"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+      NEXT_PUBLIC_IOS_SDK_REPO_URL: ${NEXT_PUBLIC_IOS_SDK_REPO_URL:-}
       RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
-      IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
-      IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
-      IAA_JWT_EXPIRE_MINUTES: ${IAA_JWT_EXPIRE_MINUTES:-1440}
-      IAA_ENCRYPTION_KEY: ${IAA_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
-      IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
-      IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
-      IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
-      IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
+      RK_JWT_SECRET: ${RK_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
+      RK_JWT_ALGORITHM: ${RK_JWT_ALGORITHM:-HS256}
+      RK_JWT_EXPIRE_MINUTES: ${RK_JWT_EXPIRE_MINUTES:-1440}
+      RK_ENCRYPTION_KEY: ${RK_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+      RK_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      RK_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      RK_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      RK_KNOWLEDGE_BASES_JWT_ALGORITHM: ${RK_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
       NEXT_DIST_DIR: .next-dashboard
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
@@ -157,17 +158,18 @@ services:
       npm run dev -- --hostname 0.0.0.0 --port 3002"
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+      NEXT_PUBLIC_IOS_SDK_REPO_URL: ${NEXT_PUBLIC_IOS_SDK_REPO_URL:-}
       RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
-      IAA_JWT_SECRET: ${IAA_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
-      IAA_JWT_ALGORITHM: ${IAA_JWT_ALGORITHM:-HS256}
-      IAA_JWT_EXPIRE_MINUTES: ${IAA_JWT_EXPIRE_MINUTES:-1440}
-      IAA_ENCRYPTION_KEY: ${IAA_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
-      IAA_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
-      IAA_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
-      IAA_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
-      IAA_KNOWLEDGE_BASES_JWT_ALGORITHM: ${IAA_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
-      IAA_CORS_ALLOWED_ORIGINS: ${IAA_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3002}
+      RK_JWT_SECRET: ${RK_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
+      RK_JWT_ALGORITHM: ${RK_JWT_ALGORITHM:-HS256}
+      RK_JWT_EXPIRE_MINUTES: ${RK_JWT_EXPIRE_MINUTES:-1440}
+      RK_ENCRYPTION_KEY: ${RK_ENCRYPTION_KEY:-change-me-generate-with-python-fernet}
+      RK_KNOWLEDGE_BASES_BASE_URL: http://kb-service:8100
+      RK_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
+      RK_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
+      RK_KNOWLEDGE_BASES_JWT_ALGORITHM: ${RK_KNOWLEDGE_BASES_JWT_ALGORITHM:-HS256}
+      RK_CORS_ALLOWED_ORIGINS: ${RK_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3002}
       NEXT_DIST_DIR: .next-api
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
