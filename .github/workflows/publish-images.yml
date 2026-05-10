@@ -1,4 +1,4 @@
-name: Publish Docker Images
+name: Backend Image Pipeline
 
 on:
   push:
@@ -7,6 +7,19 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Manual deploy target"
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - staging
+      image_tag:
+        description: "Image tag to deploy (defaults to sha-<workflow commit>)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -26,10 +39,19 @@ jobs:
             dockerfile: ./Dockerfile
             context: .
             image_name: resolvekit-backend
+            build_args: ""
           - name: kb-service
             dockerfile: ./knowledge_bases/Dockerfile
             context: .
             image_name: resolvekit-kb-service
+            build_args: ""
+          - name: dashboard
+            dockerfile: ./dashboard/Dockerfile
+            context: ./dashboard
+            image_name: resolvekit-dashboard
+            build_args: |
+              NEXT_PUBLIC_API_BASE_URL=https://console.resolvekit.app
+              NEXT_PUBLIC_IOS_SDK_REPO_URL=https://github.com/resolve-kit/resolvekit-ios-sdk
 
     steps:
       - name: Check out repository
@@ -56,7 +78,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ steps.owner.outputs.value }}/${{ matrix.image_name }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=sha
+            type=sha,prefix=sha-
             type=ref,event=tag
 
       - name: Build and push
@@ -64,8 +86,105 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
+          build-args: ${{ matrix.build_args }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-staging:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    needs: publish
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'staging')
+    environment: staging
+    steps:
+      - name: Resolve image tag
+        id: image
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "value=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.STAGING_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Deploy on staging host
+        env:
+          DEPLOY_HOST: 147.93.62.111
+          DEPLOY_USER: resolvekit
+          IMAGE_TAG: ${{ steps.image.outputs.value }}
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" "
+            set -euo pipefail
+            OWNER_LOWER='${GITHUB_REPOSITORY_OWNER,,}'
+            BACKEND_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-backend:${IMAGE_TAG}'
+            KB_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-kb-service:${IMAGE_TAG}'
+            DASHBOARD_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-dashboard:${IMAGE_TAG}'
+
+            docker pull \"\$BACKEND_IMAGE\"
+            docker pull \"\$KB_IMAGE\"
+            docker pull \"\$DASHBOARD_IMAGE\"
+
+            docker tag \"\$BACKEND_IMAGE\" resolvekit-backend:local-deploy
+            docker tag \"\$KB_IMAGE\" resolvekit-kb-service:local-deploy
+            docker tag \"\$DASHBOARD_IMAGE\" resolvekit-dashboard:local-deploy
+
+            cd /home/resolvekit/resolvekit-backend
+            docker compose -f docker-compose.local-deploy.yml up -d --no-build backend kb-service api dashboard
+          "
+
+  deploy-prod:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_target == 'prod'
+    environment: production
+    steps:
+      - name: Resolve image tag
+        id: image
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "value=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.PROD_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Deploy on production host
+        env:
+          DEPLOY_HOST: 92.242.187.124
+          DEPLOY_USER: nedas
+          IMAGE_TAG: ${{ steps.image.outputs.value }}
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" "
+            set -euo pipefail
+            OWNER_LOWER='${GITHUB_REPOSITORY_OWNER,,}'
+            BACKEND_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-backend:${IMAGE_TAG}'
+            KB_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-kb-service:${IMAGE_TAG}'
+            DASHBOARD_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-dashboard:${IMAGE_TAG}'
+
+            docker pull \"\$BACKEND_IMAGE\"
+            docker pull \"\$KB_IMAGE\"
+            docker pull \"\$DASHBOARD_IMAGE\"
+
+            docker tag \"\$BACKEND_IMAGE\" resolvekit-backend:prod
+            docker tag \"\$KB_IMAGE\" resolvekit-kb-service:prod
+            docker tag \"\$DASHBOARD_IMAGE\" resolvekit-dashboard:prod
+
+            cd /home/nedas/resolvekit-backend
+            docker compose -f docker-compose.prod.yml up -d --no-build backend kb-service api dashboard
+          "
