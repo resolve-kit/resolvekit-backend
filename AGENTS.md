@@ -23,7 +23,14 @@ Primary services:
 
 ## Agent Skills
 
-This repo ships with integration skills in `.agents/skills/`. Load them when relevant:
+ResolveKit integration skills are available at https://github.com/resolve-kit/resolvekit-skills
+
+**Quick install:**
+```bash
+curl -sL https://raw.githubusercontent.com/resolve-kit/resolvekit-skills/master/install.sh | bash -s .
+```
+
+**Platform-specific skills:**
 
 - `resolvekit-backend-setup` — How to deploy and configure the ResolveKit backend. Covers Docker Compose setup, environment configuration, production deployment, knowledge base setup, and control-plane API integration.
 - `resolvekit-agent-instructions` — How AI agents should approach ResolveKit integration. Covers project detection, function design patterns, integration order, and verification.
