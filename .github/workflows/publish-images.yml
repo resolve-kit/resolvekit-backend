@@ -117,7 +117,30 @@ jobs:
           printf '%s\n' "${{ secrets.STAGING_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Deploy on staging host
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stream images to staging host
+        env:
+          DEPLOY_HOST: 147.93.62.111
+          DEPLOY_USER: resolvekit
+          IMAGE_TAG: ${{ steps.image.outputs.value }}
+        run: |
+          set -euo pipefail
+          OWNER_LOWER=${GITHUB_REPOSITORY_OWNER,,}
+          BACKEND_IMAGE="ghcr.io/${OWNER_LOWER}/resolvekit-backend:${IMAGE_TAG}"
+          KB_IMAGE="ghcr.io/${OWNER_LOWER}/resolvekit-kb-service:${IMAGE_TAG}"
+          DASHBOARD_IMAGE="ghcr.io/${OWNER_LOWER}/resolvekit-dashboard:${IMAGE_TAG}"
+          for image in "$BACKEND_IMAGE" "$KB_IMAGE" "$DASHBOARD_IMAGE"; do
+            docker pull "$image"
+            docker save "$image" | ssh -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" docker load
+          done
+
+      - name: Update staging backend services
         env:
           DEPLOY_HOST: 147.93.62.111
           DEPLOY_USER: resolvekit
@@ -129,10 +152,6 @@ jobs:
             BACKEND_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-backend:${IMAGE_TAG}'
             KB_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-kb-service:${IMAGE_TAG}'
             DASHBOARD_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-dashboard:${IMAGE_TAG}'
-
-            docker pull \"\$BACKEND_IMAGE\"
-            docker pull \"\$KB_IMAGE\"
-            docker pull \"\$DASHBOARD_IMAGE\"
 
             docker tag \"\$BACKEND_IMAGE\" resolvekit-backend:local-deploy
             docker tag \"\$KB_IMAGE\" resolvekit-kb-service:local-deploy
@@ -164,7 +183,30 @@ jobs:
           printf '%s\n' "${{ secrets.PROD_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Deploy on production host
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stream images to production host
+        env:
+          DEPLOY_HOST: 92.242.187.124
+          DEPLOY_USER: nedas
+          IMAGE_TAG: ${{ steps.image.outputs.value }}
+        run: |
+          set -euo pipefail
+          OWNER_LOWER=${GITHUB_REPOSITORY_OWNER,,}
+          BACKEND_IMAGE="ghcr.io/${OWNER_LOWER}/resolvekit-backend:${IMAGE_TAG}"
+          KB_IMAGE="ghcr.io/${OWNER_LOWER}/resolvekit-kb-service:${IMAGE_TAG}"
+          DASHBOARD_IMAGE="ghcr.io/${OWNER_LOWER}/resolvekit-dashboard:${IMAGE_TAG}"
+          for image in "$BACKEND_IMAGE" "$KB_IMAGE" "$DASHBOARD_IMAGE"; do
+            docker pull "$image"
+            docker save "$image" | ssh -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" docker load
+          done
+
+      - name: Update production backend services
         env:
           DEPLOY_HOST: 92.242.187.124
           DEPLOY_USER: nedas
@@ -176,10 +218,6 @@ jobs:
             BACKEND_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-backend:${IMAGE_TAG}'
             KB_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-kb-service:${IMAGE_TAG}'
             DASHBOARD_IMAGE='ghcr.io/'\"\$OWNER_LOWER\"'/resolvekit-dashboard:${IMAGE_TAG}'
-
-            docker pull \"\$BACKEND_IMAGE\"
-            docker pull \"\$KB_IMAGE\"
-            docker pull \"\$DASHBOARD_IMAGE\"
 
             docker tag \"\$BACKEND_IMAGE\" resolvekit-backend:prod
             docker tag \"\$KB_IMAGE\" resolvekit-kb-service:prod
