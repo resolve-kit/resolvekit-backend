@@ -139,7 +139,17 @@ jobs:
             docker tag \"\$DASHBOARD_IMAGE\" resolvekit-dashboard:local-deploy
 
             cd /home/resolvekit/resolvekit-backend
-            docker compose -f docker-compose.local-deploy.yml up -d --no-build backend kb-service api dashboard
+            if grep -q '^GATEWAY_HTTP_BIND_ADDR=' .env; then
+              sed -i 's/^GATEWAY_HTTP_BIND_ADDR=.*/GATEWAY_HTTP_BIND_ADDR=127.0.0.1/' .env
+            else
+              echo 'GATEWAY_HTTP_BIND_ADDR=127.0.0.1' >> .env
+            fi
+            if grep -q '^GATEWAY_HTTPS_BIND_ADDR=' .env; then
+              sed -i 's/^GATEWAY_HTTPS_BIND_ADDR=.*/GATEWAY_HTTPS_BIND_ADDR=127.0.0.1/' .env
+            else
+              echo 'GATEWAY_HTTPS_BIND_ADDR=127.0.0.1' >> .env
+            fi
+            docker compose -f docker-compose.local-deploy.yml up -d --no-build backend kb-service api dashboard caddy
           "
 
   deploy-prod:
