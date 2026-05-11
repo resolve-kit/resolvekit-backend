@@ -11,7 +11,7 @@ on:
       deploy_target:
         description: "Manual deploy target"
         required: true
-        default: prod
+        default: staging
         type: choice
         options:
           - prod
@@ -150,6 +150,13 @@ jobs:
               echo 'GATEWAY_HTTPS_BIND_ADDR=127.0.0.1' >> .env
             fi
             docker compose -f docker-compose.local-deploy.yml up -d --no-build backend kb-service api dashboard caddy
+
+            for service in backend kb-service api dashboard caddy; do
+              if ! docker compose -f docker-compose.local-deploy.yml ps --services --filter status=running | grep -qx "\$service"; then
+                echo "Staging service failed to reach running state: \$service" >&2
+                exit 1
+              fi
+            done
           "
 
   deploy-prod:
@@ -197,4 +204,11 @@ jobs:
 
             cd /home/nedas/resolvekit-backend
             docker compose -f docker-compose.prod.yml up -d --no-build backend kb-service api dashboard
+
+            for service in backend kb-service api dashboard; do
+              if ! docker compose -f docker-compose.prod.yml ps --services --filter status=running | grep -qx "\$service"; then
+                echo "Production service failed to reach running state: \$service" >&2
+                exit 1
+              fi
+            done
           "
