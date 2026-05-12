@@ -11,6 +11,14 @@ This package now serves two roles:
   - Browser-facing API base URL used by dashboard client code.
 - `NEXT_PUBLIC_IOS_SDK_REPO_URL`
   - Optional public URL used in onboarding/docs CTAs for the iOS SDK source.
+- `NEXT_PUBLIC_ANDROID_SDK_REPO_URL`
+  - Optional public URL used in onboarding/docs CTAs for the Android SDK source.
+- `NEXT_PUBLIC_IOS_SAMPLE_DMG_URL`
+  - Optional public URL for downloading the iOS sample app DMG from onboarding.
+- `NEXT_PUBLIC_ANDROID_SAMPLE_DEBUG_APK_URL`
+  - Optional public URL for downloading the Android sample debug APK from onboarding.
+- `NEXT_PUBLIC_ANDROID_SAMPLE_RELEASE_APK_URL`
+  - Optional public URL for downloading the Android sample release APK from onboarding.
 - `RESOLVEKIT_SERVER_AGENT_BASE_URL`
   - Optional server-only agent URL for dashboard runtime lookups such as model pricing enrichment.
   - It must use HTTPS unless it targets `localhost`.

@@ -2,7 +2,27 @@ import { Link, useLocation } from "react-router-dom";
 
 import { Button } from "./ui";
 import { useOnboarding } from "../context/OnboardingContext";
-import { iosSdkRepoUrl } from "../lib/public-urls";
+import {
+  androidSampleDebugApkUrl,
+  androidSampleReleaseApkUrl,
+  androidSdkRepoUrl,
+  iosSampleDmgUrl,
+  iosSdkRepoUrl,
+} from "../lib/public-urls";
+
+const DEFAULT_IOS_SDK_REPO_URL = "https://github.com/resolve-kit/resolvekit-ios-sdk";
+const DEFAULT_ANDROID_SDK_REPO_URL = "https://github.com/resolve-kit/resolvekit-android-sdk";
+const DEFAULT_IOS_SAMPLE_DMG_URL =
+  "https://github.com/resolve-kit/resolvekit-ios-sdk/releases/download/1.4.2/ResolveKitSample-1.4.2.dmg";
+const DEFAULT_ANDROID_SAMPLE_DEBUG_APK_URL =
+  "https://github.com/resolve-kit/resolvekit-android-sdk/releases/download/1.0.1/sample-debug.apk";
+const DEFAULT_ANDROID_SAMPLE_RELEASE_APK_URL =
+  "https://github.com/resolve-kit/resolvekit-android-sdk/releases/download/1.0.1/sample-release-unsigned.apk";
+const IOS_SDK_REPO_URL = iosSdkRepoUrl ?? DEFAULT_IOS_SDK_REPO_URL;
+const ANDROID_SDK_REPO_URL = androidSdkRepoUrl ?? DEFAULT_ANDROID_SDK_REPO_URL;
+const IOS_SAMPLE_DMG_URL = iosSampleDmgUrl ?? DEFAULT_IOS_SAMPLE_DMG_URL;
+const ANDROID_SAMPLE_DEBUG_APK_URL = androidSampleDebugApkUrl ?? DEFAULT_ANDROID_SAMPLE_DEBUG_APK_URL;
+const ANDROID_SAMPLE_RELEASE_APK_URL = androidSampleReleaseApkUrl ?? DEFAULT_ANDROID_SAMPLE_RELEASE_APK_URL;
 
 interface OnboardingGuideRailProps {
   variant: "mobile" | "desktop";
@@ -57,25 +77,46 @@ function StepList() {
 function SDKChecklist() {
   return (
     <div className="rounded-lg border border-border bg-surface-2 p-3">
-      <p className="text-xs font-semibold text-strong">SDK checklist</p>
-      <ul className="mt-1.5 space-y-1 text-[11px] text-subtle">
-        <li>1. Add `resolvekit-ios-sdk` from GitHub to your iOS app.</li>
-        <li>2. Configure backend base URL + app API key provider.</li>
-        <li>3. Register `@ResolveKit` functions in runtime configuration.</li>
-        <li>4. Validate active functions in dashboard.</li>
-      </ul>
-      {iosSdkRepoUrl ? (
+      <p className="text-xs font-semibold text-strong">SDK quickstart + sample apps</p>
+
+      <div className="mt-2 rounded-md border border-border bg-surface p-2.5">
+        <p className="text-[11px] font-semibold text-strong">iOS</p>
+        <ul className="mt-1.5 space-y-1 text-[11px] text-subtle">
+          <li>1. Add `resolvekit-ios-sdk` from GitHub to your app.</li>
+          <li>2. Configure backend host + app API key.</li>
+          <li>3. Register `@ResolveKit` functions and open chat.</li>
+          <li>4. Validate active functions in dashboard.</li>
+        </ul>
         <div className="mt-2 flex flex-wrap gap-2">
-          <a
-            href={iosSdkRepoUrl!}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[11px] text-accent hover:text-accent-hover"
-          >
-            ResolveKit iOS SDK on GitHub
+          <a href={IOS_SDK_REPO_URL} target="_blank" rel="noreferrer" className="text-[11px] text-accent hover:text-accent-hover">
+            iOS SDK source
+          </a>
+          <a href={IOS_SAMPLE_DMG_URL} target="_blank" rel="noreferrer" className="text-[11px] text-accent hover:text-accent-hover">
+            Download iOS sample (.dmg)
           </a>
         </div>
-      ) : null}
+      </div>
+
+      <div className="mt-2 rounded-md border border-border bg-surface p-2.5">
+        <p className="text-[11px] font-semibold text-strong">Android</p>
+        <ul className="mt-1.5 space-y-1 text-[11px] text-subtle">
+          <li>1. Add `resolvekit-android-sdk` dependencies.</li>
+          <li>2. Configure backend host + app API key.</li>
+          <li>3. Register `@ResolveFunction` tools and open chat.</li>
+          <li>4. Validate active functions in dashboard.</li>
+        </ul>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <a href={ANDROID_SDK_REPO_URL} target="_blank" rel="noreferrer" className="text-[11px] text-accent hover:text-accent-hover">
+            Android SDK source
+          </a>
+          <a href={ANDROID_SAMPLE_DEBUG_APK_URL} target="_blank" rel="noreferrer" className="text-[11px] text-accent hover:text-accent-hover">
+            Download debug APK
+          </a>
+          <a href={ANDROID_SAMPLE_RELEASE_APK_URL} target="_blank" rel="noreferrer" className="text-[11px] text-accent hover:text-accent-hover">
+            Download release APK
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

@@ -60,6 +60,14 @@ Settings are loaded via pydantic settings models:
   - In the single-host quickstart this can be the dashboard origin itself.
 - `NEXT_PUBLIC_IOS_SDK_REPO_URL`
   - Optional public link used by dashboard onboarding CTAs for iOS SDK source/docs.
+- `NEXT_PUBLIC_ANDROID_SDK_REPO_URL`
+  - Optional public link used by dashboard onboarding CTAs for Android SDK source/docs.
+- `NEXT_PUBLIC_IOS_SAMPLE_DMG_URL`
+  - Optional public link used by dashboard onboarding CTAs to download the iOS sample app DMG.
+- `NEXT_PUBLIC_ANDROID_SAMPLE_DEBUG_APK_URL`
+  - Optional public link used by dashboard onboarding CTAs to download the Android sample debug APK.
+- `NEXT_PUBLIC_ANDROID_SAMPLE_RELEASE_APK_URL`
+  - Optional public link used by dashboard onboarding CTAs to download the Android sample release APK.
 - `DATABASE_URL`
   - Dashboard Next route handler DB connection string (Prisma).
 - `RESOLVEKIT_SERVER_AGENT_BASE_URL`

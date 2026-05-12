@@ -6,10 +6,18 @@ x-dashboard-build: &dashboard_build
   args:
     NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://support-dev.example.com}
     NEXT_PUBLIC_IOS_SDK_REPO_URL: ${NEXT_PUBLIC_IOS_SDK_REPO_URL:-https://github.com/your-org/resolvekit-ios-sdk}
+    NEXT_PUBLIC_ANDROID_SDK_REPO_URL: ${NEXT_PUBLIC_ANDROID_SDK_REPO_URL:-https://github.com/your-org/resolvekit-android-sdk}
+    NEXT_PUBLIC_IOS_SAMPLE_DMG_URL: ${NEXT_PUBLIC_IOS_SAMPLE_DMG_URL:-https://github.com/resolve-kit/resolvekit-ios-sdk/releases/download/1.4.2/ResolveKitSample-1.4.2.dmg}
+    NEXT_PUBLIC_ANDROID_SAMPLE_DEBUG_APK_URL: ${NEXT_PUBLIC_ANDROID_SAMPLE_DEBUG_APK_URL:-https://github.com/resolve-kit/resolvekit-android-sdk/releases/download/1.0.1/sample-debug.apk}
+    NEXT_PUBLIC_ANDROID_SAMPLE_RELEASE_APK_URL: ${NEXT_PUBLIC_ANDROID_SAMPLE_RELEASE_APK_URL:-https://github.com/resolve-kit/resolvekit-android-sdk/releases/download/1.0.1/sample-release-unsigned.apk}
 
 x-dashboard-runtime-env: &dashboard_runtime_env
   NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://support-dev.example.com}
   NEXT_PUBLIC_IOS_SDK_REPO_URL: ${NEXT_PUBLIC_IOS_SDK_REPO_URL:-https://github.com/your-org/resolvekit-ios-sdk}
+  NEXT_PUBLIC_ANDROID_SDK_REPO_URL: ${NEXT_PUBLIC_ANDROID_SDK_REPO_URL:-https://github.com/your-org/resolvekit-android-sdk}
+  NEXT_PUBLIC_IOS_SAMPLE_DMG_URL: ${NEXT_PUBLIC_IOS_SAMPLE_DMG_URL:-https://github.com/resolve-kit/resolvekit-ios-sdk/releases/download/1.4.2/ResolveKitSample-1.4.2.dmg}
+  NEXT_PUBLIC_ANDROID_SAMPLE_DEBUG_APK_URL: ${NEXT_PUBLIC_ANDROID_SAMPLE_DEBUG_APK_URL:-https://github.com/resolve-kit/resolvekit-android-sdk/releases/download/1.0.1/sample-debug.apk}
+  NEXT_PUBLIC_ANDROID_SAMPLE_RELEASE_APK_URL: ${NEXT_PUBLIC_ANDROID_SAMPLE_RELEASE_APK_URL:-https://github.com/resolve-kit/resolvekit-android-sdk/releases/download/1.0.1/sample-release-unsigned.apk}
   RESOLVEKIT_SERVER_AGENT_BASE_URL: ${RESOLVEKIT_SERVER_AGENT_BASE_URL:-http://backend:8000}
   DATABASE_URL: postgresql://${POSTGRES_USER:-agent}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-agent}
   RK_JWT_SECRET: ${RK_JWT_SECRET:-change-me-generate-with-openssl-rand-hex-32}
