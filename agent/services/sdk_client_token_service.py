@@ -2,7 +2,8 @@ from datetime import datetime, timedelta, timezone
 import uuid
 
 from fastapi import HTTPException, status
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 
 from agent.config import settings
 from agent.models.app import App
@@ -53,7 +54,7 @@ def resolve_sdk_client_token_app_id(
             algorithms=[settings.jwt_algorithm],
             options={"require": ["exp", "aid", "typ"]},
         )
-    except JWTError as exc:
+    except InvalidTokenError as exc:
         raise _sdk_client_token_http_exception() from exc
 
     if payload.get("typ") != SDK_CLIENT_TOKEN_TYPE:
