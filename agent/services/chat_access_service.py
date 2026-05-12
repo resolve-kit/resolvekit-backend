@@ -5,7 +5,8 @@ from typing import Any
 import logging
 
 from fastapi import HTTPException, status
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 
 from agent.config import settings
 from agent.models.app import App
@@ -102,7 +103,7 @@ def validate_chat_capability_token(
             algorithms=[settings.jwt_algorithm],
             options={"require": ["exp", "nbf", "iat", "sid", "aid", "iv"]},
         )
-    except JWTError as exc:
+    except InvalidTokenError as exc:
         logger.info(
             "chat_capability_decode_failed app_id=%s session_id=%s error_type=%s",
             app.id,

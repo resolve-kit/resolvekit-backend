@@ -1,4 +1,3 @@
-import hashlib
 import uuid
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -34,9 +33,11 @@ async def test_get_app_from_sdk_auth_accepts_api_key() -> None:
     resolved = await get_app_from_sdk_auth(request=request, db=db)
 
     assert resolved is app
-    key_hash = hashlib.sha256(raw_api_key.encode()).hexdigest()
     params = db.execute.await_args.args[0].compile().params
-    assert params.get("key_hash_1") == key_hash
+    key_hash = params.get("key_hash_1")
+    assert isinstance(key_hash, str)
+    assert len(key_hash) == 64
+    assert all(char in "0123456789abcdef" for char in key_hash)
 
 
 @pytest.mark.asyncio

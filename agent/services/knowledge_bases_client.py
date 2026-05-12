@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
-from jose import jwt
+import jwt
 
 from agent.config import settings
 

@@ -3,7 +3,8 @@ from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 
 from knowledge_bases.config import settings
 
@@ -33,7 +34,7 @@ async def get_service_principal(
         if not isinstance(org_id_raw, str) or not isinstance(actor_id, str) or not isinstance(actor_role, str):
             raise ValueError("Invalid service token claims")
         organization_id = uuid.UUID(org_id_raw)
-    except (JWTError, ValueError) as exc:
+    except (InvalidTokenError, ValueError) as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid service token") from exc
 
     return ServicePrincipal(

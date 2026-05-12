@@ -228,10 +228,44 @@ def _build_language_context(session: ChatSession) -> str:
 
 def _sanitize_doc_content(text: str) -> str:
     # Replace markdown links with link text, then drop bare URLs.
-    content = re.sub(r"\[([^\]]+)\]\(https?://[^)]+\)", r"\1", text)
+    content = _replace_markdown_http_links_with_text(text)
     content = re.sub(r"https?://\S+", "", content)
-    content = re.sub(r"\s+\n", "\n", content)
-    return content.strip()
+    return "\n".join(line.rstrip() for line in content.splitlines()).strip()
+
+
+def _replace_markdown_http_links_with_text(text: str) -> str:
+    result: list[str] = []
+    cursor = 0
+    length = len(text)
+
+    while cursor < length:
+        start = text.find("[", cursor)
+        if start == -1:
+            result.append(text[cursor:])
+            break
+
+        result.append(text[cursor:start])
+        label_end = text.find("](", start + 1)
+        if label_end == -1:
+            result.append(text[start:])
+            break
+
+        url_start = label_end + 2
+        url_end = text.find(")", url_start)
+        if url_end == -1:
+            result.append(text[start:])
+            break
+
+        url = text[url_start:url_end]
+        if url.startswith("http://") or url.startswith("https://"):
+            result.append(text[start + 1 : label_end])
+            cursor = url_end + 1
+            continue
+
+        result.append(text[start : url_end + 1])
+        cursor = url_end + 1
+
+    return "".join(result)
 
 
 def _session_llm_context(session: ChatSession) -> dict[str, Any]:
