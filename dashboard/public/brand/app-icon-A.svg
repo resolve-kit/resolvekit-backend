@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="ResolveKit app icon · resolved">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c6fe8"></stop>
+      <stop offset="1" stop-color="#0a4dbf"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#g)"></rect>
+  
+  <g transform="translate(160 144) scale(11.25)">
+    <path d="M14 8 H50 a8 8 0 0 1 8 8 V38 a8 8 0 0 1 -8 8 H26 L14 56 V46 a8 8 0 0 1 -8 -8 V16 a8 8 0 0 1 8 -8 Z" fill="#ffffff"></path>
+    <path d="M19 28 L27.5 36.5 L45 19" fill="none" stroke="#0a4dbf" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+  </g>
+</svg>

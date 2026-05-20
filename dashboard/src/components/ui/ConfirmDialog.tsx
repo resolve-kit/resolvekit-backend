@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Button } from "./Button";
 
 type ConfirmVariant = "danger" | "primary" | "outline";
@@ -7,6 +7,7 @@ interface ConfirmDialogProps {
   open: boolean;
   title: string;
   description?: string;
+  warningBox?: ReactNode;
   confirmLabel?: string;
   confirmVariant?: ConfirmVariant;
   confirmTextRequired?: string;
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   open,
   title,
   description,
+  warningBox,
   confirmLabel = "Confirm",
   confirmVariant = "danger",
   confirmTextRequired,
@@ -76,6 +78,7 @@ export function ConfirmDialog({
         <p className="text-[10px] uppercase tracking-[0.2em] text-subtle">Confirm action</p>
         <h2 className="mt-2 font-display text-lg font-semibold text-strong">{title}</h2>
         {description && <p className="mt-2 text-sm text-subtle leading-relaxed">{description}</p>}
+        {warningBox && <div className="mt-3">{warningBox}</div>}
         {requiresTypedConfirm && (
           <div className="mt-4">
             <label className="mb-1 block text-xs font-medium text-subtle">

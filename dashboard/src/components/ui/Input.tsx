@@ -26,7 +26,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export function Input({ label, hint, error, mono, className = "", ...props }: InputProps) {
   const base =
-    "w-full rounded-lg border bg-surface px-3 py-2.5 text-sm text-body shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] placeholder:text-muted transition-colors focus:border-accent focus:bg-surface focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+    "w-full rounded-[10px] border bg-surface px-3 py-[9px] text-[13px] text-body shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] placeholder:text-muted transition-colors focus:border-accent focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_0_0_3px_rgba(13,88,214,0.16)] focus:bg-surface focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
   const errorClass = error ? "border-danger" : "border-border";
   const monoClass = mono ? "font-mono text-xs" : "";
 
@@ -46,7 +46,7 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
 
 export function Textarea({ label, hint, error, mono, className = "", ...props }: TextareaProps) {
   const base =
-    "w-full resize-none rounded-lg border bg-surface px-3 py-2.5 text-sm text-body shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] placeholder:text-muted transition-colors focus:border-accent focus:bg-surface focus:outline-none disabled:opacity-50";
+    "w-full resize-none rounded-[10px] border bg-surface px-3 py-[9px] text-[13px] text-body shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] placeholder:text-muted transition-colors focus:border-accent focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_0_0_3px_rgba(13,88,214,0.16)] focus:bg-surface focus:outline-none disabled:opacity-50";
   const errorClass = error ? "border-danger" : "border-border";
   const monoClass = mono ? "font-mono text-xs" : "";
 
@@ -66,7 +66,7 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 
 export function Select({ label, hint, error, children, className = "", ...props }: SelectProps) {
   const base =
-    "w-full cursor-pointer rounded-lg border bg-surface px-3 py-2.5 text-sm text-body shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] transition-colors focus:border-accent focus:bg-surface focus:outline-none disabled:opacity-50";
+    "w-full cursor-pointer rounded-[10px] border bg-surface px-3 py-[9px] text-[13px] text-body shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] transition-colors focus:border-accent focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_0_0_3px_rgba(13,88,214,0.16)] focus:bg-surface focus:outline-none disabled:opacity-50";
   const errorClass = error ? "border-danger" : "border-border";
 
   return (

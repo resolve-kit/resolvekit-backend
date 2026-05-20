@@ -11,3 +11,6 @@ export { MetricTile } from "./MetricTile";
 export { EmptyState } from "./EmptyState";
 export { DataPanel } from "./DataPanel";
 export { InlineStatus } from "./InlineStatus";
+export { InlineAlert } from "./InlineAlert";
+export { SegmentControl } from "./SegmentControl";
+export { ErrorPage } from "./ErrorPage";

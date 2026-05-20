@@ -318,14 +318,14 @@ export default function Playbooks() {
             <button
               key={pb.id}
               onClick={() => selectPlaybook(pb.id)}
-              className={`w-full text-left bg-surface border rounded-xl p-3 transition-all hover:border-border-2 ${
+              className={`w-full text-left rounded-xl border p-4 transition-all hover:border-border-2 hover:shadow-card ${
                 selected?.id === pb.id
-                  ? "border-accent/40 bg-accent-subtle"
-                  : "border-border"
+                  ? "border-accent-dim bg-accent-subtle shadow-card"
+                  : "border-border bg-surface"
               } ${!pb.is_active ? "opacity-60" : ""}`}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-sm text-strong truncate pr-2">
+              <div className="flex items-start justify-between gap-2">
+                <span className={`font-display text-[18px] font-semibold leading-snug truncate ${selected?.id === pb.id ? "text-accent" : "text-headline"}`} style={{ letterSpacing: "-0.014em" }}>
                   {pb.name}
                 </span>
                 <Badge variant={pb.is_active ? "active" : "inactive"} dot>
@@ -333,20 +333,30 @@ export default function Playbooks() {
                 </Badge>
               </div>
               {pb.description && (
-                <p className="text-xs text-subtle mt-1 truncate">
+                <p className="mt-1 max-w-[60ch] truncate text-[13px] leading-[1.55] text-dim">
                   {pb.description}
                 </p>
               )}
-              <p className="text-xs text-muted mt-1">
-                {pb.function_count} function
-                {pb.function_count !== 1 ? "s" : ""}
-              </p>
+              <div className="mt-3 flex gap-5">
+                <div>
+                  <div className="text-[9.5px] font-bold uppercase tracking-[0.22em] text-muted">Steps</div>
+                  <div className="font-display text-[17px] font-semibold text-strong" style={{ letterSpacing: "-0.012em" }}>
+                    {pb.function_count}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9.5px] font-bold uppercase tracking-[0.22em] text-muted">Created</div>
+                  <div className="mt-0.5 font-mono text-[11px] text-dim">
+                    {new Date(pb.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </div>
+                </div>
+              </div>
             </button>
           ))}
           {playbooks.length === 0 && !showCreate && (
-            <p className="text-subtle text-center py-8 text-sm">
-              No playbooks yet.
-            </p>
+            <div className="rounded-xl border border-border bg-surface px-4 py-8 text-center">
+              <p className="text-sm text-subtle">No playbooks yet.</p>
+            </div>
           )}
         </div>
 
@@ -452,19 +462,35 @@ export default function Playbooks() {
                       </h3>
                     </div>
 
-                    <div className="space-y-2 mb-4">
+                    <div className="overflow-hidden rounded-xl border border-border bg-surface mb-4">
                       {steps.length === 0 && (
-                        <p className="text-subtle text-sm text-center py-4">
+                        <p className="text-subtle text-sm text-center py-6">
                           No function steps assigned yet.
                         </p>
                       )}
                       {steps.map((step, idx) => (
                         <div
                           key={idx}
-                          className="flex items-start gap-3 bg-surface-2 border border-border rounded-xl p-3"
+                          className="flex items-start gap-3 border-b border-border px-4 py-3 last:border-0 hover:bg-surface-2 transition-colors"
                         >
-                          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-accent-subtle border border-accent-dim text-accent text-xs flex items-center justify-center font-mono font-medium">
-                            {idx + 1}
+                          {/* Grip handle */}
+                          <div className="mt-1.5 flex flex-shrink-0 cursor-grab flex-col gap-[3px] text-muted hover:text-subtle">
+                            {[0, 1, 2].map((r) => (
+                              <div key={r} className="flex gap-[3px]">
+                                <span className="block h-[3px] w-[3px] rounded-full bg-current" />
+                                <span className="block h-[3px] w-[3px] rounded-full bg-current" />
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Numbered circle with connector line */}
+                          <div className="relative flex-shrink-0">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-accent-dim bg-accent-subtle font-mono text-xs font-semibold text-accent">
+                              {idx + 1}
+                            </div>
+                            {idx < steps.length - 1 && (
+                              <div className="absolute left-1/2 top-full h-full w-px -translate-x-1/2 bg-border" />
+                            )}
                           </div>
 
                           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -497,7 +523,7 @@ export default function Playbooks() {
 
                           <button
                             onClick={() => removeStep(idx)}
-                            className="flex-shrink-0 text-muted hover:text-danger transition-colors mt-1.5"
+                            className="mt-1.5 flex-shrink-0 text-muted hover:text-danger transition-colors"
                             title="Remove step"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

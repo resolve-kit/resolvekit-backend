@@ -7,16 +7,26 @@ interface ResolveKitWordmarkProps {
 export default function ResolveKitWordmark({
   className = "",
   resolveClassName = "text-strong",
-  kitClassName = "text-strong",
+  kitClassName = "text-dim",
 }: ResolveKitWordmarkProps) {
   return (
     <span
-      className={`inline-flex items-end leading-none ${className}`.trim()}
-      style={{ fontFamily: "Inter, 'Mona Sans', 'Avenir Next', 'Segoe UI', sans-serif" }}
+      className={`inline-flex items-baseline leading-none ${className}`.trim()}
+      style={{ fontFamily: "'Mona Sans', 'Avenir Next', 'Segoe UI', sans-serif" }}
       aria-label="RESOLVEkit"
     >
-      <span className={`text-[20px] font-normal uppercase tracking-[0.2em] ${resolveClassName}`.trim()}>RESOLVE</span>
-      <span className={`ml-[0.12em] text-[10px] font-normal tracking-[0.2em] ${kitClassName}`.trim()}>kit</span>
+      <span
+        className={`text-[20px] font-medium uppercase tracking-[0.18em] ${resolveClassName}`.trim()}
+        style={{ marginRight: "-0.16em" }}
+      >
+        RESOLVE
+      </span>
+      <span
+        className={`text-[10px] font-normal tracking-[0.16em] ${kitClassName}`.trim()}
+        style={{ marginLeft: "0.42em" }}
+      >
+        kit
+      </span>
     </span>
   );
 }

@@ -3,6 +3,7 @@
 
 @theme {
   --color-canvas: #f7fbff;
+  --color-canvas-2: #eef5fc;
   --color-surface: #ffffff;
   --color-surface-2: #edf4fb;
   --color-surface-3: #e3edf8;
@@ -15,6 +16,7 @@
   --color-dim: #3f536e;
   --color-body: #253a54;
   --color-strong: #162941;
+  --color-headline: #10273f;
 
   --color-accent: #0d58d6;
   --color-accent-hover: #0a4dbf;
@@ -37,12 +39,79 @@
   --font-body: "Mona Sans", "Avenir Next", "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
 
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 15.2px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-pill: 999px;
+
   --shadow-card: 0 14px 36px -22px rgba(17, 48, 90, 0.36);
+  --shadow-panel: 0 22px 58px -34px rgba(7, 31, 66, 0.48);
+  --shadow-button: 0 10px 24px -16px rgba(13, 88, 214, 0.65);
   --shadow-glow-accent: 0 0 42px -16px rgba(13, 88, 214, 0.35);
+  --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+
+  --ease-rk: cubic-bezier(0.2, 0.6, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 350ms;
 }
 
 :root {
   --nav-height: 64px;
+}
+
+[data-theme="console"] body {
+  background: #0b1220;
+  color: #cfdaeb;
+}
+
+[data-theme="console"] body::before {
+  background-image:
+    linear-gradient(rgba(78, 139, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(78, 139, 255, 0.04) 1px, transparent 1px);
+}
+
+[data-theme="console"] {
+  --color-canvas: #0b1220;
+  --color-canvas-2: #0a0f1a;
+  --color-surface: #121b2e;
+  --color-surface-2: #18253d;
+  --color-surface-3: #1f314f;
+
+  --color-border: #233553;
+  --color-border-2: #324b70;
+
+  --color-muted: #6c83a3;
+  --color-subtle: #8aa1c1;
+  --color-dim: #aebed5;
+  --color-body: #cfdaeb;
+  --color-strong: #e6edf8;
+  --color-headline: #f4f7fc;
+
+  --color-accent: #4e8bff;
+  --color-accent-hover: #6b9eff;
+  --color-accent-dim: #2a4b86;
+  --color-accent-subtle: #16243f;
+
+  --color-success: #2bb886;
+  --color-success-dim: #1c5a48;
+  --color-success-subtle: #112b25;
+
+  --color-warning: #e8a44a;
+  --color-warning-dim: #6c4a1c;
+  --color-warning-subtle: #2a1f10;
+
+  --color-danger: #ec5a60;
+  --color-danger-dim: #6a262b;
+  --color-danger-subtle: #2a1417;
+
+  --shadow-card: 0 14px 36px -22px rgba(0, 0, 0, 0.7);
+  --shadow-panel: 0 22px 58px -34px rgba(0, 0, 0, 0.8);
+  --shadow-button: 0 10px 24px -16px rgba(78, 139, 255, 0.7);
+  --shadow-glow-accent: 0 0 42px -12px rgba(78, 139, 255, 0.45);
+  --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 @layer base {
@@ -91,6 +160,10 @@
     background: #9eb5ce;
   }
 
+  [data-theme="console"] ::-webkit-scrollbar-track { background: #0a0f1a; }
+  [data-theme="console"] ::-webkit-scrollbar-thumb { background: #233553; }
+  [data-theme="console"] ::-webkit-scrollbar-thumb:hover { background: #324b70; }
+
   *:focus-visible {
     outline: 2px solid #0d58d6;
     outline-offset: 2px;
@@ -100,6 +173,27 @@
     background-color: rgba(14, 96, 238, 0.22);
     color: #162941;
   }
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes trace-stagger {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 @keyframes fade-in-up {
@@ -148,11 +242,22 @@
     animation: shimmer 1.5s infinite;
   }
 
+  [data-theme="console"] .skeleton {
+    background: linear-gradient(90deg, #131c2e 25%, #1a2540 50%, #131c2e 75%);
+    background-size: 200% 100%;
+  }
+
   .glass-panel {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 249, 255, 0.94));
     border: 1px solid #cedbe8;
     box-shadow: 0 16px 40px -28px rgba(17, 48, 90, 0.4);
     backdrop-filter: blur(8px);
+  }
+
+  [data-theme="console"] .glass-panel {
+    background: linear-gradient(180deg, rgba(24, 37, 61, 0.92), rgba(18, 27, 46, 0.96));
+    border: 1px solid #233553;
+    box-shadow: 0 16px 40px -28px rgba(0, 0, 0, 0.6);
   }
 
   .delay-50 {
@@ -169,6 +274,26 @@
 
   .delay-200 {
     animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .animate-live-pulse {
+    animation: live-pulse 1.8s ease-in-out infinite;
+  }
+
+  .animate-trace-stagger {
+    animation: trace-stagger 0.35s var(--ease-rk, cubic-bezier(0.2, 0.6, 0.2, 1)) both;
+  }
+
+  .animate-cursor-blink {
+    animation: cursor-blink 1s step-end infinite;
   }
 }
 
