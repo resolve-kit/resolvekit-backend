@@ -19,6 +19,7 @@ type FunctionUpdatePayload = {
   availability?: Record<string, unknown>;
   source?: "app_inline" | "playbook_pack";
   pack_name?: string | null;
+  severity?: "read" | "write" | "destructive";
 };
 
 export async function PATCH(
@@ -56,6 +57,7 @@ export async function PATCH(
     availability?: Prisma.InputJsonValue;
     source?: "app_inline" | "playbook_pack";
     packName?: string | null;
+    severity?: "read" | "write" | "destructive";
   } = {};
 
   if (typeof body.description === "string") data.description = body.description;
@@ -70,6 +72,7 @@ export async function PATCH(
   }
   if (body.source === "app_inline" || body.source === "playbook_pack") data.source = body.source;
   if (Object.prototype.hasOwnProperty.call(body, "pack_name")) data.packName = body.pack_name ?? null;
+  if (body.severity === "read" || body.severity === "write" || body.severity === "destructive") data.severity = body.severity;
 
   const updated = await prisma.registeredFunction.update({
     where: { id: functionId },

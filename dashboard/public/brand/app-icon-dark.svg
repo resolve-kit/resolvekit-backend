@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="ResolveKit app icon (console)">
+  <defs>
+    <linearGradient id="bgd" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e1a30"></stop>
+      <stop offset="1" stop-color="#070b14"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#bgd)"></rect>
+  <g transform="translate(192 240)" fill="#4e8bff">
+    <rect x="0" y="0" width="640" height="116" rx="58"></rect>
+    <rect x="0" y="204" width="350" height="116" rx="58" opacity="0.55"></rect>
+    <rect x="0" y="408" width="510" height="116" rx="58"></rect>
+  </g>
+</svg>

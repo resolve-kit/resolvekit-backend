@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="ResolveKit avatar (mono)">
+  <rect width="1024" height="1024" rx="200" fill="#10273f"></rect>
+  
+  <g transform="translate(128 192)" fill="#ffffff">
+    <rect x="0" y="0" width="768" height="140" rx="70"></rect>
+    <rect x="0" y="250" width="420" height="140" rx="70" opacity="0.55"></rect>
+    <rect x="0" y="500" width="610" height="140" rx="70"></rect>
+  </g>
+</svg>

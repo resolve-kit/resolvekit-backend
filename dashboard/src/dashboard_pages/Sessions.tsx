@@ -98,7 +98,7 @@ function ToolCallCard({ calls }: { calls: unknown }) {
   const arr = Array.isArray(calls) ? calls : [calls];
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden text-xs font-mono">
+    <div className="overflow-hidden rounded-lg border border-accent-dim bg-accent-subtle/30 text-xs font-mono">
       {arr.map((call, index) => {
         const record = call as Record<string, unknown>;
         const fnRecord = record?.function as Record<string, unknown> | undefined;
@@ -106,21 +106,24 @@ function ToolCallCard({ calls }: { calls: unknown }) {
         const args = fnRecord?.arguments;
 
         return (
-          <div key={index} className="border-b border-border bg-surface px-3 py-2 last:border-0">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-accent font-semibold">-&gt; {name}</span>
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="text-muted hover:text-body transition-colors"
-              >
-                {expanded ? "collapse" : "expand"}
-              </button>
+          <div key={index} className="flex items-start gap-2 border-b border-accent-dim/40 px-3 py-2 last:border-0">
+            <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded bg-accent/15 text-[9px] font-bold text-accent">fn</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <span className="font-bold text-accent">{name}</span>
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="text-muted hover:text-body transition-colors text-[10px]"
+                >
+                  {expanded ? "collapse" : "args"}
+                </button>
+              </div>
+              {expanded && Boolean(args) && (
+                <pre className="text-dim overflow-auto max-h-40 mt-1 text-[11px] leading-relaxed whitespace-pre-wrap">
+                  {typeof args === "string" ? args : JSON.stringify(args, null, 2)}
+                </pre>
+              )}
             </div>
-            {expanded && Boolean(args) && (
-              <pre className="text-dim overflow-auto max-h-40 mt-1">
-                {typeof args === "string" ? args : JSON.stringify(args, null, 2)}
-              </pre>
-            )}
           </div>
         );
       })}
@@ -203,33 +206,20 @@ function KnowledgeBaseQueryCard({
         const parsedResult = parseKbSearchResult(resultMessage?.content ?? null);
 
         return (
-          <div key={call.callId ?? `kb-call-${index}`} className="border border-warning/30 bg-warning/5 rounded-lg p-2.5">
-            <p className="text-[10px] uppercase tracking-widest text-warning mb-1.5">Knowledge Base Query</p>
-            <div className="text-xs space-y-1">
-              <p className="text-body break-words">
-                <span className="text-subtle">query:</span> {call.query ?? parsedResult?.query ?? "(missing)"}
-              </p>
-              {call.topK !== null && (
-                <p className="text-muted">
-                  <span className="text-subtle">top_k:</span> {call.topK}
-                </p>
-              )}
-              {call.callId && (
-                <p className="text-muted font-mono">
-                  <span className="text-subtle">call_id:</span> {call.callId}
-                </p>
-              )}
-              {parsedResult && parsedResult.resultsCount !== null && (
-                <p className="text-muted">
-                  <span className="text-subtle">results:</span> {parsedResult.resultsCount}
-                </p>
-              )}
-              {parsedResult?.error && (
-                <p className="text-danger">
-                  <span className="text-subtle">error:</span> {parsedResult.error}
-                </p>
+          <div key={call.callId ?? `kb-call-${index}`} className="overflow-hidden rounded-lg border border-warning-dim bg-warning-subtle">
+            <div className="flex items-center gap-2 border-b border-warning-dim/50 px-3 py-1.5">
+              <svg viewBox="0 0 12 12" fill="currentColor" className="h-3 w-3 flex-shrink-0 text-warning"><path d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1ZM5.5 3.5a.5.5 0 0 1 1 0v3a.5.5 0 0 1-1 0v-3Zm.5 5.25a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" /></svg>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-warning">kb_search</span>
+              {parsedResult?.resultsCount !== null && parsedResult?.resultsCount !== undefined && (
+                <span className="ml-auto font-mono text-[10px] text-warning/70">{parsedResult.resultsCount} results</span>
               )}
             </div>
+            <div className="px-3 py-2 font-mono text-[12px] text-warning/90 break-words">
+              {call.query ?? parsedResult?.query ?? <span className="italic text-warning/50">(missing query)</span>}
+            </div>
+            {parsedResult?.error && (
+              <p className="border-t border-warning-dim/50 px-3 py-1.5 font-mono text-[11px] text-danger">{parsedResult.error}</p>
+            )}
           </div>
         );
       })}
@@ -447,47 +437,59 @@ export default function Sessions() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <div className={`space-y-2 xl:col-span-1 ${showListPane ? "block" : "hidden xl:block"}`}>
-          {filteredSessions.map((session) => (
+        <div className={`xl:col-span-1 ${showListPane ? "block" : "hidden xl:block"}`}>
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+            {filteredSessions.map((session) => (
             <button
               key={session.id}
               onClick={() => {
                 void loadMessages(session.id);
                 if (window.innerWidth < 1280) setIsMobileThreadOpen(true);
               }}
-              className={`w-full rounded-xl border p-3 text-left text-sm transition-all hover:-translate-y-0.5 hover:border-border-2 hover:shadow-card ${
-                selectedId === session.id
-                  ? "border-accent-dim bg-accent-subtle"
-                  : "border-border bg-surface"
+              className={`w-full border-b border-border px-4 py-3 text-left transition-colors last:border-0 hover:bg-surface-2 ${
+                selectedId === session.id ? "bg-accent-subtle" : ""
               }`}
             >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-mono text-xs text-dim">{session.id.slice(0, 8)}...</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className={`font-mono text-[12px] font-semibold ${selectedId === session.id ? "text-accent" : "text-strong"}`}>
+                  {session.id.slice(0, 12)}…
+                </span>
                 <Badge variant={statusVariant(session.status)} dot>
                   {session.status}
                 </Badge>
               </div>
-              {session.cost_summary && (
-                <p className="text-sm font-semibold text-body mb-1">
-                  {formatUsd(session.cost_summary.estimated_cost_usd)}
-                </p>
-              )}
-              {session.device_id && <p className="text-xs text-subtle truncate mb-1">{session.device_id}</p>}
-              <p className="text-xs text-muted">{new Date(session.last_activity_at).toLocaleString()}</p>
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  {session.device_id && (
+                    <p className="truncate font-mono text-[11px] text-muted">{session.device_id}</p>
+                  )}
+                  <p className="font-mono text-[11px] text-muted">
+                    {new Date(session.last_activity_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+                {session.cost_summary && (
+                  <span className="flex-shrink-0 font-mono text-[12px] font-semibold text-body">
+                    {formatUsd(session.cost_summary.estimated_cost_usd)}
+                  </span>
+                )}
+              </div>
             </button>
           ))}
 
-          {filteredSessions.length === 0 && (
-            <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-subtle">
-              No sessions match your filters.
-            </p>
-          )}
+            {filteredSessions.length === 0 && (
+              <p className="px-4 py-8 text-center text-sm text-subtle">
+                No sessions match your filters.
+              </p>
+            )}
 
-          {hasMore && (
-            <Button variant="ghost" size="sm" onClick={loadMore} loading={isLoadingMore} className="w-full">
-              Load more
-            </Button>
-          )}
+            {hasMore && (
+              <div className="border-t border-border px-4 py-3">
+                <Button variant="ghost" size="sm" onClick={loadMore} loading={isLoadingMore} className="w-full">
+                  Load more
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div
@@ -592,7 +594,7 @@ export default function Sessions() {
                     return (
                       <div key={message.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                         <div
-                          className={`max-w-[92%] rounded-xl px-3 py-2 text-sm shadow-card sm:max-w-[82%] ${
+                          className={`max-w-[92%] rounded-xl px-3 py-2.5 text-sm shadow-card sm:max-w-[82%] ${
                             isUser
                               ? "bg-accent-subtle border border-accent-dim text-body"
                             : isTool
@@ -600,13 +602,18 @@ export default function Sessions() {
                               : "border border-border bg-surface-2 text-body"
                           }`}
                         >
-                          <p
-                            className={`text-[10px] uppercase tracking-widest mb-1.5 ${
-                              isUser ? "text-accent" : isTool ? "text-warning" : "text-subtle"
-                            }`}
-                          >
-                            {message.role}
-                          </p>
+                          <div className="mb-2 flex items-center gap-1.5">
+                            <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] ${
+                              isUser
+                                ? "bg-accent/15 text-accent"
+                                : isTool
+                                ? "bg-warning/10 text-warning"
+                                : "bg-surface-2 text-subtle border border-border"
+                            }`}>
+                              {message.role}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted">#{message.sequence_number}</span>
+                          </div>
                           {kbSearchCalls.length > 0 && (
                             <KnowledgeBaseQueryCard calls={kbSearchCalls} resultByCallId={toolResultByCallId} />
                           )}

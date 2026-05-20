@@ -143,6 +143,7 @@ model RegisteredFunction {
   availability         Json     @default("{}")
   source               String   @default("app_inline") @db.VarChar(32)
   packName             String?  @map("pack_name") @db.VarChar(255)
+  severity             String   @default("read") @db.VarChar(16)
 
   app App @relation(fields: [appId], references: [id], onDelete: Cascade)
   playbookFunctions PlaybookFunction[]

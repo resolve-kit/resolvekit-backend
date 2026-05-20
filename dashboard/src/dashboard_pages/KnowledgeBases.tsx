@@ -6,6 +6,7 @@ import {
   Button,
   ConfirmDialog,
   Input,
+  SegmentControl,
   Select,
   useToast,
 } from "../components/ui";
@@ -292,6 +293,7 @@ export default function KnowledgeBases() {
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [addSourceTab, setAddSourceTab] = useState<"url" | "file">("url");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHits, setSearchHits] = useState<SearchHit[]>([]);
@@ -941,9 +943,6 @@ export default function KnowledgeBases() {
       ? "Regenerate Embeddings For Affected Knowledge Bases?"
       : "Regenerate Knowledge Base Embeddings?";
 
-  const confirmDescription = confirmAction
-    ? `This change will regenerate embeddings and may increase LLM/embedding usage costs. Affected: ${confirmAction.impact.kb_count} KB(s), ${confirmAction.impact.doc_count} documents, ${confirmAction.impact.chunk_count} chunks. ${estimateLabel(confirmAction.impact)}.`
-    : "";
   const kbCountLabel = isLoading ? "Loading..." : `${kbs.length} KB${kbs.length === 1 ? "" : "s"}`;
   const profileCountLabel = embeddingLoading
     ? "Loading..."
@@ -1019,7 +1018,19 @@ export default function KnowledgeBases() {
         <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up">
           <h2 className="text-sm font-semibold text-strong mb-3">All Knowledge Bases</h2>
           {isLoading ? (
-            <p className="text-xs text-subtle">Loading...</p>
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-lg border border-border bg-surface px-3 py-2 space-y-1.5">
+                  <div className="skeleton h-4 w-36 rounded-md" />
+                  <div className="skeleton h-3 w-48 rounded-md" />
+                  <div className="skeleton h-3 w-28 rounded-md" />
+                  <div className="flex items-center justify-between mt-1">
+                    <div className="skeleton h-5 w-16 rounded-full" />
+                    <div className="skeleton h-4 w-12 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : kbs.length === 0 ? (
             <p className="text-xs text-subtle">No knowledge bases yet.</p>
           ) : (
@@ -1077,6 +1088,27 @@ export default function KnowledgeBases() {
                     <p className="text-xs text-subtle mt-1">{selectedKb.description || "No description"}</p>
                   </div>
                   <Badge variant="active">{sources.length} sources</Badge>
+                </div>
+                <div className="flex flex-wrap gap-4 rounded-lg border border-border bg-surface px-3 py-2">
+                  <span className="text-[11px] text-muted">
+                    <span className="font-mono text-strong">{documents.length}</span> docs
+                  </span>
+                  {selectedKb.embedding_profile_name && (
+                    <span className="text-[11px] text-muted">
+                      embedding: <span className="font-mono text-body">{selectedKb.embedding_profile_name}</span>
+                    </span>
+                  )}
+                  {selectedKb.summary_model && (
+                    <span className="text-[11px] text-muted">
+                      summary: <span className="font-mono text-body">{selectedKb.summary_model}</span>
+                    </span>
+                  )}
+                  <span className="text-[11px] text-muted">
+                    refreshed: <span className="font-mono text-body">{new Date(selectedKb.updated_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                  </span>
+                  <span className="text-[11px] text-muted">
+                    id: <span className="font-mono text-dim">{selectedKb.id.slice(0, 8)}…</span>
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1226,54 +1258,62 @@ export default function KnowledgeBases() {
               </div>
 
               <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up space-y-4">
-                <h3 className="text-sm font-semibold text-strong">Add URL Source</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Input
-                    label="Source URL"
-                    placeholder="https://docs.example.com"
-                    value={newUrl}
-                    onChange={(e) => setNewUrl(e.target.value)}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-strong">Add Source</h3>
+                  <SegmentControl
+                    options={[{ value: "url", label: "URL" }, { value: "file", label: "File" }]}
+                    value={addSourceTab}
+                    onChange={(v) => setAddSourceTab(v as "url" | "file")}
                   />
-                  <Input
-                    label="Title (optional)"
-                    placeholder="Developer Docs"
-                    value={newUrlTitle}
-                    onChange={(e) => setNewUrlTitle(e.target.value)}
-                  />
-                  <div className="flex items-end">
-                    <Button className="w-full" loading={isAddingUrl} onClick={addUrlSource}>
-                      Add URL
+                </div>
+                {addSourceTab === "url" ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Input
+                      label="Source URL"
+                      placeholder="https://docs.example.com"
+                      value={newUrl}
+                      onChange={(e) => setNewUrl(e.target.value)}
+                    />
+                    <Input
+                      label="Title (optional)"
+                      placeholder="Developer Docs"
+                      value={newUrlTitle}
+                      onChange={(e) => setNewUrlTitle(e.target.value)}
+                    />
+                    <div className="flex items-end">
+                      <Button className="w-full" loading={isAddingUrl} onClick={addUrlSource}>
+                        Add URL
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Input
+                      label="Title (optional)"
+                      placeholder="FAQ v1"
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                    />
+                    <div>
+                      <label className="text-sm font-medium text-strong mb-1 block">File</label>
+                      <input
+                        type="file"
+                        onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                        className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-strong"
+                      />
+                      <p className="text-xs text-subtle mt-1">
+                        Supported formats: {SUPPORTED_UPLOAD_FORMATS.join(", ")}
+                      </p>
+                      <p className="text-xs text-subtle mt-1">Maximum size: 25 MB per file.</p>
+                      {uploadFile && (
+                        <p className="text-xs text-subtle mt-1 truncate">Selected: {uploadFile.name}</p>
+                      )}
+                    </div>
+                    <Button loading={isUploading} onClick={addUploadSource} disabled={!uploadFile}>
+                      Upload File
                     </Button>
                   </div>
-                </div>
-
-                <h3 className="text-sm font-semibold text-strong">Add File Source</h3>
-                <div className="space-y-3">
-                  <Input
-                    label="Title (optional)"
-                    placeholder="FAQ v1"
-                    value={uploadTitle}
-                    onChange={(e) => setUploadTitle(e.target.value)}
-                  />
-                  <div>
-                    <label className="text-sm font-medium text-strong mb-1 block">File</label>
-                    <input
-                      type="file"
-                      onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-                      className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-strong"
-                    />
-                    <p className="text-xs text-subtle mt-1">
-                      Supported formats: {SUPPORTED_UPLOAD_FORMATS.join(", ")}
-                    </p>
-                    <p className="text-xs text-subtle mt-1">Maximum size: 25 MB per file.</p>
-                    {uploadFile && (
-                      <p className="text-xs text-subtle mt-1 truncate">Selected: {uploadFile.name}</p>
-                    )}
-                  </div>
-                  <Button loading={isUploading} onClick={addUploadSource} disabled={!uploadFile}>
-                    Upload File
-                  </Button>
-                </div>
+                )}
               </div>
 
               <div className="glass-panel rounded-2xl border border-border/70 p-4 animate-fade-in-up">
@@ -1281,22 +1321,41 @@ export default function KnowledgeBases() {
                 {sources.length === 0 ? (
                   <p className="text-xs text-subtle">No sources yet.</p>
                 ) : (
-                  <div className="space-y-2">
-                    {sources.map((source) => (
+                  <div className="overflow-hidden rounded-xl border border-border">
+                    {sources.map((source, idx) => (
                       <div
                         key={source.id}
-                        className="flex flex-col gap-3 rounded-lg border border-border bg-surface px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                        className={`flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${idx !== 0 ? "border-t border-border" : ""} hover:bg-surface-2 transition-colors`}
                       >
-                        <div className="min-w-0">
-                          <p className="text-sm text-strong truncate">
-                            {source.title || source.input_url || "Uploaded content"}
-                          </p>
-                          <p className="text-xs text-subtle truncate">
-                            {source.source_type === "url" ? source.input_url : "Manual upload"}
-                          </p>
-                          {source.last_error && <p className="text-xs text-danger mt-1">{source.last_error}</p>}
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Type-tinted icon */}
+                          <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border ${
+                            source.source_type === "url"
+                              ? "border-accent-dim bg-accent-subtle text-accent"
+                              : "border-success-dim bg-success-subtle text-success"
+                          }`}>
+                            {source.source_type === "url" ? (
+                              <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+                                <path d="M8.586 1.414A2 2 0 0 1 10 1h4a1 1 0 0 1 1 1v4a2 2 0 0 1-.586 1.414L8.5 13.328A1 1 0 0 1 7.086 13L3 8.914a1 1 0 0 1 0-1.414l5.586-6.086ZM12 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5Z" />
+                                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3Z" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[13.5px] font-semibold text-strong truncate">
+                              {source.title || source.input_url || "Uploaded content"}
+                            </p>
+                            <p className="font-mono text-[11px] text-muted truncate">
+                              {source.source_type === "url" ? source.input_url : "Manual upload"}
+                            </p>
+                            {source.last_error && <p className="text-[11px] text-danger mt-0.5">{source.last_error}</p>}
+                          </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <div className="flex flex-wrap items-center gap-2 sm:justify-end flex-shrink-0">
                           <Badge
                             variant={
                               source.status === "ready"
@@ -1338,13 +1397,20 @@ export default function KnowledgeBases() {
                 </div>
                 <div className="space-y-2 mt-4">
                   {searchHits.map((hit) => (
-                    <div key={`${hit.document_id}-${hit.score}`} className="rounded-lg border border-border bg-surface px-3 py-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm text-strong truncate">{hit.title || "Untitled Document"}</p>
-                        <span className="text-xs text-subtle">score {hit.score.toFixed(3)}</span>
+                    <div
+                      key={`${hit.document_id}-${hit.score}`}
+                      className="flex gap-4 rounded-xl border border-border bg-surface px-4 py-3"
+                    >
+                      {/* Score tile */}
+                      <div className="flex h-12 w-12 flex-shrink-0 flex-col items-center justify-center rounded-lg bg-accent-subtle">
+                        <span className="font-mono text-[13px] font-bold text-accent">{hit.score.toFixed(2)}</span>
+                        <span className="font-mono text-[8.5px] font-bold uppercase tracking-[0.18em] text-accent/70">score</span>
                       </div>
-                      {hit.url && <p className="text-xs text-dim truncate mt-1">{hit.url}</p>}
-                      <p className="text-xs text-subtle mt-2 line-clamp-3">{hit.snippet}</p>
+                      <div className="min-w-0 flex-1">
+                        {hit.url && <p className="font-mono text-[10.5px] text-muted truncate">{hit.url}</p>}
+                        <p className="mt-0.5 text-[13.5px] font-semibold text-strong truncate">{hit.title || "Untitled Document"}</p>
+                        <p className="mt-1 text-[12.5px] leading-[1.55] text-dim line-clamp-2">{hit.snippet}</p>
+                      </div>
                     </div>
                   ))}
                   {searchHits.length === 0 && (
@@ -1407,27 +1473,51 @@ export default function KnowledgeBases() {
                 {jobs.length === 0 ? (
                   <p className="text-xs text-subtle">No jobs yet.</p>
                 ) : (
-                  <div className="space-y-2">
-                    {jobs.map((job) => (
-                      <div key={job.id} className="rounded-lg border border-border bg-surface px-3 py-2">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-mono text-dim">{job.id.slice(0, 8)}...</p>
-                          <Badge
-                            variant={
-                              job.status === "completed"
-                                ? "active"
-                                : job.status === "failed"
-                                ? "revoked"
-                                : "default"
-                            }
-                          >
-                            {job.status}
-                          </Badge>
+                  <div className="overflow-hidden rounded-xl border border-border">
+                    {jobs.map((job, idx) => {
+                      const isRunning = job.status === "running" || job.status === "pending";
+                      const isSuccess = job.status === "completed";
+                      const isFailed = job.status === "failed";
+                      const markerClass = isRunning
+                        ? "border-accent text-accent bg-accent-subtle"
+                        : isSuccess
+                        ? "border-success text-success bg-success-subtle"
+                        : isFailed
+                        ? "border-danger text-danger bg-danger-subtle"
+                        : "border-border text-muted bg-surface";
+                      const jobVerb = (job.job_type ?? "").replace(/_/g, " ").toUpperCase();
+                      const ts = job.finished_at
+                        ? new Date(job.finished_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                        : new Date(job.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+                      return (
+                        <div key={job.id} className={`flex items-center gap-4 px-4 py-3 ${idx !== 0 ? "border-t border-border" : ""} hover:bg-surface-2 transition-colors`}>
+                          {/* Status marker */}
+                          <div className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 ${markerClass} ${isRunning ? "animate-live-pulse" : ""}`}>
+                            {isSuccess && (
+                              <svg viewBox="0 0 10 10" fill="currentColor" className="h-3 w-3">
+                                <path d="M8.5 2.5 4 7 1.5 4.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                            {isFailed && <span className="text-[10px] font-bold">!</span>}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-accent">{jobVerb || "JOB"}</span>
+                              <span className="font-mono text-[11px] text-muted">{job.id.slice(0, 8)}…</span>
+                            </div>
+                            {job.error && <p className="mt-0.5 text-[11px] text-danger">{job.error}</p>}
+                          </div>
+                          <div className="flex flex-shrink-0 items-center gap-2">
+                            <span className="font-mono text-[11px] text-muted whitespace-nowrap">{ts}</span>
+                            <Badge
+                              variant={isSuccess ? "active" : isFailed ? "revoked" : "default"}
+                            >
+                              {job.status}
+                            </Badge>
+                          </div>
                         </div>
-                        <p className="text-xs text-subtle mt-1">{job.job_type}</p>
-                        {job.error && <p className="text-xs text-danger mt-1">{job.error}</p>}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1748,9 +1838,20 @@ export default function KnowledgeBases() {
       <ConfirmDialog
         open={Boolean(confirmAction)}
         title={confirmTitle}
-        description={confirmDescription}
+        description="This will queue re-embedding for all affected chunks. Existing vectors remain active until the job completes."
+        warningBox={confirmAction ? (
+          <div className="rounded-lg border border-warning-dim bg-warning-subtle px-3 py-2.5 space-y-1">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warning">Cost impact</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+              <span className="font-mono text-[12px] text-warning"><span className="font-bold">{confirmAction.impact.kb_count}</span> KB{confirmAction.impact.kb_count === 1 ? "" : "s"}</span>
+              <span className="font-mono text-[12px] text-warning"><span className="font-bold">{confirmAction.impact.doc_count.toLocaleString()}</span> docs</span>
+              <span className="font-mono text-[12px] text-warning"><span className="font-bold">{confirmAction.impact.chunk_count.toLocaleString()}</span> chunks</span>
+            </div>
+            <p className="font-mono text-[11px] text-warning/80">{estimateLabel(confirmAction.impact)}</p>
+          </div>
+        ) : undefined}
         confirmLabel="Regenerate"
-        confirmVariant="primary"
+        confirmVariant="danger"
         onConfirm={confirmRegenerationAction}
         onCancel={() => setConfirmAction(null)}
       />

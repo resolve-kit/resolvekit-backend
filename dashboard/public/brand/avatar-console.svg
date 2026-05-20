@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="ResolveKit avatar (console)">
+  <defs>
+    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e1a30"></stop>
+      <stop offset="1" stop-color="#070b14"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="200" fill="url(#g2)"></rect>
+  
+  <g opacity="0.4">
+    <path d="M0 256 L1024 256 M0 512 L1024 512 M0 768 L1024 768 M256 0 L256 1024 M512 0 L512 1024 M768 0 L768 1024" stroke="#1e3554" stroke-width="1.5"></path>
+  </g>
+  
+  <g transform="translate(128 192)" fill="#4e8bff">
+    <rect x="0" y="0" width="768" height="140" rx="70"></rect>
+    <rect x="0" y="250" width="420" height="140" rx="70" opacity="0.55"></rect>
+    <rect x="0" y="500" width="610" height="140" rx="70"></rect>
+  </g>
+</svg>

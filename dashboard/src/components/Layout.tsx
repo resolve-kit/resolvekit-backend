@@ -7,7 +7,6 @@ import { OnboardingProvider } from "../context/OnboardingContext";
 import { useKnowledgeBaseStatus } from "../hooks/useKnowledgeBaseStatus";
 import AppSidebar from "./AppSidebar";
 import OnboardingGuideRail from "./OnboardingGuideRail";
-import ResolveKitWordmark from "./ResolveKitWordmark";
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -16,6 +15,19 @@ export default function Layout() {
   const [authReady, setAuthReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { status: kbStatus } = useKnowledgeBaseStatus();
+  const [isDark, setIsDark] = useState(
+    () => localStorage.getItem("rk-theme") === "console"
+  );
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.setAttribute("data-theme", "console");
+      localStorage.setItem("rk-theme", "console");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      localStorage.removeItem("rk-theme");
+    }
+  }, [isDark]);
 
   const handleSignOut = useCallback(async () => {
     await logout();
@@ -59,8 +71,8 @@ export default function Layout() {
         <div className="min-h-screen bg-canvas">
           <nav className="fixed left-0 right-0 top-0 z-40 border-b border-border bg-canvas/85 backdrop-blur-md">
             <div className="mx-auto flex h-[var(--nav-height)] max-w-[1400px] items-center justify-between px-4 md:px-6">
-              <Link to="/apps" className="inline-flex items-end gap-2">
-                <ResolveKitWordmark />
+              <Link to="/apps" className="inline-flex items-center gap-2.5">
+                <img src={isDark ? "/brand/logo-horizontal-dark.svg" : "/brand/logo-horizontal.svg"} alt="RESOLVEkit" className="h-9 w-auto" />
                 <span className="pb-[1px] text-[12px] md:text-[13px] font-semibold tracking-[0.16em] text-subtle">
                   | console
                 </span>
@@ -99,14 +111,31 @@ export default function Layout() {
                 })}
               </div>
 
-              <button
-                onClick={() => {
-                  void handleSignOut();
-                }}
-                className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-subtle transition-colors hover:border-border-2 hover:text-body md:px-3"
-              >
-                Sign out
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsDark((d) => !d)}
+                  aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-subtle transition-colors hover:border-border-2 hover:text-body"
+                >
+                  {isDark ? (
+                    <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                      <path d="M8 12A4 4 0 1 0 8 4a4 4 0 0 0 0 8ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM8 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13ZM0 8a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H.75A.75.75 0 0 1 0 8Zm13 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5A.75.75 0 0 1 13 8ZM2.697 2.697a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061L2.696 3.758a.75.75 0 0 1 0-1.061ZM11.182 11.182a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.061a.75.75 0 0 1 0-1.06ZM2.697 13.303a.75.75 0 0 1 0-1.06l1.06-1.061a.75.75 0 1 1 1.061 1.06l-1.06 1.061a.75.75 0 0 1-1.061 0ZM11.182 4.818a.75.75 0 0 1 0-1.06l1.06-1.061a.75.75 0 1 1 1.061 1.06L12.243 4.818a.75.75 0 0 1-1.06 0Z" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                      <path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z" />
+                    </svg>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    void handleSignOut();
+                  }}
+                  className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-subtle transition-colors hover:border-border-2 hover:text-body md:px-3"
+                >
+                  Sign out
+                </button>
+              </div>
             </div>
 
             <div className="border-t border-border/70 px-4 py-2 md:hidden">

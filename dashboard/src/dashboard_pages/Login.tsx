@@ -1,7 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api, setToken } from "../api/client";
-import ResolveKitWordmark from "../components/ResolveKitWordmark";
 import { Button, Input } from "../components/ui";
 
 interface PasswordGuidance {
@@ -126,8 +125,8 @@ export default function Login() {
       <div className="relative mx-auto grid w-full max-w-6xl items-start gap-8 lg:grid-cols-[1fr_420px]">
         <section className="order-2 glass-panel rounded-[2rem] border border-border/70 p-6 shadow-card md:p-9 lg:order-1">
           <div className="space-y-1">
-            <ResolveKitWordmark resolveClassName="text-accent" kitClassName="text-accent" />
-            <p className="text-[10px] uppercase tracking-[0.2em] text-accent/85">Command Center</p>
+            <img src="/brand/logo-horizontal.svg" alt="RESOLVEkit" height={36} className="h-9 w-auto" />
+            <p className="text-[10px] uppercase tracking-[0.2em] text-dim">Command Center</p>
           </div>
           <h1 className="mt-2 font-display text-3xl font-semibold leading-tight text-strong md:text-4xl">
             Embedded LLM support that can explain, guide, and act inside your app

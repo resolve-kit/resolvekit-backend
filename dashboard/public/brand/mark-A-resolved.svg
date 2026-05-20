@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ResolveKit · Resolved mark">
+  
+  <path d="M14 8 H50 a8 8 0 0 1 8 8 V38 a8 8 0 0 1 -8 8 H26 L14 56 V46 a8 8 0 0 1 -8 -8 V16 a8 8 0 0 1 8 -8 Z" fill="currentColor"></path>
+  
+  <path d="M19 28 L27.5 36.5 L45 19" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>

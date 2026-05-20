@@ -10,6 +10,7 @@ export function functionOut(fn: {
   availability: unknown;
   source: string;
   packName: string | null;
+  severity: string;
   createdAt: Date;
 }) {
   return {
@@ -24,6 +25,7 @@ export function functionOut(fn: {
     availability: fn.availability,
     source: fn.source,
     pack_name: fn.packName,
+    severity: fn.severity,
     created_at: fn.createdAt,
   };
 }
