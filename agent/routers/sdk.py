@@ -37,7 +37,7 @@ def _normalize_origin(value: str) -> str:
 
 def _is_allowed_origin(origin: str) -> bool:
     allowed = {_normalize_origin(item) for item in settings.cors_origins}
-    return _normalize_origin(origin) in allowed
+    return "*" in allowed or _normalize_origin(origin) in allowed
 
 
 async def _enforce_client_token_rate_limit(*, app_id: str, client_host: str) -> None:
