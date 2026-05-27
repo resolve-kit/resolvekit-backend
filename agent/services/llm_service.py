@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 import uuid
 
+import httpx
 from openai import AsyncOpenAI
 
 from agent.models.agent_config import AgentConfig
@@ -14,6 +15,29 @@ from agent.services.llm_compat import (
     is_unsupported_temperature_error,
 )
 from agent.services.usage_tracking import estimate_tokens_from_messages, record_llm_usage_event
+
+# ---------------------------------------------------------------------------
+# Singleton AsyncOpenAI clients keyed by (api_key, base_url).
+# Creating one client per request causes redundant TLS handshakes and prevents
+# HTTP/2 connection reuse.  asyncio is single-threaded per worker, so plain
+# dict access here is safe without locks.
+# ---------------------------------------------------------------------------
+_openai_clients: dict[tuple[str, str], AsyncOpenAI] = {}
+
+
+def _get_or_create_openai_client(api_key: str, base_url: str) -> AsyncOpenAI:
+    key = (api_key, base_url)
+    client = _openai_clients.get(key)
+    if client is None:
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            http_client=httpx.AsyncClient(
+                limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
+            ),
+        )
+        _openai_clients[key] = client
+    return client
 
 
 def build_tools(functions: list[RegisteredFunction]) -> list[dict[str, Any]]:
@@ -123,10 +147,8 @@ async def _call_nexos_chat_completions(
     api_key: str,
 ) -> _LLMResponse:
     api_base = (config.llm_api_base or NEXOS_DEFAULT_BASE).rstrip("/")
-    client = AsyncOpenAI(
-        api_key=_normalize_api_key(api_key),
-        base_url=api_base,
-    )
+    normalized_key = _normalize_api_key(api_key)
+    client = _get_or_create_openai_client(normalized_key, api_base)
 
     kwargs: dict[str, Any] = {
         "model": model,
