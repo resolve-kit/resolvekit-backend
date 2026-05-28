@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from collections import defaultdict, deque
 import time
@@ -10,11 +11,23 @@ from agent.models.app import App
 from agent.schemas.chat_theme import ChatThemeOut
 from agent.schemas.sdk import SDKClientTokenResponse, SDKCompatResponse
 from agent.services.chat_theme_service import default_chat_theme, normalize_chat_theme
+from agent.services.runtime_redis_service import get_redis_client, redis_enabled
 from agent.services.sdk_client_token_service import issue_sdk_client_token
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/sdk", tags=["sdk"])
+
+# ---------------------------------------------------------------------------
+# Rate limiting
+# ---------------------------------------------------------------------------
+# When Redis is available: sliding-window counter shared across all worker
+# processes (correct behaviour with multiple workers or replicas).
+# When Redis is unavailable: in-process deque fallback — each worker enforces
+# the limit independently (lenient, but avoids a hard dependency on Redis for
+# this non-critical path).
+# ---------------------------------------------------------------------------
 _sdk_client_token_rate_limit: dict[str, deque[float]] = defaultdict(deque)
-_RATE_LIMIT_MAX_TRACKED_KEYS = 50_000  # cap to prevent unbounded memory growth
+_RATE_LIMIT_MAX_TRACKED_KEYS = 50_000
 _RATE_LIMIT_WINDOW_SECONDS = 60.0
 
 
@@ -24,16 +37,38 @@ def _normalize_origin(value: str) -> str:
 
 def _is_allowed_origin(origin: str) -> bool:
     allowed = {_normalize_origin(item) for item in settings.cors_origins}
-    return _normalize_origin(origin) in allowed
+    return "*" in allowed or _normalize_origin(origin) in allowed
 
 
-def _enforce_client_token_rate_limit(*, app_id: str, client_host: str) -> None:
-    now = time.time()
+async def _enforce_client_token_rate_limit(*, app_id: str, client_host: str) -> None:
     limit = max(1, int(settings.sdk_client_token_rate_limit_per_minute))
-    key = f"{app_id}:{client_host}"
+    key = f"rk:sdk_rl:{app_id}:{client_host}"
 
-    # Evict stale entries to bound memory growth when tracking limit is reached
-    if len(_sdk_client_token_rate_limit) >= _RATE_LIMIT_MAX_TRACKED_KEYS and key not in _sdk_client_token_rate_limit:
+    # --- Redis path (preferred: shared across workers) ---
+    redis = await get_redis_client()
+    if redis is not None and redis_enabled():
+        try:
+            count = await redis.incr(key)
+            if count == 1:
+                # First request in this window — set TTL
+                await redis.expire(key, int(_RATE_LIMIT_WINDOW_SECONDS))
+            if count > limit:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Client token rate limit exceeded",
+                )
+            return
+        except HTTPException:
+            raise
+        except Exception:
+            logger.debug("redis_rate_limit_failed app_id=%s fallback_to_memory", app_id)
+            # Fall through to in-process fallback
+
+    # --- In-process fallback ---
+    now = time.time()
+    mem_key = f"{app_id}:{client_host}"
+
+    if len(_sdk_client_token_rate_limit) >= _RATE_LIMIT_MAX_TRACKED_KEYS and mem_key not in _sdk_client_token_rate_limit:
         stale_keys = [
             k for k, dq in _sdk_client_token_rate_limit.items()
             if dq and (now - dq[-1]) >= _RATE_LIMIT_WINDOW_SECONDS
@@ -41,8 +76,7 @@ def _enforce_client_token_rate_limit(*, app_id: str, client_host: str) -> None:
         for stale in stale_keys[:max(1, len(stale_keys))]:
             del _sdk_client_token_rate_limit[stale]
 
-    bucket = _sdk_client_token_rate_limit[key]
-
+    bucket = _sdk_client_token_rate_limit[mem_key]
     while bucket and (now - bucket[0]) >= _RATE_LIMIT_WINDOW_SECONDS:
         bucket.popleft()
 
@@ -51,7 +85,6 @@ def _enforce_client_token_rate_limit(*, app_id: str, client_host: str) -> None:
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Client token rate limit exceeded",
         )
-
     bucket.append(now)
 
 
@@ -87,7 +120,7 @@ async def create_sdk_client_token(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Origin not allowed")
 
     client_host = request.client.host if request.client else "unknown"
-    _enforce_client_token_rate_limit(app_id=str(app.id), client_host=client_host)
+    await _enforce_client_token_rate_limit(app_id=str(app.id), client_host=client_host)
 
     token, expires_at = issue_sdk_client_token(app)
     response.headers["Cache-Control"] = "no-store"

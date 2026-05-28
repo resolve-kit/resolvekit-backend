@@ -10,6 +10,44 @@ from agent.config import settings
 
 _KB_INSECURE_SIGNING_KEYS = {"", "change-me-kb-service-signing-key"}
 
+# ---------------------------------------------------------------------------
+# Singleton httpx client — reused across all requests to avoid per-call TLS
+# handshakes and connection overhead.  Initialised by the FastAPI lifespan.
+# ---------------------------------------------------------------------------
+_kb_http_client: httpx.AsyncClient | None = None
+
+
+def _kb_timeout() -> httpx.Timeout:
+    return httpx.Timeout(
+        timeout=settings.knowledge_bases_timeout_seconds,
+        connect=settings.knowledge_bases_connect_timeout_seconds,
+    )
+
+
+async def init_kb_http_client() -> None:
+    """Create the shared KB HTTP client.  Call once at application startup."""
+    global _kb_http_client
+    _kb_http_client = httpx.AsyncClient(
+        timeout=_kb_timeout(),
+        limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
+    )
+
+
+async def close_kb_http_client() -> None:
+    """Close the shared KB HTTP client.  Call once at application shutdown."""
+    global _kb_http_client
+    if _kb_http_client is not None:
+        await _kb_http_client.aclose()
+        _kb_http_client = None
+
+
+def _get_kb_client() -> httpx.AsyncClient:
+    """Return the singleton client, falling back to a fresh one if not initialised."""
+    if _kb_http_client is not None:
+        return _kb_http_client
+    # Fallback: temporary client (should not happen in production after lifespan init)
+    return httpx.AsyncClient(timeout=_kb_timeout())
+
 
 @dataclass
 class KBServiceError(Exception):
@@ -150,18 +188,14 @@ async def _call_internal(
     actor_role: str,
 ) -> dict[str, Any]:
     token = _build_service_token(org_id=org_id, actor_id=actor_id, actor_role=actor_role)
-    timeout = httpx.Timeout(
-        timeout=settings.knowledge_bases_timeout_seconds,
-        connect=settings.knowledge_bases_connect_timeout_seconds,
-    )
     url = f"{settings.knowledge_bases_base_url.rstrip('/')}{path}"
+    client = _get_kb_client()
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
-                url,
-                json=payload,
-                headers={"Authorization": f"Bearer {token}"},
-            )
+        response = await client.post(
+            url,
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+        )
     except httpx.HTTPError as exc:
         raise KBServiceError(status_code=503, detail="Knowledge base service unavailable") from exc
 
@@ -185,19 +219,15 @@ async def _call_internal_multipart(
     actor_role: str,
 ) -> dict[str, Any]:
     token = _build_service_token(org_id=org_id, actor_id=actor_id, actor_role=actor_role)
-    timeout = httpx.Timeout(
-        timeout=settings.knowledge_bases_timeout_seconds,
-        connect=settings.knowledge_bases_connect_timeout_seconds,
-    )
     url = f"{settings.knowledge_bases_base_url.rstrip('/')}{path}"
+    client = _get_kb_client()
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
-                url,
-                data=data,
-                files=files,
-                headers={"Authorization": f"Bearer {token}"},
-            )
+        response = await client.post(
+            url,
+            data=data,
+            files=files,
+            headers={"Authorization": f"Bearer {token}"},
+        )
     except httpx.HTTPError as exc:
         raise KBServiceError(status_code=503, detail="Knowledge base service unavailable") from exc
 

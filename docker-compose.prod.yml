@@ -120,6 +120,20 @@ services:
       RK_KNOWLEDGE_BASES_SIGNING_KEY: ${KBS_SERVICE_JWT_SIGNING_KEY:-change-me-kb-service-signing-key}
       RK_KNOWLEDGE_BASES_AUDIENCE: ${KBS_SERVICE_JWT_AUDIENCE:-kb-service}
       RK_REDIS_URL: ${RK_REDIS_URL:-redis://redis:6379/0}
+    # Multiple workers distribute the async event loop load across CPU cores.
+    # Redis is required for shared state (turn locks, event streams, tool results).
+    # Tune BACKEND_WORKERS to match host vCPU count (default: 4).
+    command:
+      - "uv"
+      - "run"
+      - "uvicorn"
+      - "agent.main:app"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--workers"
+      - "${BACKEND_WORKERS:-4}"
     ports:
       - "${BACKEND_BIND_ADDR:-127.0.0.1}:${BACKEND_BIND_PORT:-8000}:8000"
     networks:

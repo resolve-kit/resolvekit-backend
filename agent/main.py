@@ -15,7 +15,11 @@ from agent.routers import (
     sessions,
 )
 from agent.services.session_service import expire_stale_sessions
-from agent.services.runtime_redis_service import close_redis
+from agent.services.runtime_redis_service import close_redis, redis_enabled
+from agent.services.knowledge_bases_client import init_kb_http_client, close_kb_http_client
+from agent.services.pending_tool_results import start_shared_tool_listener, stop_shared_tool_listener
+
+logger = logging.getLogger(__name__)
 
 
 def _configure_logging() -> None:
@@ -49,13 +53,24 @@ def validate_security_config() -> None:
 
 
 async def session_expiry_task():
-    """Background task to expire stale sessions every 5 minutes."""
+    """Background task to expire stale sessions every 60 seconds.
+
+    Logs failures (previously swallowed silently) and backs off exponentially
+    to avoid hammering an overloaded database.
+    """
+    backoff = 60
     while True:
         try:
             async with async_session_factory() as db:
                 await expire_stale_sessions(db)
+            backoff = 60  # reset on success
+        except asyncio.CancelledError:
+            raise
         except Exception:
-            pass
+            logger.exception("session_expiry_task_failed backoff=%ss", backoff)
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 600)
+            continue
         await asyncio.sleep(60)
 
 
@@ -63,13 +78,30 @@ async def session_expiry_task():
 async def lifespan(app: FastAPI):
     _configure_logging()
     validate_security_config()
-    task = asyncio.create_task(session_expiry_task())
+
+    if not redis_enabled():
+        logger.warning(
+            "RK_REDIS_URL is not set — in-memory fallbacks active. "
+            "Unsafe for multi-worker or multi-replica deployments. "
+            "Set RK_REDIS_URL for production."
+        )
+
+    # Initialise long-lived HTTP clients (avoids per-request TLS overhead).
+    await init_kb_http_client()
+
+    # Start shared Redis pub/sub listener for cross-process tool result delivery.
+    await start_shared_tool_listener()
+
+    expiry_task = asyncio.create_task(session_expiry_task())
     yield
-    task.cancel()
+    expiry_task.cancel()
     try:
-        await task
+        await expiry_task
     except asyncio.CancelledError:
         pass
+
+    await stop_shared_tool_listener()
+    await close_kb_http_client()
     await close_redis()
 
 

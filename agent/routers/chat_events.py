@@ -1,8 +1,11 @@
 import asyncio
 import json
+import logging
 import time
 import uuid
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
@@ -193,6 +196,7 @@ async def _run_turn(
             sender = EventStreamSender(session.id, app.id, turn_id=turn_id, request_id=request_id)
             await run_agent_loop(db, session, agent_config, functions, text, sender)
     except Exception:
+        logger.exception("turn_failed session_id=%s app_id=%s turn_id=%s", session_id, app_id, turn_id)
         await event_stream_store.append(
             session_id=session_id,
             app_id=app_id,

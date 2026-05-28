@@ -1032,10 +1032,10 @@ async def run_agent_loop(
     raw_custom_context = _session_llm_context(session)
     custom_context_prompt = _format_custom_context_for_prompt(raw_custom_context)
     custom_context_query = _format_custom_context_for_query(raw_custom_context)
-    (app_org_id, assigned_kb_ids), preloaded_context_msgs = await asyncio.gather(
-        _load_kb_assignment_context(db, session.app_id),
-        load_context_messages(db, session.id, config.max_context_messages),
-    )
+    # Sequential — asyncio.gather with a shared db session causes concurrent
+    # access on the same SQLAlchemy async session, triggering IllegalStateChangeError.
+    app_org_id, assigned_kb_ids = await _load_kb_assignment_context(db, session.app_id)
+    preloaded_context_msgs = await load_context_messages(db, session.id, config.max_context_messages)
     router_result = await _run_router(
         config,
         user_text,
