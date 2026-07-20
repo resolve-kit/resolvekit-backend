@@ -4,7 +4,7 @@
       "Body_add_upload_file_internal_sources_add_upload_file_post": {
         "properties": {
           "file": {
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "File",
             "type": "string"
           },
