@@ -52,6 +52,21 @@ docker compose up --build -d
 - Agent runtime: `http://localhost:8000`
 - Agent health: `GET http://localhost:8000/health`
 
+## CI/CD & Deployment
+
+Pipeline: `.github/workflows/publish-images.yml` (backend, kb-service, dashboard images).
+
+- **CI** (`.github/workflows/ci.yml`): runs on every push to `main` and PR — lint/tests only, no deploy.
+- **Build**: on push to `main`, on tag `v*`, or manual `workflow_dispatch`, builds and pushes all 3 images to GHCR (`ghcr.io/<owner>/resolvekit-{backend,kb-service,dashboard}`), tagged `latest` (default branch), `sha-<short-sha>`, and ref tags.
+- **Deploy to staging**: automatic after every successful build on `main` push. Can also be triggered manually via `workflow_dispatch` with `deploy_target: staging`. SSHes into the staging host and runs `docker compose -f docker-compose.local-deploy.yml up -d --no-build` for `backend kb-service api dashboard caddy`.
+- **Deploy to prod**: manual only — never runs on plain pushes. Trigger via:
+  ```bash
+  gh workflow run publish-images.yml -f deploy_target=prod
+  # optionally pin an image: -f image_tag=sha-<short-sha>  (defaults to sha-<current-commit>)
+  ```
+  SSHes into the prod host and runs `docker compose -f docker-compose.prod.yml up -d --no-build` for `backend kb-service api dashboard`.
+- Both deploy jobs fail loudly if any target service isn't `running` after the compose command.
+
 ## Key Commands
 
 - `uv run alembic upgrade head`
