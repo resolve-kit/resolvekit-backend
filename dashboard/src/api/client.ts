@@ -44,7 +44,16 @@ function shouldAttachBearerToken(path: string): boolean {
 }
 
 function toRequestUrl(path: string): string {
-  return shouldUseSameOriginAuthRoute(path) ? path : `${BASE}${path}`;
+  // The `dashboard` and `api` deploy targets are the same Next.js app/image in
+  // every topology this repo supports (docker-compose, staging, prod) — they
+  // just run as separate replicas on different ports/domains for routing
+  // convenience. A same-origin request always reaches an instance with the
+  // exact same /v1/* handlers and database, so route everything same-origin
+  // instead of a build-time NEXT_PUBLIC_API_BASE_URL, which is baked once in
+  // CI and would otherwise point every non-cookie-bound deployment (e.g.
+  // staging) at whatever origin happened to be configured for that build.
+  void BASE;
+  return path;
 }
 
 export async function logout(): Promise<void> {
