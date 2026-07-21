@@ -14,6 +14,7 @@ interface Session {
   client_context?: Record<string, string | null>;
   llm_context?: Record<string, unknown>;
   cost_summary?: SessionCostSummary | null;
+  escalation_reason?: string | null;
 }
 
 interface Message {
@@ -71,10 +72,11 @@ type KbSearchResult = {
   error: string | null;
 };
 
-function statusVariant(status: string): "active" | "expired" | "closed" | "default" {
+function statusVariant(status: string): "active" | "expired" | "closed" | "danger" | "default" {
   if (status === "active") return "active";
   if (status === "expired") return "expired";
   if (status === "closed") return "closed";
+  if (status === "escalated") return "danger";
   return "default";
 }
 
@@ -285,6 +287,10 @@ export default function Sessions() {
   const [selectedCostSummary, setSelectedCostSummary] = useState<SessionCostSummary | null>(null);
   const [costsLoading, setCostsLoading] = useState(false);
   const [costsError, setCostsError] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -331,6 +337,8 @@ export default function Sessions() {
       setSelectedCostSummary(sessions.find((entry) => entry.id === sessionId)?.cost_summary ?? null);
       setCostsError(null);
       setCostsLoading(true);
+      setReplyText("");
+      setReplyError(null);
 
       if (pollRef.current) {
         clearInterval(pollRef.current);
@@ -353,7 +361,7 @@ export default function Sessions() {
         setCostsLoading(false);
 
         const session = sessions.find((entry) => entry.id === sessionId);
-        if (session?.status === "active") {
+        if (session?.status === "active" || session?.status === "escalated") {
           pollRef.current = setInterval(async () => {
             try {
               const updated = await api<Message[]>(`/v1/apps/${appId}/sessions/${sessionId}/messages`);
@@ -381,6 +389,42 @@ export default function Sessions() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
+
+  async function sendReply() {
+    const sessionId = selectedId;
+    const text = replyText.trim();
+    if (!sessionId || !text) return;
+    setIsSendingReply(true);
+    setReplyError(null);
+    try {
+      const message = await api<Message>(`/v1/apps/${appId}/sessions/${sessionId}/reply`, {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      });
+      setMessages((prev) => [...prev, message]);
+      setReplyText("");
+    } catch (err: unknown) {
+      setReplyError(err instanceof ApiError ? err.detail : "Failed to send reply");
+    } finally {
+      setIsSendingReply(false);
+    }
+  }
+
+  async function resolveSession() {
+    const sessionId = selectedId;
+    if (!sessionId) return;
+    setIsResolving(true);
+    try {
+      const updated = await api<Session>(`/v1/apps/${appId}/sessions/${sessionId}/resolve`, {
+        method: "POST",
+      });
+      setSessions((prev) => prev.map((entry) => (entry.id === sessionId ? updated : entry)));
+    } catch (err: unknown) {
+      setReplyError(err instanceof ApiError ? err.detail : "Failed to resolve session");
+    } finally {
+      setIsResolving(false);
+    }
+  }
 
   const selectedSession = sessions.find((session) => session.id === selectedId);
   const toolResultByCallId = useMemo(() => {
@@ -569,6 +613,24 @@ export default function Sessions() {
                   </div>
                 )}
                 {selectedSession.llm_context && <LLMContextCard context={selectedSession.llm_context} />}
+                {selectedSession.status === "escalated" && (
+                  <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-danger-dim bg-danger-subtle px-3 py-2">
+                    <div>
+                      <p className="text-xs font-semibold text-danger">Escalated to human</p>
+                      {selectedSession.escalation_reason && (
+                        <p className="text-xs text-danger/80 mt-0.5">{selectedSession.escalation_reason}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={resolveSession}
+                      loading={isResolving}
+                    >
+                      Mark resolved
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -628,6 +690,29 @@ export default function Sessions() {
                   })
                 )}
               </div>
+
+              {selectedSession.status === "escalated" && (
+                <div className="border-t border-border px-4 py-3 flex-shrink-0">
+                  {replyError && <p className="text-xs text-danger mb-2">{replyError}</p>}
+                  <div className="flex items-end gap-2">
+                    <textarea
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Reply as a human agent..."
+                      rows={2}
+                      className="w-full resize-none rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-body placeholder:text-muted focus:border-accent focus:outline-none"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={sendReply}
+                      loading={isSendingReply}
+                      disabled={!replyText.trim()}
+                    >
+                      Send
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-subtle text-sm">
