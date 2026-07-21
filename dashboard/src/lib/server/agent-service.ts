@@ -71,3 +71,21 @@ export async function postHumanMessage(sessionId: string, text: string): Promise
 
   return (await response.json()) as AgentHumanMessage;
 }
+
+export async function postFeedbackRequested(sessionId: string): Promise<void> {
+  const token = await buildServiceToken();
+  const response = await fetch(`${AGENT_BASE_URL}/internal/sessions/${sessionId}/feedback-requested`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Agent internal feedback-requested call failed: ${response.status} ${body}`);
+  }
+}

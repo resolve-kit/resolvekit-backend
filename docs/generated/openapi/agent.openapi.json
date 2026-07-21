@@ -1185,6 +1185,52 @@
         "summary": "Health"
       }
     },
+    "/internal/sessions/{session_id}/feedback-requested": {
+      "post": {
+        "operationId": "post_feedback_requested_internal_sessions__session_id__feedback_requested_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Feedback Requested",
+        "tags": [
+          "chat-events"
+        ]
+      }
+    },
     "/internal/sessions/{session_id}/human-message": {
       "post": {
         "operationId": "post_human_message_internal_sessions__session_id__human_message_post",

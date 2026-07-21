@@ -392,3 +392,24 @@ async def post_human_message(
         "role": message.role,
         "content": message.content,
     }
+
+
+@router.post("/internal/sessions/{session_id}/feedback-requested", dependencies=[Depends(require_internal_service)])
+async def post_feedback_requested(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    session = await db.get(ChatSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    await event_stream_store.append(
+        session_id=session.id,
+        app_id=session.app_id,
+        turn_id=str(uuid.uuid4()),
+        request_id=str(uuid.uuid4()),
+        event_type="feedback_requested",
+        payload={},
+    )
+
+    return {"status": "ok"}

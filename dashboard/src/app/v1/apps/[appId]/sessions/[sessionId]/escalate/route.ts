@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDeveloperFromRequest } from "@/lib/server/auth";
 import { getOwnedAppOrNull } from "@/lib/server/apps";
 import { detail } from "@/lib/server/http";
-import { postFeedbackRequested } from "@/lib/server/agent-service";
 import { prisma } from "@/lib/server/prisma";
 import { sessionOut } from "@/lib/server/serializers";
 
@@ -22,15 +21,16 @@ export async function POST(
 
   const session = await prisma.chatSession.findUnique({ where: { id: sessionId } });
   if (!session || session.appId !== app.id) return detail(404, "Session not found");
+  if (session.status === "closed") return detail(409, "Session is already closed");
 
   const updated = await prisma.chatSession.update({
     where: { id: sessionId },
-    data: { status: "closed", resolvedBy: "human" },
+    data: {
+      status: "escalated",
+      escalatedAt: new Date(),
+      escalationReason: `Manually taken over by ${developer.name}`,
+    },
   });
-
-  // Best-effort: prompt the user for CSAT now that a human has resolved the
-  // conversation. Don't fail the resolve action if the agent is unreachable.
-  await postFeedbackRequested(sessionId).catch(() => {});
 
   return NextResponse.json(sessionOut(updated));
 }

@@ -291,6 +291,7 @@ export default function Sessions() {
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState(false);
+  const [isTakingOver, setIsTakingOver] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -407,6 +408,32 @@ export default function Sessions() {
       setReplyError(err instanceof ApiError ? err.detail : "Failed to send reply");
     } finally {
       setIsSendingReply(false);
+    }
+  }
+
+  async function takeOverSession() {
+    const sessionId = selectedId;
+    if (!sessionId) return;
+    setIsTakingOver(true);
+    setReplyError(null);
+    try {
+      const updated = await api<Session>(`/v1/apps/${appId}/sessions/${sessionId}/escalate`, {
+        method: "POST",
+      });
+      setSessions((prev) => prev.map((entry) => (entry.id === sessionId ? updated : entry)));
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(async () => {
+        try {
+          const updatedMessages = await api<Message[]>(`/v1/apps/${appId}/sessions/${sessionId}/messages`);
+          setMessages(updatedMessages);
+        } catch {
+          // Polling should not disrupt the current view.
+        }
+      }, 10000);
+    } catch (err: unknown) {
+      setReplyError(err instanceof ApiError ? err.detail : "Failed to take over session");
+    } finally {
+      setIsTakingOver(false);
     }
   }
 
@@ -613,6 +640,19 @@ export default function Sessions() {
                   </div>
                 )}
                 {selectedSession.llm_context && <LLMContextCard context={selectedSession.llm_context} />}
+                {selectedSession.status === "active" && (
+                  <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2 px-3 py-2">
+                    <p className="text-xs text-subtle">Join this conversation as a human agent at any time.</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={takeOverSession}
+                      loading={isTakingOver}
+                    >
+                      Take over
+                    </Button>
+                  </div>
+                )}
                 {selectedSession.status === "escalated" && (
                   <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-danger-dim bg-danger-subtle px-3 py-2">
                     <div>
