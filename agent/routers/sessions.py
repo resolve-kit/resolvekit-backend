@@ -198,7 +198,7 @@ async def get_session_messages_sdk(
     result = await db.execute(
         select(Message).where(
             Message.session_id == session_id,
-            Message.role.in_(["user", "assistant"]),
+            Message.role.in_(["user", "assistant", "human_agent"]),
         ).order_by(Message.sequence_number)
     )
     return result.scalars().all()
