@@ -22,4 +22,11 @@ def test_event_stream_sender_emits_escalation_and_feedback_events() -> None:
     text = Path("agent/routers/chat_events.py").read_text(encoding="utf-8")
 
     assert 'await self._push("session_escalated", {"reason": reason})' in text
-    assert 'await self._push("feedback_requested", {})' in text
+    assert 'await self._push("feedback_requested", {"immediate": False})' in text
+
+
+def test_feedback_requested_immediate_flag_distinguishes_human_resolve_from_ai_turn() -> None:
+    text = Path("agent/routers/chat_events.py").read_text(encoding="utf-8")
+
+    assert '"immediate": False' in text
+    assert '"immediate": True' in text

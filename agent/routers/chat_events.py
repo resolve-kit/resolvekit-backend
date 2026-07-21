@@ -138,7 +138,7 @@ class EventStreamSender(MessageSender):
         await self._push("turn_complete", {"full_text": full_text, "usage": usage})
 
     async def send_feedback_requested(self) -> None:
-        await self._push("feedback_requested", {})
+        await self._push("feedback_requested", {"immediate": False})
 
     async def send_error(self, code: str, message: str, recoverable: bool = True) -> None:
         await self._push("error", {"code": code, "message": message, "recoverable": recoverable})
@@ -409,7 +409,7 @@ async def post_feedback_requested(
         turn_id=str(uuid.uuid4()),
         request_id=str(uuid.uuid4()),
         event_type="feedback_requested",
-        payload={},
+        payload={"immediate": True},
     )
 
     return {"status": "ok"}
