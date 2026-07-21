@@ -26,12 +26,14 @@ const CUSTOMIZATION_ITEMS: NavItem[] = [
 ];
 const CUSTOMIZATION_PARENT_ITEM: NavItem = { label: "Customization", slug: "chat-theme" };
 const SESSIONS_ITEM: NavItem = { label: "Sessions", slug: "sessions" };
+const ANALYTICS_ITEM: NavItem = { label: "Analytics", slug: "analytics" };
 const AUDIT_ITEM: NavItem = { label: "Audit Log", slug: "audit" };
 const ROUTE_LABEL_ITEMS: NavItem[] = [
   ...AGENT_CHILD_ITEMS,
   API_KEYS_ITEM,
   ...CUSTOMIZATION_ITEMS,
   SESSIONS_ITEM,
+  ANALYTICS_ITEM,
   AUDIT_ITEM,
 ];
 const AGENT_SECTION_SLUGS = AGENT_CHILD_ITEMS.map((item) => item.slug);
@@ -218,6 +220,7 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
             )}
 
             {renderNavButton(SESSIONS_ITEM)}
+            {renderNavButton(ANALYTICS_ITEM)}
             {renderNavButton(AUDIT_ITEM)}
           </div>
         </div>
@@ -280,6 +283,7 @@ export default function AppSidebar({ variant = "desktop" }: AppSidebarProps) {
           )}
 
           {renderNavButton(SESSIONS_ITEM)}
+          {renderNavButton(ANALYTICS_ITEM)}
           {renderNavButton(AUDIT_ITEM)}
         </div>
       </div>

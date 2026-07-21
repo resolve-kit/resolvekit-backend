@@ -4,6 +4,7 @@ import logging
 import re
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -38,6 +39,7 @@ from agent.services.session_service import get_next_sequence, load_context_messa
 logger = logging.getLogger(__name__)
 
 KB_SEARCH_TOOL_NAME = "kb_search"
+ESCALATE_TOOL_NAME = "escalate_to_human"
 KB_PREFETCH_MAX_ITEMS = 5
 KB_PREFETCH_MAX_CHARS = 1200
 KB_INDEX_MAX_ITEMS = 8
@@ -859,6 +861,39 @@ def _build_kb_search_tool() -> dict[str, Any]:
     }
 
 
+def _build_escalate_tool() -> dict[str, Any]:
+    return {
+        "type": "function",
+        "function": {
+            "name": ESCALATE_TOOL_NAME,
+            "description": (
+                "Escalate this conversation to a human support agent. Use this when the user "
+                "explicitly asks for a human, or when you cannot resolve the issue yourself."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {"type": "string", "description": "Why this conversation needs a human."},
+                },
+                "required": ["reason"],
+            },
+        },
+    }
+
+
+async def escalate_session(
+    db: AsyncSession,
+    session: ChatSession,
+    sender: "MessageSender",
+    reason: str,
+) -> None:
+    session.status = "escalated"
+    session.escalated_at = datetime.now(timezone.utc)
+    session.escalation_reason = reason
+    await db.commit()
+    await sender.send_session_escalated(reason)
+
+
 async def _load_kb_assignment_context(
     db: AsyncSession,
     app_id: uuid.UUID,
@@ -951,10 +986,16 @@ class MessageSender:
     async def send_turn_complete(self, full_text: str, usage: dict | None) -> None:
         raise NotImplementedError
 
+    async def send_feedback_requested(self) -> None:
+        raise NotImplementedError
+
     async def send_error(self, code: str, message: str, recoverable: bool = True) -> None:
         raise NotImplementedError
 
     async def wait_for_tool_result(self, call_id: str, timeout: int) -> dict[str, Any]:
+        raise NotImplementedError
+
+    async def send_session_escalated(self, reason: str) -> None:
         raise NotImplementedError
 
 
@@ -1139,6 +1180,7 @@ async def run_agent_loop(
     tools = list(sdk_tools)
     if kb_service_enabled:
         tools.append(_build_kb_search_tool())
+    tools.append(_build_escalate_tool())
     tools_payload = tools or None
     tool_round = 0
 
@@ -1240,6 +1282,7 @@ async def run_agent_loop(
             db.add(assistant_msg)
             await db.commit()
             await sender.send_turn_complete(accumulated_text, usage_data)
+            await sender.send_feedback_requested()
             return
 
         # 5. If tool calls → send to iOS and wait for results
@@ -1271,6 +1314,7 @@ async def run_agent_loop(
                     "arguments": arguments,
                     "description": (fn.description_override or fn.description) if fn else "",
                     "is_kb_internal": fn_name == KB_SEARCH_TOOL_NAME,
+                    "is_escalation": fn_name == ESCALATE_TOOL_NAME,
                 })
 
             # 5a. Execute internal KB tools server-side.
@@ -1314,8 +1358,24 @@ async def run_agent_loop(
                 db.add(result_msg)
                 await db.commit()
 
+            # 5a2. Handle escalation to human, server-side.
+            escalation_info = next((info for info in tc_infos if info["is_escalation"]), None)
+            if escalation_info is not None:
+                reason = str(escalation_info["arguments"].get("reason", "")).strip() or "Escalated by assistant"
+                seq = await get_next_sequence(db, session.id)
+                result_msg = Message(
+                    session_id=session.id,
+                    sequence_number=seq,
+                    role="tool_result",
+                    tool_call_id=escalation_info["id"],
+                    content=json.dumps({"status": "escalated"}),
+                )
+                db.add(result_msg)
+                await escalate_session(db, session, sender, reason)
+                return
+
             # 5b. Send SDK function tools to iOS
-            sdk_tc_infos = [info for info in tc_infos if not info["is_kb_internal"]]
+            sdk_tc_infos = [info for info in tc_infos if not info["is_kb_internal"] and not info["is_escalation"]]
             descriptions = (
                 await generate_tool_descriptions(config, sdk_tc_infos, session_id=session.id)
                 if sdk_tc_infos
@@ -1413,6 +1473,6 @@ async def run_agent_loop(
         # No text and no tool calls — shouldn't happen but break to be safe
         break
 
-    # Max tool rounds exceeded — force text response
+    # Max tool rounds exceeded — escalate to a human rather than dead-ending the session
     if tool_round >= config.max_tool_rounds:
-        await sender.send_error("max_tool_rounds", "Maximum tool calling rounds exceeded", recoverable=False)
+        await escalate_session(db, session, sender, "Maximum tool calling rounds exceeded")

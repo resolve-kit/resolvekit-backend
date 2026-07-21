@@ -43,5 +43,9 @@ class Settings(BaseSettings):
     knowledge_bases_timeout_seconds: float = 20.0
     knowledge_bases_connect_timeout_seconds: float = 5.0
 
+    internal_service_signing_key: str = "change-me-internal-service-signing-key"
+    internal_service_audience: str = "agent-service"
+    internal_service_jwt_algorithm: str = "HS256"
+
 
 settings = Settings()

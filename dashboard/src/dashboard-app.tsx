@@ -14,6 +14,7 @@ import AppKnowledgeBases from "./dashboard_pages/AppKnowledgeBases";
 import OrganizationAdmin from "./dashboard_pages/OrganizationAdmin";
 import Playbooks from "./dashboard_pages/Playbooks";
 import Sessions from "./dashboard_pages/Sessions";
+import Analytics from "./dashboard_pages/Analytics";
 import ChatTheme from "./dashboard_pages/ChatTheme";
 
 export function RootRedirect() {
@@ -37,6 +38,7 @@ export function DashboardApp() {
           <Route path="/apps/:appId/limits" element={<LimitsConfig />} />
           <Route path="/apps/:appId/functions" element={<Functions />} />
           <Route path="/apps/:appId/sessions" element={<Sessions />} />
+          <Route path="/apps/:appId/analytics" element={<Analytics />} />
           <Route path="/apps/:appId/api-keys" element={<ApiKeys />} />
           <Route path="/apps/:appId/languages" element={<Languages />} />
           <Route path="/apps/:appId/playbooks" element={<Playbooks />} />

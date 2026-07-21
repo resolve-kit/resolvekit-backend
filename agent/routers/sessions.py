@@ -10,11 +10,14 @@ from agent.middleware.auth import get_app_from_sdk_auth
 from agent.models.app import App
 from agent.models.message import Message
 from agent.models.session import ChatSession
+from agent.models.session_feedback import SessionFeedback
 from agent.schemas.session import (
     MessageOut,
     SessionContextOut,
     SessionContextPatch,
     SessionCreate,
+    SessionFeedbackCreate,
+    SessionFeedbackOut,
     SessionOut,
 )
 from agent.services.chat_localization_service import effective_texts, resolve_locale
@@ -199,3 +202,34 @@ async def get_session_messages_sdk(
         ).order_by(Message.sequence_number)
     )
     return result.scalars().all()
+
+
+@sdk_router.post("/{session_id}/feedback", response_model=SessionFeedbackOut, status_code=status.HTTP_201_CREATED)
+async def submit_session_feedback(
+    session_id: uuid.UUID,
+    body: SessionFeedbackCreate,
+    request: Request,
+    app: App = Depends(get_app_from_sdk_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    validate_chat_capability_token(
+        token=resolve_chat_capability_token(request.headers),
+        session_id=session_id,
+        app=app,
+    )
+
+    session = await db.get(ChatSession, session_id)
+    if not session or session.app_id != app.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    existing = await db.execute(
+        select(SessionFeedback).where(SessionFeedback.session_id == session_id)
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Feedback already submitted for this session")
+
+    feedback = SessionFeedback(session_id=session_id, rating=body.rating, comment=body.comment)
+    db.add(feedback)
+    await db.commit()
+    await db.refresh(feedback)
+    return feedback

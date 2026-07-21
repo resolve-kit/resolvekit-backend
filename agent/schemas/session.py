@@ -118,6 +118,23 @@ class MessageOut(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class SessionFeedbackCreate(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=2000)
+
+    model_config = {"extra": "forbid"}
+
+
+class SessionFeedbackOut(BaseModel):
+    id: uuid.UUID
+    session_id: uuid.UUID
+    rating: int
+    comment: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class SessionContextOut(BaseModel):
     id: uuid.UUID
     app_id: uuid.UUID

@@ -119,6 +119,27 @@
         ]
       }
     },
+    "/v1/apps/appId/analytics": {
+      "get": {
+        "operationId": "get_v1_apps_appId_analytics",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
     "/v1/apps/appId/api-keys": {
       "get": {
         "operationId": "get_v1_apps_appId_api-keys",
@@ -669,6 +690,48 @@
     "/v1/apps/appId/sessions/sessionId/messages": {
       "get": {
         "operationId": "get_v1_apps_appId_sessions_sessionId_messages",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/sessions/sessionId/reply": {
+      "post": {
+        "operationId": "post_v1_apps_appId_sessions_sessionId_reply",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "apps"
+        ]
+      }
+    },
+    "/v1/apps/appId/sessions/sessionId/resolve": {
+      "post": {
+        "operationId": "post_v1_apps_appId_sessions_sessionId_resolve",
         "responses": {
           "200": {
             "description": "Success"

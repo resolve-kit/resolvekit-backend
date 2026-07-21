@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -11,6 +11,7 @@ from agent.models.base import Base, TimestampMixin, UUIDMixin
 if TYPE_CHECKING:
     from agent.models.app import App
     from agent.models.message import Message
+    from agent.models.session_feedback import SessionFeedback
 
 
 class ChatSession(Base, UUIDMixin, TimestampMixin):
@@ -18,7 +19,7 @@ class ChatSession(Base, UUIDMixin, TimestampMixin):
 
     app_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("apps.id", ondelete="CASCADE"))
     device_id: Mapped[str | None] = mapped_column(String(255))
-    status: Mapped[str] = mapped_column(String(20), default="active")  # active, expired, closed
+    status: Mapped[str] = mapped_column(String(20), default="active")  # active, expired, closed, escalated
     last_activity_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -26,6 +27,10 @@ class ChatSession(Base, UUIDMixin, TimestampMixin):
     llm_context: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     available_function_names: Mapped[list[str]] = mapped_column(JSONB, default=list)
     locale: Mapped[str] = mapped_column(String(16), default="en")
+    escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    escalation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(20), nullable=True)  # ai, human
 
     app: Mapped["App"] = relationship(back_populates="sessions")
     messages: Mapped[list["Message"]] = relationship(back_populates="session", cascade="all, delete-orphan", order_by="Message.sequence_number")
+    feedback: Mapped["SessionFeedback | None"] = relationship(back_populates="session", cascade="all, delete-orphan", uselist=False)

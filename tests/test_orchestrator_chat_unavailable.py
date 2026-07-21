@@ -32,6 +32,9 @@ class _DummySender(orchestrator.MessageSender):
     async def send_turn_complete(self, full_text: str, usage: dict | None) -> None:
         raise AssertionError("turn_complete should not be called when llm call fails")
 
+    async def send_feedback_requested(self) -> None:
+        return None
+
     async def send_error(self, code: str, message: str, recoverable: bool = True) -> None:
         self.code = code
         self.message = message
