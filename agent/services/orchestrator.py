@@ -1466,6 +1466,29 @@ async def run_agent_loop(
                     )
                     db.add(timeout_msg)
                     await db.commit()
+                except Exception:
+                    # Any other failure while waiting for the tool result (e.g. a
+                    # transient Redis error) must not silently abort the whole turn:
+                    # that would release the turn lock via _run_turn's `finally`
+                    # while leaving this call permanently unresolved, letting a
+                    # conflicting concurrent turn start for the same session.
+                    logger.exception(
+                        "tool_call_wait_failed session_id=%s app_id=%s call_id=%s fn=%s",
+                        session.id,
+                        session.app_id,
+                        info["id"],
+                        fn_name,
+                    )
+                    seq = await get_next_sequence(db, session.id)
+                    error_msg = Message(
+                        session_id=session.id,
+                        sequence_number=seq,
+                        role="tool_result",
+                        tool_call_id=info["id"],
+                        content=json.dumps({"error": f"Function '{fn_name}' failed due to a transient server error"}),
+                    )
+                    db.add(error_msg)
+                    await db.commit()
 
             tool_round += 1
             continue

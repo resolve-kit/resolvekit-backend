@@ -5,6 +5,8 @@ import time
 import uuid
 from typing import Any
 
+import redis.exceptions as redis_exceptions
+
 logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -258,6 +260,14 @@ async def stream_events(
                     timeout=poll_timeout,
                 )
             except TimeoutError:
+                yield ": keep-alive\n\n"
+                continue
+            except redis_exceptions.RedisError:
+                # Transient Redis hiccup (e.g. a blocking BGSAVE) — degrade to a
+                # keep-alive and retry rather than crashing the whole SSE stream.
+                logger.warning(
+                    "sse_redis_hiccup session_id=%s app_id=%s", session.id, app.id, exc_info=True
+                )
                 yield ": keep-alive\n\n"
                 continue
 
