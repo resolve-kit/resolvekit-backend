@@ -71,6 +71,10 @@ class HumanMessageBody(BaseModel):
     text: str = Field(min_length=1, max_length=_MAX_MESSAGE_TEXT_BYTES)
 
 
+class SessionEscalatedBody(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+
+
 class ToolResultBody(BaseModel):
     turn_id: str
     idempotency_key: str = Field(min_length=1, max_length=255)
@@ -420,6 +424,26 @@ async def post_feedback_requested(
         request_id=str(uuid.uuid4()),
         event_type="feedback_requested",
         payload={"immediate": True},
+    )
+
+
+@router.post("/internal/sessions/{session_id}/session-escalated", dependencies=[Depends(require_internal_service)])
+async def post_session_escalated(
+    session_id: uuid.UUID,
+    body: SessionEscalatedBody,
+    db: AsyncSession = Depends(get_db),
+):
+    session = await db.get(ChatSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    await event_stream_store.append(
+        session_id=session.id,
+        app_id=session.app_id,
+        turn_id=str(uuid.uuid4()),
+        request_id=str(uuid.uuid4()),
+        event_type="session_escalated",
+        payload={"reason": body.reason},
     )
 
     return {"status": "ok"}

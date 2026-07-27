@@ -89,3 +89,21 @@ export async function postFeedbackRequested(sessionId: string): Promise<void> {
     throw new Error(`Agent internal feedback-requested call failed: ${response.status} ${body}`);
   }
 }
+
+export async function postSessionEscalated(sessionId: string, reason: string): Promise<void> {
+  const token = await buildServiceToken();
+  const response = await fetch(`${AGENT_BASE_URL}/internal/sessions/${sessionId}/session-escalated`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Agent internal session-escalated call failed: ${response.status} ${body}`);
+  }
+}

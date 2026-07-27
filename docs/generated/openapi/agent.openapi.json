@@ -861,6 +861,21 @@
         "title": "SessionCreate",
         "type": "object"
       },
+      "SessionEscalatedBody": {
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "SessionEscalatedBody",
+        "type": "object"
+      },
       "SessionFeedbackCreate": {
         "additionalProperties": false,
         "properties": {
@@ -1282,6 +1297,62 @@
           }
         ],
         "summary": "Post Human Message",
+        "tags": [
+          "chat-events"
+        ]
+      }
+    },
+    "/internal/sessions/{session_id}/session-escalated": {
+      "post": {
+        "operationId": "post_session_escalated_internal_sessions__session_id__session_escalated_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionEscalatedBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Session Escalated",
         "tags": [
           "chat-events"
         ]
