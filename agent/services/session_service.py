@@ -90,7 +90,7 @@ async def expire_stale_sessions(db: AsyncSession) -> int:
             ChatSession.status == "active",
             ChatSession.last_activity_at < func.now() - AgentConfig.session_ttl_minutes * text("interval '1 minute'"),
         )
-        .values(status="expired")
+        .values(status="expired", resolved_by="ai")
     )
     await db.commit()
     return result.rowcount

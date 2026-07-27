@@ -156,13 +156,18 @@ async def resolve_pending_tool_result(
     result: dict[str, Any],
 ) -> bool:
     """Write result to Redis + publish notification + try local resolve."""
-    # 1. Try Redis persistence for cross-process delivery
+    # 1. Try Redis persistence for cross-process delivery. Best-effort: a
+    # transient Redis error here must not prevent the same-process local
+    # future resolve below, or a real tool result would be silently dropped.
     redis = await get_redis_client()
     if redis is not None and redis_enabled():
-        result_key = f"rk:tool_result:{app_id}:{session_id}:{call_id}"
-        await redis.set(result_key, json.dumps(result), ex=600)
-        channel_name = f"rk:tool_notify:{app_id}:{session_id}:{call_id}"
-        await redis.publish(channel_name, "ready")
+        try:
+            result_key = f"rk:tool_result:{app_id}:{session_id}:{call_id}"
+            await redis.set(result_key, json.dumps(result), ex=600)
+            channel_name = f"rk:tool_notify:{app_id}:{session_id}:{call_id}"
+            await redis.publish(channel_name, "ready")
+        except Exception:
+            logger.warning("tool_result_redis_publish_failed call_id=%s", call_id, exc_info=True)
 
     # 2. Try local future resolve (same-process fast path)
     key = _pending_key(session_id, app_id, call_id)
@@ -174,8 +179,12 @@ async def resolve_pending_tool_result(
 
     # 3. If no local future, check if there's an active turn in Redis
     if redis is not None and redis_enabled():
-        lock_key = f"rk:turn:lock:{app_id}:{session_id}"
-        has_turn = await redis.exists(lock_key)
-        return has_turn > 0
+        try:
+            lock_key = f"rk:turn:lock:{app_id}:{session_id}"
+            has_turn = await redis.exists(lock_key)
+            return has_turn > 0
+        except Exception:
+            logger.warning("tool_result_redis_lock_check_failed call_id=%s", call_id, exc_info=True)
+            return False
 
     return False

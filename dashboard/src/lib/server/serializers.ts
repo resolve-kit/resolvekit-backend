@@ -41,6 +41,9 @@ export function sessionOut(session: {
   llmContext: unknown;
   availableFunctionNames: unknown;
   locale: string;
+  escalatedAt?: Date | null;
+  escalationReason?: string | null;
+  resolvedBy?: string | null;
 }, costSummary?: unknown) {
   return {
     id: session.id,
@@ -60,6 +63,9 @@ export function sessionOut(session: {
     ws_url: null,
     chat_capability_token: null,
     reused_active_session: false,
+    escalated_at: session.escalatedAt ?? null,
+    escalation_reason: session.escalationReason ?? null,
+    resolved_by: session.resolvedBy ?? null,
   };
 }
 

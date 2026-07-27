@@ -18,6 +18,7 @@ const TABS = [
   { label: "Chat Theme", slug: "chat-theme" },
   { label: "Localization", slug: "languages" },
   { label: "Sessions", slug: "sessions" },
+  { label: "Analytics", slug: "analytics" },
   { label: "Audit Log", slug: "audit" },
 ];
 

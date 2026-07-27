@@ -5,6 +5,8 @@ import time
 import uuid
 from typing import Any
 
+import redis.exceptions as redis_exceptions
+
 logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -15,8 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.database import async_session_factory, get_db
 from agent.middleware.auth import get_app_from_sdk_auth
+from agent.middleware.internal_auth import require_internal_service
 from agent.models.agent_config import AgentConfig
 from agent.models.app import App
+from agent.models.message import Message
 from agent.models.organization_llm_provider_profile import OrganizationLLMProviderProfile
 from agent.models.session import ChatSession
 from agent.services.chat_access_service import (
@@ -33,7 +37,7 @@ from agent.services.pending_tool_results import (
     register_pending_tool_result,
     resolve_pending_tool_result,
 )
-from agent.services.session_service import is_session_expired
+from agent.services.session_service import get_next_sequence, is_session_expired
 from agent.services.turn_state_service import turn_state_store
 
 router = APIRouter(tags=["chat-events"])
@@ -61,6 +65,14 @@ class ChatMessageAccepted(BaseModel):
     turn_id: str
     request_id: str
     status: str = "accepted"
+
+
+class HumanMessageBody(BaseModel):
+    text: str = Field(min_length=1, max_length=_MAX_MESSAGE_TEXT_BYTES)
+
+
+class SessionEscalatedBody(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
 
 
 class ToolResultBody(BaseModel):
@@ -131,8 +143,14 @@ class EventStreamSender(MessageSender):
     async def send_turn_complete(self, full_text: str, usage: dict | None) -> None:
         await self._push("turn_complete", {"full_text": full_text, "usage": usage})
 
+    async def send_feedback_requested(self) -> None:
+        await self._push("feedback_requested", {"immediate": False})
+
     async def send_error(self, code: str, message: str, recoverable: bool = True) -> None:
         await self._push("error", {"code": code, "message": message, "recoverable": recoverable})
+
+    async def send_session_escalated(self, reason: str) -> None:
+        await self._push("session_escalated", {"reason": reason})
 
     async def wait_for_tool_result(self, call_id: str, timeout: int) -> dict[str, Any]:
         fut = self._pending.get(call_id)
@@ -248,6 +266,14 @@ async def stream_events(
             except TimeoutError:
                 yield ": keep-alive\n\n"
                 continue
+            except redis_exceptions.RedisError:
+                # Transient Redis hiccup (e.g. a blocking BGSAVE) — degrade to a
+                # keep-alive and retry rather than crashing the whole SSE stream.
+                logger.warning(
+                    "sse_redis_hiccup session_id=%s app_id=%s", session.id, app.id, exc_info=True
+                )
+                yield ": keep-alive\n\n"
+                continue
 
             if not events:
                 yield ": keep-alive\n\n"
@@ -340,3 +366,84 @@ async def submit_tool_result(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pending tool call with this ID")
 
     return {"status": "ok", "deduplicated": False}
+
+
+@router.post("/internal/sessions/{session_id}/human-message", dependencies=[Depends(require_internal_service)])
+async def post_human_message(
+    session_id: uuid.UUID,
+    body: HumanMessageBody,
+    db: AsyncSession = Depends(get_db),
+):
+    session = await db.get(ChatSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    seq = await get_next_sequence(db, session.id)
+    message = Message(
+        session_id=session.id,
+        sequence_number=seq,
+        role="human_agent",
+        content=body.text,
+    )
+    db.add(message)
+    await db.commit()
+    await db.refresh(message)
+
+    await event_stream_store.append(
+        session_id=session.id,
+        app_id=session.app_id,
+        turn_id=str(uuid.uuid4()),
+        request_id=str(uuid.uuid4()),
+        event_type="human_message",
+        payload={"message_id": str(message.id), "text": body.text},
+    )
+
+    return {
+        "id": str(message.id),
+        "created_at": message.created_at.isoformat(),
+        "session_id": str(message.session_id),
+        "sequence_number": message.sequence_number,
+        "role": message.role,
+        "content": message.content,
+    }
+
+
+@router.post("/internal/sessions/{session_id}/feedback-requested", dependencies=[Depends(require_internal_service)])
+async def post_feedback_requested(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    session = await db.get(ChatSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    await event_stream_store.append(
+        session_id=session.id,
+        app_id=session.app_id,
+        turn_id=str(uuid.uuid4()),
+        request_id=str(uuid.uuid4()),
+        event_type="feedback_requested",
+        payload={"immediate": True},
+    )
+
+
+@router.post("/internal/sessions/{session_id}/session-escalated", dependencies=[Depends(require_internal_service)])
+async def post_session_escalated(
+    session_id: uuid.UUID,
+    body: SessionEscalatedBody,
+    db: AsyncSession = Depends(get_db),
+):
+    session = await db.get(ChatSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    await event_stream_store.append(
+        session_id=session.id,
+        app_id=session.app_id,
+        turn_id=str(uuid.uuid4()),
+        request_id=str(uuid.uuid4()),
+        event_type="session_escalated",
+        payload={"reason": body.reason},
+    )
+
+    return {"status": "ok"}

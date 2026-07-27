@@ -196,13 +196,29 @@ model ChatSession {
   llmContext    Json     @default("{}") @map("llm_context")
   availableFunctionNames Json   @default("[]") @map("available_function_names")
   locale        String   @default("en") @db.VarChar(16)
+  escalatedAt   DateTime? @map("escalated_at") @db.Timestamptz(6)
+  escalationReason String? @map("escalation_reason")
+  resolvedBy    String?  @map("resolved_by") @db.VarChar(20)
 
   app      App      @relation(fields: [appId], references: [id], onDelete: Cascade)
   messages Message[]
   llmUsageEvents LlmUsageEvent[]
+  feedback SessionFeedback?
 
   @@index([appId], map: "ix_chat_sessions_app_id")
   @@map("chat_sessions")
+}
+
+model SessionFeedback {
+  id        String   @id @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  sessionId String   @unique @map("session_id") @db.Uuid
+  rating    Int
+  comment   String?
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_feedback")
 }
 
 model LlmUsageEvent {

@@ -37,6 +37,9 @@ class _DummySender(orchestrator.MessageSender):
         self.turn_complete_text = full_text
         self.turn_complete_usage = usage
 
+    async def send_feedback_requested(self) -> None:
+        return None
+
     async def send_error(self, code: str, message: str, recoverable: bool = True) -> None:
         self.errors.append((code, message, recoverable))
 

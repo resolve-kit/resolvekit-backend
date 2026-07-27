@@ -37,6 +37,9 @@ class _DummySender(orchestrator.MessageSender):
         self.turn_complete_text = full_text
         self.turn_complete_usage = usage
 
+    async def send_feedback_requested(self) -> None:
+        return None
+
     async def send_error(self, code: str, message: str, recoverable: bool = True) -> None:
         raise AssertionError(f"Unexpected error sent to client: {code} {message}")
 
@@ -217,5 +220,9 @@ async def test_run_agent_loop_omits_kb_tool_when_kb_service_unavailable(monkeypa
     )
 
     llm_mock.assert_awaited_once()
-    assert llm_mock.await_args.args[2] is None
+    tools_sent = llm_mock.await_args.args[2]
+    assert tools_sent is not None
+    tool_names = {tool["function"]["name"] for tool in tools_sent}
+    assert "kb_search" not in tool_names
+    assert "escalate_to_human" in tool_names
     assert sender.turn_complete_text == "Use Settings > Account > Reset Password."
